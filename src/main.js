@@ -34,6 +34,9 @@ const colors = {
     shore: '#c2a86e',
     swellLine: '#4a90b8',
     grid: '#2a5a7e',
+    // Gradient swell colors
+    swellPeak: '#1a4a6e',    // Dark blue at wave peaks (crests)
+    swellTrough: '#4a90b8',  // Lighter blue at wave troughs (valleys)
 };
 
 function update(deltaTime) {
@@ -59,17 +62,39 @@ function draw() {
     ctx.fillStyle = colors.shore;
     ctx.fillRect(0, shoreY, w, world.shoreHeight);
 
-    // Draw swell lines (horizontal lines moving toward shore/down)
-    ctx.strokeStyle = colors.swellLine;
-    ctx.lineWidth = 2;
+    // Draw gradient swells (continuous gradient simulating 3D rolling waves)
+    // Each "peak" position (where discrete lines used to be) is dark
+    // Each "trough" position (midpoint between peaks) is light
+    // This creates a sine-wave-like intensity pattern
 
-    // Start from top, draw lines moving down
-    // The offset makes them animate toward shore
-    for (let y = world.swellOffset; y < shoreY; y += world.swellSpacing) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(w, y);
-        ctx.stroke();
+    const halfSpacing = world.swellSpacing / 2;
+
+    // Start one full spacing before the top to ensure smooth edge coverage
+    // This accounts for the offset animation
+    const startY = world.swellOffset - world.swellSpacing;
+
+    // Draw gradient bands from peak to trough to peak
+    for (let peakY = startY; peakY < shoreY; peakY += world.swellSpacing) {
+        const troughY = peakY + halfSpacing;
+        const nextPeakY = peakY + world.swellSpacing;
+
+        // First half: peak (dark) to trough (light)
+        if (troughY > 0 && peakY < shoreY) {
+            const grad1 = ctx.createLinearGradient(0, peakY, 0, troughY);
+            grad1.addColorStop(0, colors.swellPeak);
+            grad1.addColorStop(1, colors.swellTrough);
+            ctx.fillStyle = grad1;
+            ctx.fillRect(0, Math.max(0, peakY), w, Math.min(troughY, shoreY) - Math.max(0, peakY));
+        }
+
+        // Second half: trough (light) to next peak (dark)
+        if (nextPeakY > 0 && troughY < shoreY) {
+            const grad2 = ctx.createLinearGradient(0, troughY, 0, nextPeakY);
+            grad2.addColorStop(0, colors.swellTrough);
+            grad2.addColorStop(1, colors.swellPeak);
+            ctx.fillStyle = grad2;
+            ctx.fillRect(0, Math.max(0, troughY), w, Math.min(nextPeakY, shoreY) - Math.max(0, troughY));
+        }
     }
 
     // Draw grid lines for reference (faint)
@@ -90,7 +115,7 @@ function draw() {
     // Labels
     ctx.fillStyle = '#fff';
     ctx.font = '14px monospace';
-    ctx.fillText('Swell lines traveling toward shore ↓', 10, 30);
+    ctx.fillText('Gradient swells traveling toward shore ↓', 10, 30);
     ctx.fillText('Shore', 10, h - 20);
 }
 
@@ -109,5 +134,5 @@ function gameLoop(timestamp) {
 
 requestAnimationFrame(gameLoop);
 
-console.log('Simple swell visualization');
-console.log('Swell lines move toward shore (top of screen)');
+console.log('Gradient swell visualization');
+console.log('Smooth gradient swells roll toward shore');
