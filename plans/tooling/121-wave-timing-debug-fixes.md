@@ -234,12 +234,19 @@ This enables:
 - Components are testable in isolation
 
 **Migration Steps**:
-1. Extract pure game logic into separate module
-2. Convert wave model to time-based (immutable)
-3. Add React wrapper around canvas
-4. Incrementally convert rendering to React components
-5. Swap Canvas 2D for Three.js/R3F
-6. Add WebGL shaders for water effects
+1. Extract pure game logic into separate module (✅ Done - Plan 123)
+2. Convert wave model to time-based (✅ Done - Plan 123)
+3. Add React UI layer (✅ Done - Plan 127: Preact)
+4. Optimize for performance (📋 Plan 128: Concurrent Mode)
+5. Migrate to React 18 (📋 Plan 129: React 18 Migration)
+6. Incrementally convert rendering to React Three Fiber (📋 Plan 131)
+7. Add WebGL shaders for water effects (📋 Plan 131)
+
+**Note**: React migration now split into focused plans:
+- **Plan 127**: Preact UI Layer (UI components)
+- **Plan 128**: React Performance Optimization (time-slicing, concurrent features)
+- **Plan 129**: React 18 Concurrent Mode Migration (full React 18)
+- **Plan 131**: React Three Fiber (Canvas 2D → WebGL)
 
 ### Plan: Debug Grid Toggle
 - Make grid lines toggleable via debug panel
@@ -256,6 +263,8 @@ This enables:
 4. Test the changes
 5. Create the future plan files:
    - `plans/122-dynamic-shoreline.md`
-   - `plans/123-wave-lifecycle-model.md`
-   - `plans/124-react-threejs-migration.md`
-   - `plans/125-debug-grid-toggle.md`
+   - `plans/123-wave-lifecycle-model.md` (✅ Done)
+   - `plans/127-declarative-ui-layer.md` (✅ Done)
+   - `plans/128-react-performance-optimization.md` (✅ Done)
+   - `plans/129-react-18-concurrent-migration.md` (✅ Done)
+   - `plans/131-react-three-fiber-migration.md` (📋 TODO)

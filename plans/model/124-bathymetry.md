@@ -1,217 +1,258 @@
 # Plan 124: Add Bathymetry (Ocean Floor Depth)
 
+## Status: ✅ Complete (Revision 2)
+
+### Revision Notes
+The initial implementation had foam triangles attached to wave transforms, which looked wrong. This revision corrects the approach:
+- Breaking onset must be **depth-based**, not progress-based
+- Foam/whitewater must be **decoupled from waves** - independent entities
+- Peel must **propagate laterally** along bathymetry contour
+
+---
+
 ## Why This Is Next
 
 Per GPT feedback, the dependency order for realistic wave physics is:
 
 1. ✅ Lock 2D timing model (done - sets/lulls/spawn-per-wave)
-2. **→ Bathymetry (this plan)**
-3. Shoaling (height changes with depth)
-4. Breaking logic
-5. Peeling logic
-6. 3D perspective rendering
+2. ✅ Unified wave array (done - plan 125)
+3. ✅ Bathymetry (this plan - complete)
+4. Shoaling (height changes with depth)
+5. Breaking logic
+6. Peeling logic
 
-**Do NOT skip to shoaling.** Shoaling depends on bathymetry. Breaking depends on shoaling. Peeling depends on breaking.
+---
 
-## Keep It Simple
+## Architecture: Waves vs Foam
 
-**Important**: We are NOT curving the swell lines yet. Waves stay as straight horizontal lines.
+### Key Insight: Foam is NOT Part of the Wave
 
-What we ARE adding:
-- A depth map (bathymetry)
-- A "break point" x-position where the wave starts breaking
-- A "foam width" that expands as the wave approaches shore
-- Visual: foam triangle that grows from the break point
+The wave line and the whitewater are **separate entities**:
 
-```
-Horizon
-─────────────────────────────  ← wave line (straight)
-─────────────────────────────
-────────────▓▓▓──────────────  ← wave starts breaking at shallow spot
-───────────▓▓▓▓▓─────────────  ← foam width expands
-──────────▓▓▓▓▓▓▓────────────  ← triangle of foam
-─────────▓▓▓▓▓▓▓▓▓───────────
-Shore
-```
+| Wave Line | Whitewater/Foam |
+|-----------|-----------------|
+| Moves at swell speed | Moves at its own speed (slower) |
+| Exists from horizon to shore | Spawns at break point, persists independently |
+| Has amplitude/type | Has position, width, opacity, decay |
+| Rendered as gradient band | Rendered as expanding trail |
 
-The wave line itself stays straight. Only the foam/whitewater section expands.
-
-## Current State
-
-Waves are 1D:
-```js
-wave = { y, amplitude }
-```
-
-No concept of:
-- Ocean floor depth
-- Breaking state
-- Foam/whitewater width
-
-## Implementation
-
-### Phase 1: Add Simple Depth Map
-
-One shallow spot (the "peak" where waves break):
+### Data Model
 
 ```js
-world.bathymetry = {
-    deepDepth: 20,           // meters in deep water
-    shallowDepth: 2,         // meters at the peak
-    peakX: 0.4,              // peak location (40% from left, normalized 0-1)
-    peakWidth: 0.15,         // how wide the shallow section is
-
-    getDepth: function(normalizedX) {
-        // Gaussian-ish bump of shallow water
-        const dist = Math.abs(normalizedX - this.peakX) / this.peakWidth;
-        if (dist > 1) return this.deepDepth;
-        const t = 1 - dist;  // 1 at peak, 0 at edges
-        return this.deepDepth - (this.deepDepth - this.shallowDepth) * t * t;
-    }
-};
-```
-
-### Phase 2: Add Breaking State to Waves
-
-Extend wave model:
-```js
+// Wave (existing, minimal changes)
 wave = {
-    y: number,              // vertical position (unchanged)
-    amplitude: number,      // wave size (unchanged)
-    breaking: boolean,      // has this wave started breaking?
-    breakX: number | null,  // x-position where break started (normalized 0-1)
-    foamWidth: number       // how wide the foam has spread (starts 0)
+    id, spawnTime, amplitude, type,
+    // Remove: breaking, breakX, foamWidth (these belong to foam)
 }
+
+// NEW: Whitewater segment (independent entity)
+foam = {
+    id,
+    spawnTime,           // when this foam was created
+    x,                   // x position (normalized 0-1)
+    y,                   // y position (screen coords, moves toward shore)
+    width,               // current width (expands over time)
+    opacity,             // fades over time (1.0 → 0)
+    sourceWaveId,        // which wave spawned this (for debugging)
+}
+
+// World state
+world.waves = [...]      // wave lines
+world.foamSegments = []  // independent whitewater entities
 ```
 
-### Phase 3: Breaking Logic
+---
 
-Wave breaks when it reaches shallow water AND amplitude is high enough:
+## Implementation Phases
+
+### Phase 1: Bathymetry Model ✅ (Done)
 
 ```js
-function updateWaveBreaking(wave, shoreY) {
-    if (wave.breaking) {
-        // Foam expands as wave approaches shore
-        const progress = wave.y / shoreY;  // 0 at horizon, 1 at shore
-        wave.foamWidth = progress * 0.3;   // max 30% of screen width
-        return;
-    }
-
-    // Check if wave should start breaking
-    // Break happens when wave is past 60% to shore AND over shallow spot
-    const progress = wave.y / shoreY;
-    if (progress > 0.6 && wave.amplitude > 0.5) {
-        wave.breaking = true;
-        wave.breakX = world.bathymetry.peakX;  // breaks at the peak
-        wave.foamWidth = 0.02;  // initial foam width
-    }
-}
+// bathymetryModel.js - already implemented
+getDepth(normalizedX) → depth in meters
+getPeakX() → x position of shallowest point
+shouldBreak(waveHeight, depth) → boolean (H > 0.78d)
+amplitudeToHeight(amplitude) → height in meters
 ```
 
-### Phase 4: Render Foam Triangle
+### Phase 2: Depth-Based Breaking Detection
+
+Check breaking condition **per x-position** along the wave:
 
 ```js
-function drawWave(wave, shoreY) {
-    const y = wave.y;
+function checkBreakingAtX(wave, normalizedX, progress, bathymetry) {
+    // Get depth at this x position
+    const depth = getDepth(normalizedX, bathymetry);
 
-    // Draw the swell line (unchanged - still straight)
-    // ... existing gradient code ...
+    // Convert amplitude to wave height
+    const waveHeight = amplitudeToHeight(wave.amplitude);
 
-    // Draw foam if breaking
-    if (wave.breaking && wave.breakX !== null) {
-        const centerX = wave.breakX * canvas.width;
-        const halfWidth = (wave.foamWidth * canvas.width) / 2;
+    // Wave breaks when H > 0.78 * d
+    // Also require minimum progress (wave must be close enough to shore)
+    const minProgress = 0.4; // Don't break too far from shore
 
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-        ctx.beginPath();
-        ctx.moveTo(centerX - halfWidth, y);
-        ctx.lineTo(centerX + halfWidth, y);
-        ctx.lineTo(centerX, y + 20);  // small triangle pointing toward shore
-        ctx.closePath();
-        ctx.fill();
-    }
+    return progress > minProgress && shouldBreak(waveHeight, depth);
 }
 ```
 
-### Phase 5: Debug Visualization
+### Phase 3: Foam Spawning (Decoupled from Wave)
 
-Show depth map as colored strip:
+When breaking detected, spawn an **independent foam entity**:
+
 ```js
-// Draw depth indicator along shore
-for (let x = 0; x < canvas.width; x++) {
-    const normalizedX = x / canvas.width;
-    const depth = world.bathymetry.getDepth(normalizedX);
-    const brightness = Math.floor((depth / world.bathymetry.deepDepth) * 255);
-    ctx.fillStyle = `rgb(0, ${brightness}, ${brightness})`;
-    ctx.fillRect(x, shoreY, 1, 5);
+function spawnFoam(wave, x, y) {
+    return {
+        id: `foam-${nextFoamId++}`,
+        spawnTime: world.gameTime,
+        x: x,                    // fixed x position
+        y: y,                    // starts at wave's y, then moves independently
+        width: 0.02,             // initial width
+        opacity: 1.0,            // starts fully opaque
+        sourceWaveId: wave.id,
+    };
 }
 ```
+
+### Phase 4: Foam Update (Independent Movement)
+
+Foam moves toward shore and expands/fades **independently of the parent wave**:
+
+```js
+function updateFoam(foam, deltaTime) {
+    // Move toward shore (slower than waves)
+    const foamSpeed = 30; // pixels per second (slower than wave speed of 50)
+    foam.y += foamSpeed * deltaTime;
+
+    // Expand width over time
+    foam.width = Math.min(0.3, foam.width + 0.001 * deltaTime);
+
+    // Fade over time
+    const age = (world.gameTime - foam.spawnTime) / 1000; // seconds
+    foam.opacity = Math.max(0, 1 - age / 5); // fade over 5 seconds
+}
+```
+
+### Phase 5: Peel Propagation
+
+Breaking spreads **laterally along the bathymetry contour**:
+
+```js
+function updatePeel(wave, bathymetry, deltaTime) {
+    // If wave is breaking, check adjacent x positions
+    // Spawn new foam segments where depth triggers breaking
+    // This creates the "peel" effect - break spreading along the wave
+
+    const peelSpeed = 0.05; // how fast break spreads laterally (per second)
+    // ... spawn foam at newly-breaking x positions
+}
+```
+
+### Phase 6: Foam Rendering (Trail, Not Triangle)
+
+Draw foam as persistent trail, not attached to wave:
+
+```js
+function drawFoam(foam) {
+    if (foam.opacity <= 0) return;
+
+    const centerX = foam.x * canvas.width;
+    const halfWidth = (foam.width * canvas.width) / 2;
+
+    // Draw as horizontal band (whitewater), not triangle
+    ctx.fillStyle = `rgba(255, 255, 255, ${foam.opacity * 0.8})`;
+    ctx.fillRect(centerX - halfWidth, foam.y, halfWidth * 2, 15);
+
+    // Optional: add texture/noise for more realistic foam
+}
+```
+
+---
+
+## Visual Behavior
+
+### Before (Wrong)
+```
+Wave line ─────────────────────
+              ▲ (triangle attached to wave, moves with it)
+```
+
+### After (Correct)
+```
+Wave line ─────────────────────  (wave continues moving)
+
+              ░░░░░  ← foam trail (stays behind, fades)
+              ░░░░░░░
+              ░░░░░░░░░  ← older foam (more faded, wider)
+```
+
+The wave line passes through. Foam spawns at break point and **stays behind** as the wave continues toward shore. Multiple foam segments create a trail.
+
+---
 
 ## What We're NOT Doing (Yet)
 
-- ❌ Curving the wave lines
+- ❌ Curving the wave lines (shoaling first)
 - ❌ Per-x-position wave speed differences
 - ❌ Complex foam particle systems
 - ❌ Realistic shoaling height changes
-- ❌ Multiple break points
+- ❌ Sound effects
 
-Keep it simple: straight wave lines + expanding foam triangle.
+---
 
 ## Testing
 
 ### Unit Tests
 ```js
-describe('bathymetry', () => {
-    it('returns shallow depth at peak', () => {
-        const depth = world.bathymetry.getDepth(0.4);  // at peakX
-        expect(depth).toBe(2);
+describe('depth-based breaking', () => {
+    it('breaks over shallow water with sufficient amplitude', () => {
+        // depth=2m, waveHeight=2m → should break (2 > 0.78*2)
+        expect(shouldBreak(2, 2)).toBe(true);
     });
 
-    it('returns deep depth away from peak', () => {
-        const depth = world.bathymetry.getDepth(0.9);  // far from peak
-        expect(depth).toBe(20);
+    it('does not break in deep water', () => {
+        // depth=20m, waveHeight=2m → should not break (2 < 0.78*20)
+        expect(shouldBreak(2, 20)).toBe(false);
     });
 });
 
-describe('wave breaking', () => {
-    it('large wave breaks over shallow spot', () => {
-        const wave = { y: 400, amplitude: 0.8, breaking: false };
-        updateWaveBreaking(wave, 600);
-        expect(wave.breaking).toBe(true);
+describe('foam lifecycle', () => {
+    it('foam fades over time', () => {
+        const foam = spawnFoam(wave, 0.4, 400);
+        updateFoam(foam, 3); // 3 seconds
+        expect(foam.opacity).toBeLessThan(1);
     });
 
-    it('small wave does not break', () => {
-        const wave = { y: 400, amplitude: 0.3, breaking: false };
-        updateWaveBreaking(wave, 600);
-        expect(wave.breaking).toBe(false);
+    it('foam moves independently of wave', () => {
+        const foam = spawnFoam(wave, 0.4, 400);
+        const initialY = foam.y;
+        updateFoam(foam, 1);
+        expect(foam.y).toBeGreaterThan(initialY);
     });
 });
 ```
 
 ### Visual Tests
-- Foam triangle appears when wave is ~60% to shore
-- Triangle expands as wave approaches
-- Triangle is centered on the shallow spot
-- Wave line itself stays straight
+- Foam appears when wave reaches shallow water (not fixed progress)
+- Foam stays behind as wave continues
+- Multiple foam segments create a trail
+- Foam fades and eventually disappears
+- Break spreads laterally (peel visible)
 
-## Next Steps After This
+---
 
-Once this works:
-1. **Shoaling** - wave gets darker/higher contrast over shallow spot
-2. **Variable break point** - break starts at shallowest x, not fixed
-3. **Curved waves** - wave line bends (slows over shallow)
-4. **Proper peeling** - break spreads laterally along wave
+## Files to Modify
 
-But those are separate plans. This plan = straight lines + foam triangle only.
+- `src/state/waveModel.js` - Remove breaking state from wave (move to foam)
+- `src/state/foamModel.js` - NEW: Foam entity and lifecycle
+- `src/state/bathymetryModel.js` - Already done ✅
+- `src/main.js` - Add foam array, update loop, render loop
 
-## Relationship to Plan 123 (Time-Based Model)
+---
 
-Plan 123 (time-based wave model) is orthogonal to this:
-- Plan 123 = **how** position is calculated (time-based vs mutable)
-- Plan 124 = **what** the wave looks like (add breaking/foam)
+## Success Criteria
 
-Can implement in either order. Recommendation: Do **124 first** because:
-1. It's the next physics dependency
-2. Smaller change, less risky
-3. Produces visible results quickly
-4. Plan 123 refactor is bigger and can be done after
+1. Breaking triggered by depth, not progress threshold
+2. Foam exists as independent entity, not attached to wave
+3. Foam trail persists after wave passes
+4. Peel propagates laterally along bathymetry
+5. Visual looks like real whitewater, not a sliding triangle
