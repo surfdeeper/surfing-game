@@ -33,6 +33,14 @@ import {
 } from './update/index.js';
 import { EventType } from './state/eventStore.js';
 import {
+    loadSettings,
+    toggleSetting,
+    updateSetting,
+    cycleSetting,
+    getSettingForHotkey,
+    SETTINGS_SCHEMA,
+} from './state/settingsModel.js';
+import {
     PLAYER_PROXY_CONFIG,
     createPlayerProxy,
     drawPlayerProxy,
@@ -186,50 +194,20 @@ function getWaveColors(wave) {
     };
 }
 
-// Time scale for testing (1x, 2x, 4x, 8x)
-let timeScale = 1;
-const TIME_SCALES = [1, 2, 4, 8];
+// Settings loaded from settingsModel (schema-validated, versioned)
+// This replaces the old inline localStorage reading
+let settings = loadSettings();
 
-// Debug view modes (toggles affect visibility only, not simulation)
-// Load from localStorage or use defaults
-const toggles = {
-    showBathymetry: localStorage.getItem('showBathymetry') === 'true',
-    showSetWaves: localStorage.getItem('showSetWaves') !== 'false',  // default true
-    showBackgroundWaves: localStorage.getItem('showBackgroundWaves') !== 'false',  // default true
-    showFoamZones: localStorage.getItem('showFoamZones') !== 'false',  // default true - smooth foam polygons
-    showFoamSamples: localStorage.getItem('showFoamSamples') === 'true',  // default false - debug rectangles
-    showPlayer: localStorage.getItem('showPlayer') === 'true',  // default false - player proxy
-    showAIPlayer: localStorage.getItem('showAIPlayer') === 'true',  // default false - AI controlled player
-    // Foam dispersion experimental options (compare different algorithms)
-    showFoamOptionA: localStorage.getItem('showFoamOptionA') === 'true',  // Expand bounds
-    showFoamOptionB: localStorage.getItem('showFoamOptionB') === 'true',  // Age-based blur
-    showFoamOptionC: localStorage.getItem('showFoamOptionC') === 'true',  // Per-row dispersion
-    // Energy field (Plan 140) - continuous wave model
-    showEnergyField: localStorage.getItem('showEnergyField') === 'true',
-};
+// Alias for backwards compatibility - kept in sync with settings
+let toggles = settings;
 
-// Helper to save toggle state
-function saveToggleState() {
-    localStorage.setItem('showBathymetry', toggles.showBathymetry);
-    localStorage.setItem('showSetWaves', toggles.showSetWaves);
-    localStorage.setItem('showBackgroundWaves', toggles.showBackgroundWaves);
-    localStorage.setItem('showFoamZones', toggles.showFoamZones);
-    localStorage.setItem('showFoamSamples', toggles.showFoamSamples);
-    localStorage.setItem('showPlayer', toggles.showPlayer);
-    localStorage.setItem('showAIPlayer', toggles.showAIPlayer);
-    localStorage.setItem('showFoamOptionA', toggles.showFoamOptionA);
-    localStorage.setItem('showFoamOptionB', toggles.showFoamOptionB);
-    localStorage.setItem('showFoamOptionC', toggles.showFoamOptionC);
-    localStorage.setItem('showEnergyField', toggles.showEnergyField);
-}
-
-// Toggle handler for Preact UI
+// Toggle handler for React UI - uses settingsModel for persistence
 function handleToggle(key) {
-    toggles[key] = !toggles[key];
-    saveToggleState();
+    settings = toggleSetting(settings, key);
+    toggles = settings;  // Keep alias in sync
 
     // Initialize player proxy when first enabled via UI
-    if (key === 'showPlayer' && toggles.showPlayer && !world.playerProxy) {
+    if (key === 'showPlayer' && settings.showPlayer && !world.playerProxy) {
         const { shoreY } = getOceanBounds(canvas.height, world.shoreHeight);
         world.playerProxy = createPlayerProxy(canvas.width, shoreY);
     }
@@ -237,7 +215,8 @@ function handleToggle(key) {
 
 // Time scale handler for React UI
 function handleTimeScaleChange(newScale) {
-    timeScale = newScale;
+    settings = updateSetting(settings, 'timeScale', newScale);
+    toggles = settings;
 }
 
 // Player config handler for React UI
@@ -264,7 +243,7 @@ const reactRoot = createRoot(uiContainer);
 function saveGameState() {
     const state = {
         gameTime: world.gameTime,
-        timeScale,
+        timeScale: settings.timeScale,
         waves: world.waves,
         foamSegments: world.foamSegments,
         setLullState: world.setLullState,
@@ -281,7 +260,11 @@ function loadGameState() {
     try {
         const state = JSON.parse(saved);
         world.gameTime = state.gameTime || 0;
-        timeScale = state.timeScale || 1;
+        // Restore timeScale via settings model
+        if (state.timeScale) {
+            settings = updateSetting(settings, 'timeScale', state.timeScale);
+            toggles = settings;
+        }
         // Migrate waves to ensure they have progressPerX (added in wave refraction feature)
         world.waves = (state.waves || []).map(wave => ({
             ...wave,
@@ -322,65 +305,41 @@ if (toggles.showPlayer && !world.playerProxy) {
     world.playerProxy = createPlayerProxy(canvas.width, shoreY);
 }
 
-// Keyboard controls
+// Keyboard controls - uses settingsModel for hotkey mapping
 document.addEventListener('keydown', (e) => {
-    if (e.key === 't' || e.key === 'T') {
-        const currentIndex = TIME_SCALES.indexOf(timeScale);
-        const nextIndex = (currentIndex + 1) % TIME_SCALES.length;
-        timeScale = TIME_SCALES[nextIndex];
+    const key = e.key.toLowerCase();
+
+    // Special case: 't' cycles timeScale
+    if (key === 't') {
+        settings = cycleSetting(settings, 'timeScale');
+        toggles = settings;
+        return;
     }
-    if (e.key === 'b' || e.key === 'B') {
-        handleToggle('showBathymetry');
-    }
-    if (e.key === 's' || e.key === 'S') {
-        handleToggle('showSetWaves');
-    }
-    if (e.key === 'g' || e.key === 'G') {
-        handleToggle('showBackgroundWaves');
-    }
-    if (e.key === 'f' || e.key === 'F') {
-        handleToggle('showFoamZones');
-    }
-    if (e.key === 'd' || e.key === 'D') {
-        handleToggle('showFoamSamples');
-    }
-    if (e.key === 'p' || e.key === 'P') {
-        handleToggle('showPlayer');
-        // Initialize player proxy when first enabled
-        if (toggles.showPlayer && !world.playerProxy) {
-            const { shoreY } = getOceanBounds(canvas.height, world.shoreHeight);
-            world.playerProxy = createPlayerProxy(canvas.width, shoreY);
-        }
-    }
-    if (e.key === 'a' || e.key === 'A') {
-        // AI Player toggle only works if Player is enabled
-        if (toggles.showPlayer) {
-            handleToggle('showAIPlayer');
-        }
-    }
-    if (e.key === 'm' || e.key === 'M') {
-        // Cycle AI mode: BEGINNER -> INTERMEDIATE -> EXPERT -> BEGINNER
-        if (toggles.showPlayer && toggles.showAIPlayer) {
+
+    // Special case: 'm' cycles AI mode (not in settings)
+    if (key === 'm') {
+        if (settings.showPlayer && settings.showAIPlayer) {
             const modes = [AI_MODE.BEGINNER, AI_MODE.INTERMEDIATE, AI_MODE.EXPERT];
             const currentIdx = modes.indexOf(world.aiMode);
             world.aiMode = modes[(currentIdx + 1) % modes.length];
             world.aiState = createAIState(world.aiMode);
             console.log(`[AI] Switched to ${world.aiMode} mode`);
         }
+        return;
     }
-    // Foam dispersion option toggles (1, 2, 3 keys)
-    if (e.key === '1') {
-        handleToggle('showFoamOptionA');
+
+    // Special case: 'a' only toggles AI if player is enabled
+    if (key === 'a') {
+        if (settings.showPlayer) {
+            handleToggle('showAIPlayer');
+        }
+        return;
     }
-    if (e.key === '2') {
-        handleToggle('showFoamOptionB');
-    }
-    if (e.key === '3') {
-        handleToggle('showFoamOptionC');
-    }
-    // Energy field toggle (E key)
-    if (e.key === 'e' || e.key === 'E') {
-        handleToggle('showEnergyField');
+
+    // General case: look up setting by hotkey from schema
+    const settingKey = getSettingForHotkey(key);
+    if (settingKey && SETTINGS_SCHEMA[settingKey]?.type === 'boolean') {
+        handleToggle(settingKey);
     }
 });
 
@@ -398,7 +357,7 @@ function spawnWave(amplitude, type) {
 
 function update(deltaTime) {
     // Apply time scale for testing
-    const scaledDelta = deltaTime * timeScale;
+    const scaledDelta = deltaTime * settings.timeScale;
 
     // Advance game time (in ms)
     world.gameTime += scaledDelta * 1000;
@@ -819,7 +778,7 @@ function draw() {
             gameTime={world.gameTime}
             displayWaves={displayWaves}
             foamCount={world.foamSegments.length}
-            timeScale={timeScale}
+            timeScale={settings.timeScale}
             onTimeScaleChange={handleTimeScaleChange}
             toggles={toggles}
             onToggle={handleToggle}

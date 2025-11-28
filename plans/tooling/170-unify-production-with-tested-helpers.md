@@ -29,9 +29,11 @@ Incrementally migrate `main.jsx` to import and use the extracted, tested helpers
 
 ## Implementation Steps (Revised)
 
-### Phase 1: Settings Migration (Pending)
-- Replace direct `localStorage` reads/writes with `settingsModel` (`loadSettings`, `toggleSetting`, `updateSetting`, `cycleSetting`, hotkey mapping).
-- Map existing hotkeys to schema; persist via `saveSettings`.
+### Phase 1: Settings Migration ✅ DONE
+- Replaced direct `localStorage` reads/writes with `settingsModel` (`loadSettings`, `toggleSetting`, `updateSetting`, `cycleSetting`, hotkey mapping).
+- Keyboard handler now uses `getSettingForHotkey()` for schema-driven hotkey lookup.
+- `timeScale` now managed via settings model with `cycleSetting()`.
+- Removed 42 lines of inline localStorage code from main.jsx (894 → 852 lines).
 
 ### Phase 2: Rendering Consolidation (Pending)
 - Replace `drawWave` and inline color/thickness logic with `renderWaves()` from `src/render/waveRenderer.js`.
