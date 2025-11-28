@@ -6,7 +6,7 @@
 // - Position is calculated: progress = (currentTime - spawnTime) / travelDuration
 // - Coordinates mapped: progress (0-1) → screen pixels at render time
 
-import { createWave, getWaveProgress, getActiveWaves } from './state/waveModel.js';
+import { createWave, getWaveProgress, getActiveWaves, WAVE_TYPE } from './state/waveModel.js';
 import { progressToScreenY, getOceanBounds, calculateTravelDuration } from './render/coordinates.js';
 import {
     DEFAULT_CONFIG,
@@ -39,11 +39,9 @@ const world = {
     swellSpacing: 80,      // Visual spacing of wave gradient (pixels)
     swellSpeed: 50,        // Pixels per second toward shore (downward)
 
-    // Discrete wave objects (time-based)
-    // Set waves: larger, organized waves during SET state
-    setWaves: [],          // Array of { id, spawnTime, amplitude }
-    // Background waves: smaller, frequent waves always present
-    backgroundWaves: [],   // Array of { id, spawnTime, amplitude }
+    // Unified wave array - all waves in one array with type property
+    // Waves are rendered in spawn order (natural interleaving)
+    waves: [],             // Array of { id, spawnTime, amplitude, type }
     gameTime: 0,           // Current game time in ms (for time-based positions)
 
     // Set/lull configuration (used by setLullModel)
@@ -112,14 +110,9 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-// Spawn a set wave at the horizon with the given amplitude
-function spawnSetWave(amplitude) {
-    world.setWaves.push(createWave(world.gameTime, amplitude));
-}
-
-// Spawn a background wave at the horizon with the given amplitude
-function spawnBackgroundWave(amplitude) {
-    world.backgroundWaves.push(createWave(world.gameTime, amplitude));
+// Spawn a wave at the horizon with the given amplitude and type
+function spawnWave(amplitude, type) {
+    world.waves.push(createWave(world.gameTime, amplitude, type));
 }
 
 function update(deltaTime) {
@@ -139,7 +132,7 @@ function update(deltaTime) {
 
     // Spawn set wave if the state machine says to
     if (setResult.shouldSpawn) {
-        spawnSetWave(setResult.amplitude);
+        spawnWave(setResult.amplitude, WAVE_TYPE.SET);
     }
 
     // Update background wave state (always spawning, independent of set/lull)
@@ -152,7 +145,7 @@ function update(deltaTime) {
 
     // Spawn background wave if needed
     if (bgResult.shouldSpawn) {
-        spawnBackgroundWave(bgResult.amplitude);
+        spawnWave(bgResult.amplitude, WAVE_TYPE.BACKGROUND);
     }
 
     // Remove waves that have completed their journey (time-based)
@@ -160,8 +153,7 @@ function update(deltaTime) {
     const travelDuration = calculateTravelDuration(oceanBottom, world.swellSpeed);
     // Add buffer for visual spacing past shore
     const bufferDuration = (world.swellSpacing / world.swellSpeed) * 1000;
-    world.setWaves = getActiveWaves(world.setWaves, world.gameTime - bufferDuration, travelDuration);
-    world.backgroundWaves = getActiveWaves(world.backgroundWaves, world.gameTime - bufferDuration, travelDuration);
+    world.waves = getActiveWaves(world.waves, world.gameTime - bufferDuration, travelDuration);
 }
 
 function draw() {
@@ -179,9 +171,9 @@ function draw() {
     ctx.fillRect(0, shoreY, w, world.shoreHeight);
 
     // Helper function to draw a wave as a gradient band
-    const drawWave = (wave, opacity = 1.0) => {
+    const drawWave = (wave) => {
         // Scale thickness based on amplitude
-        // Low amplitude (0.05) → thin band (40px)
+        // Low amplitude (0.15) → thin band (40px)
         // High amplitude (1.0) → thick band (120px)
         const minThickness = 40;
         const maxThickness = 120;
@@ -194,7 +186,8 @@ function draw() {
         const nextPeakY = peakY + waveSpacing;
         const currentTroughColor = getTroughColor(wave.amplitude);
 
-        ctx.globalAlpha = opacity;
+        // All waves render at full opacity - visual difference comes from amplitude
+        ctx.globalAlpha = 1.0;
 
         // First half: peak (dark) to trough (light)
         if (troughY > 0 && peakY < shoreY) {
@@ -213,18 +206,18 @@ function draw() {
             ctx.fillStyle = grad2;
             ctx.fillRect(0, Math.max(0, troughY), w, Math.min(nextPeakY, shoreY) - Math.max(0, troughY));
         }
-
-        ctx.globalAlpha = 1.0;
     };
 
-    // Draw background waves first (behind)
-    for (const wave of world.backgroundWaves) {
-        drawWave(wave, 0.8);  // 80% opacity for background waves
-    }
+    // Draw all waves in spawn order (natural interleaving, no artificial layering)
+    // Sort by progress so waves closer to horizon render first (painter's algorithm)
+    const sortedWaves = [...world.waves].sort((a, b) => {
+        const progressA = getWaveProgress(a, world.gameTime, travelDuration);
+        const progressB = getWaveProgress(b, world.gameTime, travelDuration);
+        return progressA - progressB;
+    });
 
-    // Draw set waves on top (full opacity)
-    for (const wave of world.setWaves) {
-        drawWave(wave, 1.0);
+    for (const wave of sortedWaves) {
+        drawWave(wave);
     }
 
 
@@ -244,8 +237,8 @@ function draw() {
     const stateTimerProgress = Math.min(sls.setTimer / sls.setDuration, 1);
     const stateLabel2 = sls.setState === 'LULL' ? 'Until set' : 'Set ends';
 
-    // Filter and sort set waves for display (exclude at-shore, sort by progress)
-    const displaySetWaves = world.setWaves
+    // Filter waves for display (exclude at-shore)
+    const displayWaves = world.waves
         .map(wave => ({
             wave,
             progress: getWaveProgress(wave, world.gameTime, travelDuration)
@@ -253,14 +246,15 @@ function draw() {
         .filter(({ progress }) => progress < 1)
         .sort((a, b) => a.progress - b.progress);  // ascending: horizon first
 
-    // Count background waves for display
-    const bgWaveCount = world.backgroundWaves.filter(wave =>
-        getWaveProgress(wave, world.gameTime, travelDuration) < 1
-    ).length;
+    // Count by type
+    const setWaveCount = displayWaves.filter(({ wave }) => wave.type === WAVE_TYPE.SET).length;
+    const bgWaveCount = displayWaves.filter(({ wave }) => wave.type === WAVE_TYPE.BACKGROUND).length;
 
     // Calculate panel height based on wave count (each wave needs space for text + progress bar)
     const baseHeight = 150;  // Increased to fit background wave count
     const waveItemHeight = 28;  // 16 for text + 12 for progress bar
+    // Only show set waves in detail list (background waves just get a count)
+    const displaySetWaves = displayWaves.filter(({ wave }) => wave.type === WAVE_TYPE.SET);
     const waveListHeight = displaySetWaves.length * waveItemHeight;
     const panelHeight = baseHeight + waveListHeight;
 
@@ -286,7 +280,7 @@ function draw() {
     ctx.fillRect(w - 210, 85, 190 * (1 - stateTimerProgress), 8);
 
     ctx.fillStyle = '#fff';
-    ctx.fillText(`Set waves: ${displaySetWaves.length}`, w - 210, 115);
+    ctx.fillText(`Set waves: ${setWaveCount}`, w - 210, 115);
 
     ctx.fillStyle = '#888';
     ctx.fillText(`Background: ${bgWaveCount}`, w - 210, 135);

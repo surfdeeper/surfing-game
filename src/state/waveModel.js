@@ -4,16 +4,26 @@
 let nextWaveId = 1;
 
 /**
+ * Wave types
+ */
+export const WAVE_TYPE = {
+    BACKGROUND: 'background',
+    SET: 'set',
+};
+
+/**
  * Create a new wave object
  * @param {number} spawnTime - Time when wave was spawned (ms since game start)
  * @param {number} amplitude - Wave amplitude (0-1)
+ * @param {string} type - Wave type: 'background' or 'set' (defaults to 'set')
  * @returns {object} Immutable wave object
  */
-export function createWave(spawnTime, amplitude) {
+export function createWave(spawnTime, amplitude, type = WAVE_TYPE.SET) {
     return {
         id: `wave-${nextWaveId++}`,
         spawnTime,
         amplitude,
+        type,
     };
 }
 

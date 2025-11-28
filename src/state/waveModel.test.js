@@ -5,6 +5,7 @@ import {
     getWaveProgress,
     isWaveComplete,
     getActiveWaves,
+    WAVE_TYPE,
 } from './waveModel.js';
 
 describe('waveModel', () => {
@@ -25,6 +26,21 @@ describe('waveModel', () => {
             const wave2 = createWave(2000, 0.6);
             expect(wave1.id).toBe('wave-1');
             expect(wave2.id).toBe('wave-2');
+        });
+
+        it('defaults to SET wave type', () => {
+            const wave = createWave(1000, 0.8);
+            expect(wave.type).toBe(WAVE_TYPE.SET);
+        });
+
+        it('accepts BACKGROUND wave type', () => {
+            const wave = createWave(1000, 0.2, WAVE_TYPE.BACKGROUND);
+            expect(wave.type).toBe(WAVE_TYPE.BACKGROUND);
+        });
+
+        it('accepts SET wave type explicitly', () => {
+            const wave = createWave(1000, 0.8, WAVE_TYPE.SET);
+            expect(wave.type).toBe(WAVE_TYPE.SET);
         });
     });
 

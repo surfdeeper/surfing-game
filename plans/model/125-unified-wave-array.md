@@ -1,4 +1,4 @@
-# Plan: Unified Wave Array
+# Plan 125: Unified Wave Array
 
 ## Problem
 
@@ -100,3 +100,17 @@ However, this is a larger architectural change. The unified array is the minimal
 - `src/state/setLullModel.js` - Still handles set wave timing
 - `src/state/backgroundWaveModel.js` - Still handles background wave timing
 - `src/render/coordinates.js` - No changes needed
+
+## Related Plans
+
+This plan is **orthogonal** to the wave physics dependency chain:
+
+1. ✅ Time-based model (done - plan 123)
+2. ⏳ Bathymetry (plan 124) - ocean floor depth map
+3. ⏳ Shoaling (plan 40) - wave height changes with depth
+4. ⏳ Breaking (plan 50) - wave breaking physics
+5. ⏳ Peeling - break propagates along wave
+
+**Plan 125 (this plan)** fixes the background/set wave layering issue. It can be implemented before or after the physics plans above - they don't depend on each other.
+
+However, when bathymetry and breaking are implemented, the unified wave array will make it easier to apply breaking logic consistently to all waves (both background and set waves will interact with the same depth map).
