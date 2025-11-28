@@ -229,43 +229,30 @@ export function updateSetLullState(state, deltaTime, config = DEFAULT_CONFIG, ra
         timeSinceLastWave: state.timeSinceLastWave + deltaTime,
     };
 
-    // Check if it's time to spawn a wave
-    const spawnWave = shouldSpawnWave(newState);
+    let shouldSpawn = false;
     let amplitude = 0;
 
     if (newState.setState === STATE.LULL) {
-        // During lull, spawn smaller waves
-        if (spawnWave) {
-            amplitude = calculateLullAmplitude(config, randomFn);
-            newState = recordWaveSpawned(newState, config, randomFn);
-        }
-
-        // If we've finished this mini-set of lull waves, start another
-        if (newState.wavesSpawned >= newState.currentSetWaves) {
-            newState = {
-                ...newState,
-                currentSetWaves: Math.floor(randomInRange(
-                    config.lullWavesPerSet[0],
-                    config.lullWavesPerSet[1] + 1,
-                    randomFn
-                )),
-                wavesSpawned: 0,
-            };
-        }
+        // During lull, NO set waves spawn
+        // (Background waves are handled separately, not by this state machine)
 
         // Lull duration over, time for a real set
         if (newState.setTimer >= newState.setDuration) {
             newState = initializeSet(newState, config, randomFn);
         }
     } else if (newState.setState === STATE.SET) {
+        // Check if it's time to spawn a wave (only in SET state)
+        const canSpawn = shouldSpawnWave(newState);
+
         // During set, spawn waves with envelope amplitude
-        if (spawnWave) {
+        if (canSpawn) {
             // Calculate progress through the set
             const progress = newState.currentSetWaves > 1
                 ? newState.wavesSpawned / (newState.currentSetWaves - 1)
                 : config.peakPosition;
             amplitude = calculateSetAmplitude(progress, config);
             newState = recordWaveSpawned(newState, config, randomFn);
+            shouldSpawn = true;
         }
 
         // Set complete, start lull
@@ -276,7 +263,7 @@ export function updateSetLullState(state, deltaTime, config = DEFAULT_CONFIG, ra
 
     return {
         state: newState,
-        shouldSpawn: spawnWave,
+        shouldSpawn,
         amplitude,
     };
 }

@@ -12,8 +12,12 @@ import {
     DEFAULT_CONFIG,
     createInitialState,
     updateSetLullState,
-    calculateLullAmplitude,
 } from './state/setLullModel.js';
+import {
+    BACKGROUND_CONFIG,
+    createInitialBackgroundState,
+    updateBackgroundWaveState,
+} from './state/backgroundWaveModel.js';
 
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
@@ -36,7 +40,10 @@ const world = {
     swellSpeed: 50,        // Pixels per second toward shore (downward)
 
     // Discrete wave objects (time-based)
-    waves: [],             // Array of { id, spawnTime, amplitude }
+    // Set waves: larger, organized waves during SET state
+    setWaves: [],          // Array of { id, spawnTime, amplitude }
+    // Background waves: smaller, frequent waves always present
+    backgroundWaves: [],   // Array of { id, spawnTime, amplitude }
     gameTime: 0,           // Current game time in ms (for time-based positions)
 
     // Set/lull configuration (used by setLullModel)
@@ -44,6 +51,10 @@ const world = {
 
     // Set/lull state machine (managed by setLullModel)
     setLullState: createInitialState(DEFAULT_CONFIG),
+
+    // Background wave configuration and state
+    backgroundConfig: BACKGROUND_CONFIG,
+    backgroundState: createInitialBackgroundState(BACKGROUND_CONFIG),
 };
 
 // Colors
@@ -100,9 +111,14 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-// Spawn a wave at the horizon with the given amplitude
-function spawnWave(amplitude) {
-    world.waves.push(createWave(world.gameTime, amplitude));
+// Spawn a set wave at the horizon with the given amplitude
+function spawnSetWave(amplitude) {
+    world.setWaves.push(createWave(world.gameTime, amplitude));
+}
+
+// Spawn a background wave at the horizon with the given amplitude
+function spawnBackgroundWave(amplitude) {
+    world.backgroundWaves.push(createWave(world.gameTime, amplitude));
 }
 
 function update(deltaTime) {
@@ -112,17 +128,30 @@ function update(deltaTime) {
     // Advance game time (in ms)
     world.gameTime += scaledDelta * 1000;
 
-    // Update set/lull state machine using extracted module
-    const result = updateSetLullState(
+    // Update set/lull state machine (handles set waves only)
+    const setResult = updateSetLullState(
         world.setLullState,
         scaledDelta,
         world.setConfig
     );
-    world.setLullState = result.state;
+    world.setLullState = setResult.state;
 
-    // Spawn wave if the state machine says to
-    if (result.shouldSpawn) {
-        spawnWave(result.amplitude);
+    // Spawn set wave if the state machine says to
+    if (setResult.shouldSpawn) {
+        spawnSetWave(setResult.amplitude);
+    }
+
+    // Update background wave state (always spawning, independent of set/lull)
+    const bgResult = updateBackgroundWaveState(
+        world.backgroundState,
+        scaledDelta,
+        world.backgroundConfig
+    );
+    world.backgroundState = bgResult.state;
+
+    // Spawn background wave if needed
+    if (bgResult.shouldSpawn) {
+        spawnBackgroundWave(bgResult.amplitude);
     }
 
     // Remove waves that have completed their journey (time-based)
@@ -130,7 +159,8 @@ function update(deltaTime) {
     const travelDuration = calculateTravelDuration(oceanBottom, world.swellSpeed);
     // Add buffer for visual spacing past shore
     const bufferDuration = (world.swellSpacing / world.swellSpeed) * 1000;
-    world.waves = getActiveWaves(world.waves, world.gameTime - bufferDuration, travelDuration);
+    world.setWaves = getActiveWaves(world.setWaves, world.gameTime - bufferDuration, travelDuration);
+    world.backgroundWaves = getActiveWaves(world.backgroundWaves, world.gameTime - bufferDuration, travelDuration);
 }
 
 function draw() {
@@ -147,17 +177,16 @@ function draw() {
     ctx.fillStyle = colors.shore;
     ctx.fillRect(0, shoreY, w, world.shoreHeight);
 
-    // Draw each wave as a gradient band
-    // Each wave has its own amplitude that determines contrast
-    const halfSpacing = world.swellSpacing / 2;
-
-    for (const wave of world.waves) {
-        // Calculate Y position from time-based progress
+    // Helper function to draw a wave as a gradient band
+    const drawWave = (wave, opacity = 1.0) => {
+        const halfSpacing = world.swellSpacing / 2;
         const progress = getWaveProgress(wave, world.gameTime, travelDuration);
         const peakY = progressToScreenY(progress, oceanTop, oceanBottom);
         const troughY = peakY + halfSpacing;
         const nextPeakY = peakY + world.swellSpacing;
         const currentTroughColor = getTroughColor(wave.amplitude);
+
+        ctx.globalAlpha = opacity;
 
         // First half: peak (dark) to trough (light)
         if (troughY > 0 && peakY < shoreY) {
@@ -176,6 +205,18 @@ function draw() {
             ctx.fillStyle = grad2;
             ctx.fillRect(0, Math.max(0, troughY), w, Math.min(nextPeakY, shoreY) - Math.max(0, troughY));
         }
+
+        ctx.globalAlpha = 1.0;
+    };
+
+    // Draw background waves first (behind, with reduced opacity for subtle effect)
+    for (const wave of world.backgroundWaves) {
+        drawWave(wave, 0.4);  // 40% opacity for background waves
+    }
+
+    // Draw set waves on top (full opacity)
+    for (const wave of world.setWaves) {
+        drawWave(wave, 1.0);
     }
 
 
@@ -195,8 +236,8 @@ function draw() {
     const stateTimerProgress = Math.min(sls.setTimer / sls.setDuration, 1);
     const stateLabel2 = sls.setState === 'LULL' ? 'Until set' : 'Set ends';
 
-    // Filter and sort waves for display (exclude at-shore, sort by progress)
-    const displayWaves = world.waves
+    // Filter and sort set waves for display (exclude at-shore, sort by progress)
+    const displaySetWaves = world.setWaves
         .map(wave => ({
             wave,
             progress: getWaveProgress(wave, world.gameTime, travelDuration)
@@ -204,10 +245,15 @@ function draw() {
         .filter(({ progress }) => progress < 1)
         .sort((a, b) => a.progress - b.progress);  // ascending: horizon first
 
+    // Count background waves for display
+    const bgWaveCount = world.backgroundWaves.filter(wave =>
+        getWaveProgress(wave, world.gameTime, travelDuration) < 1
+    ).length;
+
     // Calculate panel height based on wave count (each wave needs space for text + progress bar)
-    const baseHeight = 130;
+    const baseHeight = 150;  // Increased to fit background wave count
     const waveItemHeight = 28;  // 16 for text + 12 for progress bar
-    const waveListHeight = displayWaves.length * waveItemHeight;
+    const waveListHeight = displaySetWaves.length * waveItemHeight;
     const panelHeight = baseHeight + waveListHeight;
 
     ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
@@ -232,14 +278,17 @@ function draw() {
     ctx.fillRect(w - 210, 85, 190 * (1 - stateTimerProgress), 8);
 
     ctx.fillStyle = '#fff';
-    ctx.fillText(`Active waves: ${displayWaves.length}`, w - 210, 115);
+    ctx.fillText(`Set waves: ${displaySetWaves.length}`, w - 210, 115);
 
-    for (let i = 0; i < displayWaves.length; i++) {
-        const { wave, progress } = displayWaves[i];
+    ctx.fillStyle = '#888';
+    ctx.fillText(`Background: ${bgWaveCount}`, w - 210, 135);
+
+    for (let i = 0; i < displaySetWaves.length; i++) {
+        const { wave, progress } = displaySetWaves[i];
         // Time to shore = remaining progress * travel duration (convert to seconds)
         const timeToShore = ((1 - progress) * travelDuration / 1000).toFixed(1);
         const ampPercent = Math.round(wave.amplitude * 100);
-        const yOffset = 130 + i * waveItemHeight;
+        const yOffset = 150 + i * waveItemHeight;
 
         // Wave text
         ctx.fillStyle = '#aaa';
@@ -279,16 +328,10 @@ document.addEventListener('visibilitychange', () => {
     }
 });
 
-// Spawn a lull wave right away so screen isn't empty
-// (setLullState is already initialized via createInitialState)
-const initialAmplitude = calculateLullAmplitude(world.setConfig);
-spawnWave(initialAmplitude);
-world.setLullState = {
-    ...world.setLullState,
-    wavesSpawned: world.setLullState.wavesSpawned + 1,
-};
+// Background waves spawn immediately and continuously
+// Set waves only spawn during SET state (lulls are empty of set waves)
 
 requestAnimationFrame(gameLoop);
 
 console.log('Wave Sets and Lulls visualization');
-console.log('Watch for sets of waves building and fading, separated by calm lulls');
+console.log('Background waves always present, set waves only during SET state');

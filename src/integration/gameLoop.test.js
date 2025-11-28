@@ -131,7 +131,8 @@ describe('Integration: Game Loop', () => {
         it('should spawn wave at horizon (progress = 0)', () => {
             let state = createGameState();
             // Advance until a wave spawns
-            for (let t = 0; t < 20; t++) {
+            // Lulls are now empty (~30s), so we need to wait for SET state
+            for (let t = 0; t < 50; t++) {
                 state = updateGameState(state, 1.0);
                 if (state.waves.length > 0) break;
             }
@@ -146,7 +147,8 @@ describe('Integration: Game Loop', () => {
         it('should progress wave toward shore over travelDuration', () => {
             let state = createGameState();
             // Advance until a wave spawns
-            for (let t = 0; t < 20; t++) {
+            // Lulls are now empty (~30s), so we need to wait for SET state
+            for (let t = 0; t < 50; t++) {
                 state = updateGameState(state, 1.0);
                 if (state.waves.length > 0) break;
             }
@@ -168,7 +170,8 @@ describe('Integration: Game Loop', () => {
         it('should remove wave after passing shore', () => {
             let state = createGameState();
             // Advance until a wave spawns
-            for (let t = 0; t < 20; t++) {
+            // Lulls are now empty (~30s), so we need to wait for SET state
+            for (let t = 0; t < 50; t++) {
                 state = updateGameState(state, 1.0);
                 if (state.waves.length > 0) break;
             }

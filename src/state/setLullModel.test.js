@@ -263,14 +263,13 @@ describe('setLullModel', () => {
                 expect(state.setState).toBe(STATE.SET);
             });
 
-            it('should spawn lull waves at correct intervals', () => {
+            it('should NOT spawn waves during lull (lulls are empty)', () => {
                 let state = createInitialState(DEFAULT_CONFIG, fixedRandom(0.5));
-                // First wave spawns when timeSinceLastWave >= nextWaveTime
-                // nextWaveTime with random=0.5 is 15s
+                // Even with enough time elapsed, lulls should not spawn waves
+                // (Background waves are handled separately, not by this state machine)
                 const result = updateSetLullState(state, 16.0, DEFAULT_CONFIG, fixedRandom(0.5));
-                expect(result.shouldSpawn).toBe(true);
-                expect(result.amplitude).toBeGreaterThanOrEqual(DEFAULT_CONFIG.lullMinAmplitude);
-                expect(result.amplitude).toBeLessThanOrEqual(DEFAULT_CONFIG.lullMaxAmplitude);
+                expect(result.shouldSpawn).toBe(false);
+                expect(result.amplitude).toBe(0);
             });
 
             it('should advance setTimer during LULL state', () => {
@@ -331,7 +330,8 @@ describe('setLullModel', () => {
             });
 
             it('should reset timeSinceLastWave after spawning', () => {
-                let state = createInitialState(DEFAULT_CONFIG, fixedRandom(0.5));
+                // Start in SET state (lulls no longer spawn waves)
+                let state = initializeSet({}, DEFAULT_CONFIG, fixedRandom(0.5));
                 state.timeSinceLastWave = 16; // Ready to spawn
                 const result = updateSetLullState(state, 0.1, DEFAULT_CONFIG, fixedRandom(0.5));
                 expect(result.shouldSpawn).toBe(true);
@@ -339,7 +339,8 @@ describe('setLullModel', () => {
             });
 
             it('should increment wavesSpawned after spawning', () => {
-                let state = createInitialState(DEFAULT_CONFIG, fixedRandom(0.5));
+                // Start in SET state (lulls no longer spawn waves)
+                let state = initializeSet({}, DEFAULT_CONFIG, fixedRandom(0.5));
                 const initialSpawned = state.wavesSpawned;
                 state.timeSinceLastWave = 16; // Ready to spawn
                 const result = updateSetLullState(state, 0.1, DEFAULT_CONFIG, fixedRandom(0.5));
@@ -347,16 +348,19 @@ describe('setLullModel', () => {
             });
         });
 
-        describe('mini-set cycling in LULL', () => {
-            it('should start new mini-set when lull waves complete', () => {
+        describe('lull behavior', () => {
+            it('should not reset wave counts during lull (no mini-sets)', () => {
                 let state = createInitialState(DEFAULT_CONFIG, fixedRandom(0.5));
-                // Set up state where all lull waves have spawned
-                state.wavesSpawned = state.currentSetWaves;
+                const initialWavesSpawned = state.wavesSpawned;
+                const initialSetWaves = state.currentSetWaves;
 
-                // Not enough time for state transition, but mini-set should reset
+                // Advance time but not enough for state transition
                 const result = updateSetLullState(state, 0.1, DEFAULT_CONFIG, fixedRandom(0.5));
-                expect(result.state.wavesSpawned).toBe(0);
-                expect(result.state.currentSetWaves).toBeGreaterThanOrEqual(DEFAULT_CONFIG.lullWavesPerSet[0]);
+
+                // Lulls no longer spawn waves or cycle mini-sets
+                // Wave counts should remain unchanged until SET transition
+                expect(result.state.wavesSpawned).toBe(initialWavesSpawned);
+                expect(result.state.currentSetWaves).toBe(initialSetWaves);
             });
         });
     });
