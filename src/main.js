@@ -15,7 +15,7 @@ import {
 } from './state/waveModel.js';
 import { createFoam, updateFoam, getActiveFoam } from './state/foamModel.js';
 import { DEFAULT_BATHYMETRY, getDepth, getPeakX } from './state/bathymetryModel.js';
-import { progressToScreenY, getOceanBounds, calculateTravelDuration } from './render/coordinates.js';
+import { progressToScreenY, screenYToProgress, getOceanBounds, calculateTravelDuration } from './render/coordinates.js';
 import {
     DEFAULT_CONFIG,
     createInitialState,
@@ -258,33 +258,46 @@ function update(deltaTime) {
     // Deposit foam where waves are breaking
     // Foam is deposited at the wave's current position and stays there (doesn't move)
     // Shape of foam naturally follows bathymetry because it's deposited wherever depth triggers breaking
-    const numXSamples = 20;  // Sample X positions across screen
-    const foamYSpacing = 4;  // Minimum Y spacing between foam deposits (pixels)
+    const numXSamples = 80;  // Higher resolution for smoother contours
+    const foamYSpacing = 3;  // Y spacing between foam deposits (pixels)
 
     for (const wave of world.waves) {
         const progress = getWaveProgress(wave, world.gameTime, travelDuration);
         const waveY = progressToScreenY(progress, oceanTop, oceanBottom);
 
-        // Only deposit foam if wave has moved enough since last deposit
+        // Skip if wave hasn't moved enough since last deposit
         if (wave.lastFoamY >= 0 && Math.abs(waveY - wave.lastFoamY) < foamYSpacing) {
             continue;
         }
 
-        let depositedAny = false;
-        for (let i = 0; i < numXSamples; i++) {
-            const normalizedX = (i + 0.5) / numXSamples;
-            const depth = getDepth(normalizedX, world.bathymetry, progress);
+        // Calculate how many foam rows to deposit (fill in skipped positions at high time scales)
+        const startY = wave.lastFoamY >= 0 ? wave.lastFoamY : waveY;
+        const yDelta = waveY - startY;
+        const direction = Math.sign(yDelta);
+        const numRows = Math.max(1, Math.floor(Math.abs(yDelta) / foamYSpacing));
 
-            if (isWaveBreaking(wave, depth)) {
-                // Deposit foam at this location - it stays here!
-                const foam = createFoam(world.gameTime, normalizedX, waveY, wave.id);
-                world.foamSegments.push(foam);
-                depositedAny = true;
+        for (let row = 0; row < numRows; row++) {
+            // Interpolate Y position for this foam row
+            const foamY = startY + direction * (row + 1) * foamYSpacing;
+            // Interpolate progress for this Y position to get correct depth sampling
+            const foamProgress = screenYToProgress(foamY, oceanTop, oceanBottom);
+
+            let depositedAny = false;
+            for (let i = 0; i < numXSamples; i++) {
+                const normalizedX = (i + 0.5) / numXSamples;
+                const depth = getDepth(normalizedX, world.bathymetry, foamProgress);
+
+                if (isWaveBreaking(wave, depth)) {
+                    // Deposit foam at this location - it stays here!
+                    const foam = createFoam(world.gameTime, normalizedX, foamY, wave.id);
+                    world.foamSegments.push(foam);
+                    depositedAny = true;
+                }
             }
-        }
 
-        if (depositedAny) {
-            wave.lastFoamY = waveY;
+            if (depositedAny) {
+                wave.lastFoamY = foamY;
+            }
         }
     }
 
@@ -400,8 +413,9 @@ function draw() {
     ctx.globalAlpha = 1.0; // Reset alpha after waves
 
     // Draw foam deposits (stay where deposited, form trails matching bathymetry shape)
-    // Each foam segment is a small dot - together they form the breaking pattern
-    const foamDotSize = w / 20;  // Width of each foam sample
+    // Each foam segment is a small rectangle - together they form smooth breaking patterns
+    const foamDotWidth = w / 80 + 2;  // Slightly wider than sample spacing for overlap
+    const foamDotHeight = 4;  // Slightly taller than Y spacing (3) for overlap
     for (const foam of world.foamSegments) {
         if (foam.opacity <= 0) continue;
 
@@ -409,13 +423,8 @@ function draw() {
 
         // Draw foam as small rectangle at its fixed position
         ctx.fillStyle = `rgba(255, 255, 255, ${foam.opacity * 0.85})`;
-        ctx.fillRect(foamX - foamDotSize / 2, foam.y, foamDotSize, 6);
+        ctx.fillRect(foamX - foamDotWidth / 2, foam.y - foamDotHeight / 2, foamDotWidth, foamDotHeight);
     }
-
-    // Debug: show foam count
-    ctx.fillStyle = '#fff';
-    ctx.font = '12px monospace';
-    ctx.fillText(`Foam segments: ${world.foamSegments.length}`, 10, h - 40);
 
     // Clear button registry each frame (buttons are re-registered below)
     clearButtons();
@@ -490,12 +499,6 @@ function draw() {
         ctx.fillText('Deep', 102, buttonY - 20);
     }
 
-    // Labels
-    ctx.fillStyle = '#fff';
-    ctx.font = '14px monospace';
-    ctx.fillText('Wave sets and lulls (v2)', 10, 30);
-    ctx.fillText('Shore', 10, h - 20);
-
     // Debug UI: Set/Lull status (read from setLullState)
     const sls = world.setLullState;
     const stateLabel = sls.setState;
@@ -519,7 +522,7 @@ function draw() {
     const bgWaveCount = displayWaves.filter(({ wave }) => wave.type === WAVE_TYPE.BACKGROUND).length;
 
     // Calculate panel height based on wave count (each wave needs space for text + progress bar)
-    const baseHeight = 150;  // Increased to fit background wave count
+    const baseHeight = 170;  // Includes foam segments count
     const waveItemHeight = 28;  // 16 for text + 12 for progress bar
     // Only show set waves in detail list (background waves just get a count)
     const displaySetWaves = displayWaves.filter(({ wave }) => wave.type === WAVE_TYPE.SET);
@@ -552,13 +555,14 @@ function draw() {
 
     ctx.fillStyle = '#888';
     ctx.fillText(`Background: ${bgWaveCount}`, w - 210, 135);
+    ctx.fillText(`Foam segments: ${world.foamSegments.length}`, w - 210, 155);
 
     for (let i = 0; i < displaySetWaves.length; i++) {
         const { wave, progress } = displaySetWaves[i];
         // Time to shore = remaining progress * travel duration (convert to seconds)
         const timeToShore = ((1 - progress) * travelDuration / 1000).toFixed(1);
         const ampPercent = Math.round(wave.amplitude * 100);
-        const yOffset = 150 + i * waveItemHeight;
+        const yOffset = 170 + i * waveItemHeight;
 
         // Wave text
         ctx.fillStyle = '#aaa';
