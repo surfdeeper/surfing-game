@@ -1,78 +1,52 @@
 # Plan: Foam Dispersion V2 Tests
 
-## Goal
+## Status: COMPLETE
 
-Create a canonical test that any foam dispersion implementation must pass:
-**The outermost contour ring must only expand (or stay the same) as foam ages, never contract.**
+Test implemented at `src/render/foamDispersionV2.test.js` (currently skipped pending fix).
 
-The inner rings (dense foam core) are allowed to contract - that's expected as the core dissipates.
+## Bug Description
 
-## Approach
+As foam fades from top-down (older rows fade first), the outer contour contracts to follow the fading. It should expand or stay in place, not contract.
 
-### ASCII-Based Synthetic Data
-
-Human-readable foam pattern defined as ASCII art:
-
+**Observed behavior:**
 ```
-. . . . . . . . . .
-. . . # # # # . . .
-. . # # # # # # . .
-. . # # # # # # . .
-. . # # # # # # . .
-. . . # # # # . . .
-. . . . . . . . . .
+Top edge position over time:
+  t=2s: row 0
+  t=3s: row 0
+  t=4s: row 0
+  t=5s: row 1 ← MOVED DOWN by 1
+  t=6s: row 3 ← MOVED DOWN by 3
+  t=7s: row 5 ← MOVED DOWN by 5
+  t=8s: row -1  (foam gone)
 ```
 
-- `#` = foam cell with intensity 1.0
-- `.` = empty cell
-- Grid is 10x7 for simplicity
+The contour "creeps downward" as older top rows fade away.
 
-### Test Logic
+## Test Implementation
 
-1. Parse ASCII grid to create foam rows with a known `spawnTime`
-2. Run the intensity grid builder at two time points:
-   - `t=0s` (fresh foam)
-   - `t=6s` (aged foam)
-3. Apply blur, extract contours at outer threshold (0.15)
-4. Measure bounding box of outer contour: `{minX, maxX, width, height}`
-5. Assert: `width_aged >= width_fresh` AND `height_aged >= height_fresh`
-
-### Test Cases
+Simple test that:
+1. Creates foam rows deposited top-to-bottom (simulating wave travel)
+2. Top rows have older `spawnTime`, bottom rows newer
+3. Applies fading opacity based on age
+4. Tracks top edge position over multiple time points
+5. Asserts: top edge must never move down from initial position
 
 ```javascript
-describe('Foam Dispersion V2 - Outer Ring Must Expand')
-
-  it('Option B (blur): outer contour width does not decrease as foam ages')
-    // EXPECTED: FAIL - captures the bug
-
-  it('Option B (blur): inner contour is allowed to contract (sanity check)')
-    // EXPECTED: PASS - confirms test setup is correct
+it.skip('top edge should not move down as top rows fade', () => {
+    // Creates 10 foam rows with staggered spawn times
+    // Tracks top edge at t=2s through t=9s
+    // Fails when top edge moves down (contracts)
+});
 ```
 
-### Helper Functions
+## Root Cause
 
-```javascript
-// Parse ASCII art to foam rows
-function parseAsciiToFoamRows(ascii, spawnTime) { ... }
+Option B uses blur to simulate dispersion. As older foam rows fade to 0 opacity:
+1. Intensity values in grid drop to 0 for those rows
+2. Blur spreads remaining intensity but can't create intensity from nothing
+3. Contour threshold no longer met in faded areas
+4. Result: contour contracts to follow remaining foam
 
-// Get bounding box of contour at threshold
-function getContourBounds(grid, gridW, gridH, threshold) {
-  // Returns { minX, maxX, minY, maxY, width, height }
-}
-```
+## Fix Required
 
-### File Location
-
-`src/render/foamDispersionV2.test.js`
-
-## Success Criteria
-
-- Test fails for current Option B implementation (captures the bug)
-- Test is minimal and readable (ASCII diagram, simple assertions)
-- Test can be run against any future implementation to verify fix
-
-## Notes
-
-- Start with Option B (blur) since it's "least worst"
-- Keep test count minimal (1-2 tests to start)
-- The test documents the desired behavior as a specification
+See `plans/visuals/foam-dispersion-v2-fix.md` for fix plan.
