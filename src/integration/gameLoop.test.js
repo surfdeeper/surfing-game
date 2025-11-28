@@ -23,11 +23,12 @@ const WORLD_CONFIG = {
 function createGameState(config = DEFAULT_CONFIG, randomFn = fixedRandom(0.5)) {
     const { oceanBottom } = getOceanBounds(WORLD_CONFIG.canvasHeight, WORLD_CONFIG.shoreHeight);
     const travelDuration = calculateTravelDuration(oceanBottom, WORLD_CONFIG.swellSpeed);
+    const initialGameTime = 0;
 
     return {
         waves: [],
-        gameTime: 0,
-        setLullState: createInitialState(config, randomFn),
+        gameTime: initialGameTime,
+        setLullState: createInitialState(config, randomFn, initialGameTime),
         travelDuration,
         config,
     };
@@ -38,10 +39,10 @@ function updateGameState(state, deltaTime, randomFn = fixedRandom(0.5)) {
     // Advance game time (in ms)
     const newGameTime = state.gameTime + deltaTime * 1000;
 
-    // Update set/lull state machine
+    // Update set/lull state machine (pass absolute gameTime)
     const result = updateSetLullState(
         state.setLullState,
-        deltaTime,
+        newGameTime,
         state.config,
         randomFn
     );

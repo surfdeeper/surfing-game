@@ -28,11 +28,29 @@ If creating a new plan:
 1. Determine the appropriate category folder
 2. Find the next available number in that folder
 3. Use this template structure:
-   - Problem statement
-   - Proposed Solution
-   - Implementation Steps (numbered)
-   - Files Affected
-   - Dependencies (other plan numbers if any)
+   ```markdown
+   # Plan: [Title]
+
+   **Status**: Proposed | Active | In Progress | Blocked | Complete
+   **Depends On**: [plan numbers, if any]
+
+   ## Problem
+   [Problem statement]
+
+   ## Proposed Solution
+   [Technical approach]
+
+   ## Implementation Steps
+   1. [Step 1]
+   2. [Step 2]
+   ...
+
+   ## Files Affected
+   - [file paths]
+
+   ## Testing
+   [How to verify]
+   ```
 
 If exploring existing plans:
 1. Search for relevant plans matching the topic

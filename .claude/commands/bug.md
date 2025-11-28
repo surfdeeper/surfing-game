@@ -11,13 +11,31 @@ I need to work with a bug fix plan. Here's the current bugfixes directory:
 ! ls -la plans/bugfixes/
 
 ## Bug Plan Template
-When creating a new bug plan, include:
-- **Symptom**: What the user observes
-- **Expected Behavior**: What should happen
-- **Root Cause Analysis**: Investigation findings
-- **Proposed Fix**: Technical approach
-- **Files Affected**: Which files need changes
-- **Testing**: How to verify the fix
+When creating a new bug plan, use this structure:
+```markdown
+# Bug: [Title]
+
+**Status**: Investigating | Proposed | In Progress | Fixed | Won't Fix
+**Depends On**: [plan numbers, if any]
+
+## Symptom
+[What the user observes]
+
+## Expected Behavior
+[What should happen]
+
+## Root Cause Analysis
+[Investigation findings]
+
+## Proposed Fix
+[Technical approach]
+
+## Files Affected
+- [file paths]
+
+## Testing
+[How to verify the fix]
+```
 
 ## Request
 $ARGUMENTS

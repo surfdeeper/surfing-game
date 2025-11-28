@@ -55,10 +55,16 @@ import {
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 
+// Bathymetry heat map cache (Plan 130)
+// Built once on toggle/resize, then blitted each frame
+let bathymetryCache = null;
+
 // Make canvas fill the screen
 function resize() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
+    // Invalidate bathymetry cache on resize
+    bathymetryCache = null;
 }
 resize();
 window.addEventListener('resize', resize);
@@ -588,27 +594,36 @@ function draw() {
     // Draw bathymetry depth heat map UNDER waves (toggle with 'B' key)
     // NOTE: This is STATIC - the ocean floor doesn't move. The blue waves
     // animate on top of this, which can be visually confusing at first.
+    // Performance: Cached to offscreen canvas, rebuilt only on toggle/resize (Plan 130)
     if (toggles.showBathymetry) {
-        const stepX = 4;
-        const stepY = 4;
-        // Use a reference depth for color scaling (not deepDepth which is very deep)
-        const colorScaleDepth = 15; // meters - depths beyond this are all "deep" colored
-        for (let y = oceanTop; y < oceanBottom; y += stepY) {
-            // progress: 0 at horizon (top), 1 at shore (bottom)
-            const progress = (y - oceanTop) / (oceanBottom - oceanTop);
-            for (let x = 0; x < w; x += stepX) {
-                const normalizedX = x / w;
-                const depth = getDepth(normalizedX, world.bathymetry, progress);
-                // Use sqrt for non-linear scaling - shows shallow areas more distinctly
-                const depthRatio = Math.min(1, Math.sqrt(depth / colorScaleDepth));
-                // Sand/tan for shallow (depthRatio near 0), dark brown for deep (depthRatio near 1)
-                const r = Math.floor(220 - 160 * depthRatio);  // 220 -> 60
-                const g = Math.floor(180 - 140 * depthRatio);  // 180 -> 40
-                const b = Math.floor(100 - 80 * depthRatio);   // 100 -> 20
-                ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
-                ctx.fillRect(x, y, stepX, stepY);
+        // Build cache if needed
+        if (!bathymetryCache || bathymetryCache.width !== w || bathymetryCache.height !== oceanBottom) {
+            bathymetryCache = document.createElement('canvas');
+            bathymetryCache.width = w;
+            bathymetryCache.height = oceanBottom;
+            const cacheCtx = bathymetryCache.getContext('2d');
+
+            const stepX = 4;
+            const stepY = 4;
+            const colorScaleDepth = 15;
+
+            for (let y = oceanTop; y < oceanBottom; y += stepY) {
+                const progress = (y - oceanTop) / (oceanBottom - oceanTop);
+                for (let x = 0; x < w; x += stepX) {
+                    const normalizedX = x / w;
+                    const depth = getDepth(normalizedX, world.bathymetry, progress);
+                    const depthRatio = Math.min(1, Math.sqrt(depth / colorScaleDepth));
+                    const r = Math.floor(220 - 160 * depthRatio);
+                    const g = Math.floor(180 - 140 * depthRatio);
+                    const b = Math.floor(100 - 80 * depthRatio);
+                    cacheCtx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+                    cacheCtx.fillRect(x, y, stepX, stepY);
+                }
             }
         }
+
+        // Blit cached image
+        ctx.drawImage(bathymetryCache, 0, 0);
     }
 
     // Draw shore (bottom strip)

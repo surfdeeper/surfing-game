@@ -83,6 +83,8 @@ Custom commands for common workflows (`.claude/commands/`):
 | `/bug` | Create or explore bug fix plans | `/bug wave timing drift` |
 | `/plan` | Show roadmap status and active plans | `/plan` |
 | `/physics` | Load wave physics context | `/physics` |
+| `/test` | Run tests with context | `/test unit` or `/test foamDispersion.test.js` |
+| `/visual` | Visual regression workflows | `/visual run` or `/visual update` |
 
 ## Skills
 
