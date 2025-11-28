@@ -108,9 +108,56 @@ This reduces data volume and naturally represents the breaking zone shape.
 - For each foam row, draw horizontal bands from startX to endX
 - Use canvas `fillRect` or path-based fill
 
-### Step 4: Smooth the Edges (Optional Enhancement)
-- Connect edges between adjacent rows using bezier curves or linear interpolation
-- Creates smooth diagonal/curved contours instead of pixel-aligned edges
+### Step 4: Smooth the Edges via Marching Squares
+
+The key insight: blur the *data*, not the *pixels*.
+
+**Approach:**
+1. Build a low-resolution intensity grid (e.g., 80×60 cells)
+2. Apply box blur to the grid values (simple number averaging, very fast)
+3. Run marching squares algorithm to extract polygon contours at threshold
+4. Render contours as bezier curves
+
+**Why this is fast:**
+- Grid blur: ~80×60×9 = 43,200 additions (sub-millisecond)
+- Marching squares: O(grid cells) = 4,800 iterations
+- Canvas draw: single `fill()` call per contour
+
+**Why canvas blur was slow:**
+- `ctx.filter = 'blur()'` processes every pixel
+- At 800×600 = 480,000 pixels × multiple passes
+- GPU-accelerated but still 100x more work
+
+**Marching Squares lookup table:**
+```
+Cell corners: TL TR BL BR (each 0 or 1 based on threshold)
+16 cases → line segment configurations
+Output: list of {x,y} points forming contour
+```
+
+**Implementation:**
+```js
+// 1. Build intensity grid
+const grid = new Float32Array(GRID_W * GRID_H);
+for (const row of foamRows) {
+    for (const seg of row.segments) {
+        // Map world coords to grid coords and fill cells
+    }
+}
+
+// 2. Box blur the grid (3x3 kernel)
+const blurred = boxBlur(grid, GRID_W, GRID_H);
+
+// 3. Marching squares at threshold (e.g., 0.3)
+const contours = marchingSquares(blurred, GRID_W, GRID_H, 0.3);
+
+// 4. Render as bezier paths
+for (const contour of contours) {
+    ctx.beginPath();
+    drawSmoothContour(ctx, contour);
+    ctx.fill();
+}
+```
 
 ### Step 5: Add Intensity Gradient (Layer 2)
 - Within each span, compute intensity based on depth

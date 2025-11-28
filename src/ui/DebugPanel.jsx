@@ -1,16 +1,10 @@
 import './DebugPanel.css';
 
 // Pure component - receives all data as props, rendered from game loop via requestAnimationFrame
-export function DebugPanel({ setLullState, displayWaves, foamCount, timeScale, onTimeScaleChange, toggles, onToggle, fps }) {
+export function DebugPanel({ setLullState, displayWaves, foamCount, timeScale, onTimeScaleChange, toggles, onToggle, fps, playerConfig, onPlayerConfigChange }) {
   const sls = setLullState;
   const setWaves = displayWaves.filter(w => w.wave.type === 'SET');
   const bgWaves = displayWaves.filter(w => w.wave.type === 'BACKGROUND');
-
-  const nextWaveIn = Math.max(0, sls.nextWaveTime - sls.timeSinceLastWave);
-  const waveTimerProgress = Math.min(sls.timeSinceLastWave / sls.nextWaveTime, 1);
-  const stateTimeLeft = Math.max(0, sls.setDuration - sls.setTimer);
-  const stateTimerProgress = Math.min(sls.setTimer / sls.setDuration, 1);
-  const stateLabel2 = sls.setState === 'LULL' ? 'Until set' : 'Set ends';
 
   return (
     <div className="debug-panel">
@@ -21,21 +15,36 @@ export function DebugPanel({ setLullState, displayWaves, foamCount, timeScale, o
           checked={toggles.showBathymetry}
           onChange={() => onToggle('showBathymetry')}
           hotkey="B"
-          activeColor="#c8a03c"
         />
         <Toggle
           label="Set Waves"
           checked={toggles.showSetWaves}
           onChange={() => onToggle('showSetWaves')}
           hotkey="S"
-          activeColor="#4682b4"
         />
         <Toggle
           label="Background"
           checked={toggles.showBackgroundWaves}
           onChange={() => onToggle('showBackgroundWaves')}
           hotkey="G"
-          activeColor="#6496b4"
+        />
+        <Toggle
+          label="Foam Zones"
+          checked={toggles.showFoamZones}
+          onChange={() => onToggle('showFoamZones')}
+          hotkey="F"
+        />
+        <Toggle
+          label="Foam Samples"
+          checked={toggles.showFoamSamples}
+          onChange={() => onToggle('showFoamSamples')}
+          hotkey="D"
+        />
+        <Toggle
+          label="Player"
+          checked={toggles.showPlayer}
+          onChange={() => onToggle('showPlayer')}
+          hotkey="P"
         />
         <Select
           label="Speed"
@@ -47,17 +56,10 @@ export function DebugPanel({ setLullState, displayWaves, foamCount, timeScale, o
       </Section>
 
       <Section title="Set/Lull State">
-        <ReadOnly label="State" value={`${sls.setState} (${sls.wavesSpawned}/${sls.currentSetWaves})`} />
-        <ProgressBar
-          label={`Next wave: ${nextWaveIn.toFixed(1)}s`}
-          progress={1 - waveTimerProgress}
-          color="#4a90b8"
-        />
-        <ProgressBar
-          label={`${stateLabel2}: ${stateTimeLeft.toFixed(1)}s`}
-          progress={1 - stateTimerProgress}
-          color={sls.setState === 'LULL' ? '#e8a644' : '#44e8a6'}
-        />
+        <ReadOnly label="State" value={sls.setState} />
+        <ReadOnly label="Waves" value={`${sls.wavesSpawned}/${sls.currentSetWaves}`} />
+        <ReadOnly label="Set Timer" value={`${sls.setTimer.toFixed(1)}s / ${sls.setDuration.toFixed(1)}s`} />
+        <ReadOnly label="Wave Timer" value={`${sls.timeSinceLastWave.toFixed(1)}s / ${sls.nextWaveTime.toFixed(1)}s`} />
       </Section>
 
       <Section title="Wave Status">
@@ -82,6 +84,44 @@ export function DebugPanel({ setLullState, displayWaves, foamCount, timeScale, o
           })}
         </Section>
       )}
+
+      {toggles.showPlayer && playerConfig && (
+        <Section title="Player Tuning">
+          <Slider
+            label="Water Speed"
+            tooltip="Target paddle speed in calm water (px/s). This is the velocity you'll reach when holding a direction."
+            value={playerConfig.waterSpeed}
+            min={10}
+            max={60}
+            onChange={(v) => onPlayerConfigChange('waterSpeed', v)}
+          />
+          <Slider
+            label="Foam Speed"
+            tooltip="Target paddle speed when in whitewater (px/s). Lower than water speed because turbulence slows you down."
+            value={playerConfig.foamSpeed}
+            min={10}
+            max={60}
+            onChange={(v) => onPlayerConfigChange('foamSpeed', v)}
+          />
+          <Slider
+            label="Push Force"
+            tooltip="Velocity added toward shore when in foam (px/s). At max intensity foam, this is how fast you drift shoreward."
+            value={playerConfig.maxPushForce}
+            min={10}
+            max={100}
+            onChange={(v) => onPlayerConfigChange('maxPushForce', v)}
+          />
+          <Slider
+            label="Foam Penalty"
+            tooltip="Extra speed reduction in foam (%). Combined with lower Foam Speed, makes whitewater feel sluggish."
+            value={Math.round(playerConfig.foamSpeedPenalty * 100)}
+            min={0}
+            max={80}
+            suffix="%"
+            onChange={(v) => onPlayerConfigChange('foamSpeedPenalty', v / 100)}
+          />
+        </Section>
+      )}
     </div>
   );
 }
@@ -95,7 +135,7 @@ function Section({ title, children }) {
   );
 }
 
-function Toggle({ label, checked, onChange, hotkey, activeColor }) {
+function Toggle({ label, checked, onChange, hotkey }) {
   return (
     <label className="control toggle-control">
       <span className="label">
@@ -103,7 +143,6 @@ function Toggle({ label, checked, onChange, hotkey, activeColor }) {
       </span>
       <button
         className={`toggle-btn ${checked ? 'active' : ''}`}
-        style={checked ? { backgroundColor: activeColor } : {}}
         onClick={onChange}
       >
         {checked ? 'ON' : 'OFF'}
@@ -171,6 +210,28 @@ function FPSCounter({ fps }) {
   return (
     <div className={`fps-counter fps-${status}`} style={{ color }}>
       {Math.round(fps)} FPS
+    </div>
+  );
+}
+
+function Slider({ label, value, min, max, onChange, suffix = '', tooltip }) {
+  return (
+    <div className="slider-control">
+      <div className="slider-header">
+        <span className="label">
+          {label}
+          {tooltip && <span className="tooltip-trigger" title={tooltip}>?</span>}
+        </span>
+        <span className="slider-value">{Math.round(value)}{suffix}</span>
+      </div>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className="slider"
+      />
     </div>
   );
 }

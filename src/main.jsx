@@ -26,8 +26,17 @@ import {
     createInitialBackgroundState,
     updateBackgroundWaveState,
 } from './state/backgroundWaveModel.js';
+import {
+    PLAYER_PROXY_CONFIG,
+    createPlayerProxy,
+    updatePlayerProxy,
+    drawPlayerProxy,
+    sampleFoamIntensity,
+} from './state/playerProxyModel.js';
+import { KeyboardInput } from './input/keyboard.js';
 import { createRoot } from 'react-dom/client';
 import { DebugPanel } from './ui/DebugPanel.jsx';
+import { buildIntensityGrid, boxBlur, extractLineSegments } from './render/marchingSquares.js';
 
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
@@ -58,6 +67,10 @@ const world = {
     // Spawned at break points, persist and fade independently
     foamSegments: [],      // Array of { id, spawnTime, x, y, width, opacity }
 
+    // Foam rows - span-based representation for smooth rendering (Layer 1)
+    // Each row represents contiguous breaking regions at a Y position
+    foamRows: [],          // Array of { y, spawnTime, segments: [{startX, endX, intensity}, ...] }
+
     // Set/lull configuration (used by setLullModel)
     setConfig: DEFAULT_CONFIG,
 
@@ -70,7 +83,13 @@ const world = {
 
     // Bathymetry (ocean floor depth map)
     bathymetry: DEFAULT_BATHYMETRY,
+
+    // Player proxy (Plan 71) - initialized lazily after first resize
+    playerProxy: null,
 };
+
+// Keyboard input for player movement (arrow keys / WASD)
+const keyboard = new KeyboardInput();
 
 // Colors
 const colors = {
@@ -123,6 +142,9 @@ const toggles = {
     showBathymetry: localStorage.getItem('showBathymetry') === 'true',
     showSetWaves: localStorage.getItem('showSetWaves') !== 'false',  // default true
     showBackgroundWaves: localStorage.getItem('showBackgroundWaves') !== 'false',  // default true
+    showFoamZones: localStorage.getItem('showFoamZones') !== 'false',  // default true - smooth foam polygons
+    showFoamSamples: localStorage.getItem('showFoamSamples') === 'true',  // default false - debug rectangles
+    showPlayer: localStorage.getItem('showPlayer') === 'true',  // default false - player proxy
 };
 
 // Helper to save toggle state
@@ -130,17 +152,31 @@ function saveToggleState() {
     localStorage.setItem('showBathymetry', toggles.showBathymetry);
     localStorage.setItem('showSetWaves', toggles.showSetWaves);
     localStorage.setItem('showBackgroundWaves', toggles.showBackgroundWaves);
+    localStorage.setItem('showFoamZones', toggles.showFoamZones);
+    localStorage.setItem('showFoamSamples', toggles.showFoamSamples);
+    localStorage.setItem('showPlayer', toggles.showPlayer);
 }
 
 // Toggle handler for Preact UI
 function handleToggle(key) {
     toggles[key] = !toggles[key];
     saveToggleState();
+
+    // Initialize player proxy when first enabled via UI
+    if (key === 'showPlayer' && toggles.showPlayer && !world.playerProxy) {
+        const { shoreY } = getOceanBounds(canvas.height, world.shoreHeight);
+        world.playerProxy = createPlayerProxy(canvas.width, shoreY);
+    }
 }
 
 // Time scale handler for React UI
 function handleTimeScaleChange(newScale) {
     timeScale = newScale;
+}
+
+// Player config handler for React UI
+function handlePlayerConfigChange(key, value) {
+    PLAYER_PROXY_CONFIG[key] = value;
 }
 
 // Create UI container for React
@@ -158,6 +194,7 @@ function saveGameState() {
         foamSegments: world.foamSegments,
         setLullState: world.setLullState,
         backgroundState: world.backgroundState,
+        playerProxy: world.playerProxy,
     };
     localStorage.setItem('gameState', JSON.stringify(state));
 }
@@ -174,6 +211,7 @@ function loadGameState() {
         world.foamSegments = state.foamSegments || [];
         if (state.setLullState) world.setLullState = state.setLullState;
         if (state.backgroundState) world.backgroundState = state.backgroundState;
+        if (state.playerProxy) world.playerProxy = state.playerProxy;
         return true;
     } catch (e) {
         console.warn('Failed to load game state:', e);
@@ -183,6 +221,12 @@ function loadGameState() {
 
 // Load saved state on startup
 loadGameState();
+
+// Initialize player proxy if it was enabled in a previous session
+if (toggles.showPlayer && !world.playerProxy) {
+    const { shoreY } = getOceanBounds(canvas.height, world.shoreHeight);
+    world.playerProxy = createPlayerProxy(canvas.width, shoreY);
+}
 
 // Keyboard controls
 document.addEventListener('keydown', (e) => {
@@ -199,6 +243,20 @@ document.addEventListener('keydown', (e) => {
     }
     if (e.key === 'g' || e.key === 'G') {
         handleToggle('showBackgroundWaves');
+    }
+    if (e.key === 'f' || e.key === 'F') {
+        handleToggle('showFoamZones');
+    }
+    if (e.key === 'd' || e.key === 'D') {
+        handleToggle('showFoamSamples');
+    }
+    if (e.key === 'p' || e.key === 'P') {
+        handleToggle('showPlayer');
+        // Initialize player proxy when first enabled
+        if (toggles.showPlayer && !world.playerProxy) {
+            const { shoreY } = getOceanBounds(canvas.height, world.shoreHeight);
+            world.playerProxy = createPlayerProxy(canvas.width, shoreY);
+        }
     }
 });
 
@@ -300,6 +358,95 @@ function update(deltaTime) {
 
     // Remove faded foam
     world.foamSegments = getActiveFoam(world.foamSegments);
+
+    // Deposit foam rows (span-based) for smooth rendering - NEW LAYER
+    // This runs in parallel to the point-based system above
+    for (const wave of world.waves) {
+        const progress = getWaveProgress(wave, world.gameTime, travelDuration);
+        const waveY = progressToScreenY(progress, oceanTop, oceanBottom);
+
+        // Skip if wave hasn't moved enough since last row deposit
+        if (wave.lastFoamRowY >= 0 && Math.abs(waveY - wave.lastFoamRowY) < foamYSpacing) {
+            continue;
+        }
+
+        // Calculate how many foam rows to deposit
+        const startY = wave.lastFoamRowY >= 0 ? wave.lastFoamRowY : waveY;
+        const yDelta = waveY - startY;
+        const direction = Math.sign(yDelta);
+        const numRowsToDeposit = Math.max(1, Math.floor(Math.abs(yDelta) / foamYSpacing));
+
+        for (let rowIdx = 0; rowIdx < numRowsToDeposit; rowIdx++) {
+            const foamY = startY + direction * (rowIdx + 1) * foamYSpacing;
+            const foamProgress = screenYToProgress(foamY, oceanTop, oceanBottom);
+
+            // Scan across X to find contiguous breaking regions (spans)
+            const segments = [];
+            let spanStart = null;
+            let spanIntensitySum = 0;
+            let spanSampleCount = 0;
+
+            for (let i = 0; i <= numXSamples; i++) {
+                const normalizedX = (i + 0.5) / numXSamples;
+                const depth = i < numXSamples ? getDepth(normalizedX, world.bathymetry, foamProgress) : Infinity;
+                const isBreaking = i < numXSamples && isWaveBreaking(wave, depth);
+
+                if (isBreaking) {
+                    if (spanStart === null) {
+                        spanStart = normalizedX;
+                        spanIntensitySum = 0;
+                        spanSampleCount = 0;
+                    }
+                    // Calculate intensity based on how shallow (more shallow = more intense)
+                    // Breaking threshold is around 1.5-2m depth, so intensity scales from 0 to 1
+                    const intensity = Math.max(0, Math.min(1, 1 - depth / 3));
+                    spanIntensitySum += intensity;
+                    spanSampleCount++;
+                } else if (spanStart !== null) {
+                    // End of a breaking span
+                    const avgIntensity = spanSampleCount > 0 ? spanIntensitySum / spanSampleCount : 0.5;
+                    segments.push({
+                        startX: spanStart,
+                        endX: (i - 0.5) / numXSamples,
+                        intensity: avgIntensity
+                    });
+                    spanStart = null;
+                }
+            }
+
+            if (segments.length > 0) {
+                world.foamRows.push({
+                    y: foamY,
+                    spawnTime: world.gameTime,
+                    segments
+                });
+                wave.lastFoamRowY = foamY;
+            }
+        }
+    }
+
+    // Update and remove faded foam rows
+    const foamRowFadeTime = 4000; // 4 seconds in ms
+    world.foamRows = world.foamRows.filter(row => {
+        const age = world.gameTime - row.spawnTime;
+        row.opacity = Math.max(0, 1 - age / foamRowFadeTime);
+        return row.opacity > 0;
+    });
+
+    // Update player proxy if enabled
+    if (toggles.showPlayer && world.playerProxy) {
+        const { shoreY } = getOceanBounds(canvas.height, world.shoreHeight);
+        world.playerProxy = updatePlayerProxy(
+            world.playerProxy,
+            scaledDelta,
+            keyboard.getKeys(),
+            world.foamRows,
+            shoreY,
+            canvas.width,
+            canvas.height,
+            PLAYER_PROXY_CONFIG
+        );
+    }
 
     // Save game state periodically (every ~1 second)
     if (Math.floor(world.gameTime / 1000) !== Math.floor((world.gameTime - scaledDelta * 1000) / 1000)) {
@@ -404,18 +551,72 @@ function draw() {
     }
     ctx.globalAlpha = 1.0; // Reset alpha after waves
 
-    // Draw foam deposits (stay where deposited, form trails matching bathymetry shape)
-    // Each foam segment is a small rectangle - together they form smooth breaking patterns
-    const foamDotWidth = w / 80 + 2;  // Slightly wider than sample spacing for overlap
-    const foamDotHeight = 4;  // Slightly taller than Y spacing (3) for overlap
-    for (const foam of world.foamSegments) {
-        if (foam.opacity <= 0) continue;
+    // LAYER 1: Foam contours using marching squares
+    // Builds an intensity grid, applies blur, then extracts contour lines
+    if (toggles.showFoamZones) {
+        const GRID_W = 80;
+        const GRID_H = 60;
 
-        const foamX = foam.x * w;
+        // Build intensity grid from foam rows
+        const grid = buildIntensityGrid(world.foamRows, GRID_W, GRID_H, w, oceanBottom);
 
-        // Draw foam as small rectangle at its fixed position
-        ctx.fillStyle = `rgba(255, 255, 255, ${foam.opacity * 0.85})`;
-        ctx.fillRect(foamX - foamDotWidth / 2, foam.y - foamDotHeight / 2, foamDotWidth, foamDotHeight);
+        // Apply blur to smooth the data
+        const blurred = boxBlur(grid, GRID_W, GRID_H, 2);
+
+        // Define threshold layers (outer to inner)
+        const thresholds = [
+            { value: 0.15, color: 'rgba(255, 255, 255, 0.3)', lineWidth: 1 },
+            { value: 0.3, color: 'rgba(255, 255, 255, 0.6)', lineWidth: 2 },
+            { value: 0.5, color: 'rgba(255, 255, 255, 0.9)', lineWidth: 3 },
+        ];
+
+        // Draw contours for each threshold
+        for (const { value, color, lineWidth } of thresholds) {
+            const segments = extractLineSegments(blurred, GRID_W, GRID_H, value);
+
+            ctx.strokeStyle = color;
+            ctx.lineWidth = lineWidth;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            ctx.beginPath();
+            for (const seg of segments) {
+                const x1 = seg.x1 * w;
+                const y1 = seg.y1 * oceanBottom;
+                const x2 = seg.x2 * w;
+                const y2 = seg.y2 * oceanBottom;
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+            }
+            ctx.stroke();
+        }
+    }
+
+    // LAYER: Foam samples (debug view - original rectangle-based rendering)
+    // Draw foam deposits as individual rectangles for debugging
+    if (toggles.showFoamSamples) {
+        const foamDotWidth = w / 80 + 2;  // Slightly wider than sample spacing for overlap
+        const foamDotHeight = 4;  // Slightly taller than Y spacing (3) for overlap
+        for (const foam of world.foamSegments) {
+            if (foam.opacity <= 0) continue;
+
+            const foamX = foam.x * w;
+
+            // Draw foam as small rectangle at its fixed position
+            ctx.fillStyle = `rgba(255, 255, 255, ${foam.opacity * 0.85})`;
+            ctx.fillRect(foamX - foamDotWidth / 2, foam.y - foamDotHeight / 2, foamDotWidth, foamDotHeight);
+        }
+    }
+
+    // LAYER: Player proxy (toggle with 'P' key)
+    if (toggles.showPlayer && world.playerProxy) {
+        const foamIntensity = sampleFoamIntensity(
+            world.playerProxy.x,
+            world.playerProxy.y,
+            world.foamRows,
+            w
+        );
+        drawPlayerProxy(ctx, world.playerProxy, foamIntensity, PLAYER_PROXY_CONFIG);
     }
 
     // Prepare display data for Preact debug panel
@@ -439,6 +640,8 @@ function draw() {
             toggles={toggles}
             onToggle={handleToggle}
             fps={displayFps}
+            playerConfig={PLAYER_PROXY_CONFIG}
+            onPlayerConfigChange={handlePlayerConfigChange}
         />
     );
 }
