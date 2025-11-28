@@ -305,9 +305,10 @@ function draw() {
         .filter(({ progress }) => progress < 1)
         .sort((a, b) => a.progress - b.progress);  // ascending: horizon first
 
-    // Calculate panel height based on wave count
+    // Calculate panel height based on wave count (each wave needs space for text + progress bar)
     const baseHeight = 130;
-    const waveListHeight = displayWaves.length * 16;
+    const waveItemHeight = 28;  // 16 for text + 12 for progress bar
+    const waveListHeight = displayWaves.length * waveItemHeight;
     const panelHeight = baseHeight + waveListHeight;
 
     ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
@@ -317,19 +318,19 @@ function draw() {
     ctx.fillText(`State: ${stateLabel} (${world.wavesSpawned}/${world.currentSetWaves})`, w - 210, 30);
 
     ctx.fillText(`Next wave: ${nextWaveIn}s`, w - 210, 50);
-    // Next wave progress bar
+    // Next wave progress bar (countdown - starts full, empties as time passes)
     ctx.fillStyle = '#333';
     ctx.fillRect(w - 210, 55, 190, 8);
     ctx.fillStyle = '#4a90b8';
-    ctx.fillRect(w - 210, 55, 190 * waveTimerProgress, 8);
+    ctx.fillRect(w - 210, 55, 190 * (1 - waveTimerProgress), 8);
 
     ctx.fillStyle = '#fff';
     ctx.fillText(`${stateLabel2}: ${stateTimeLeft}s`, w - 210, 80);
-    // State duration progress bar
+    // State duration progress bar (countdown - starts full, empties as time passes)
     ctx.fillStyle = '#333';
     ctx.fillRect(w - 210, 85, 190, 8);
     ctx.fillStyle = world.setState === 'LULL' ? '#e8a644' : '#44e8a6';
-    ctx.fillRect(w - 210, 85, 190 * stateTimerProgress, 8);
+    ctx.fillRect(w - 210, 85, 190 * (1 - stateTimerProgress), 8);
 
     ctx.fillStyle = '#fff';
     ctx.fillText(`Active waves: ${displayWaves.length}`, w - 210, 115);
@@ -339,8 +340,17 @@ function draw() {
         // Time to shore = remaining progress * travel duration (convert to seconds)
         const timeToShore = ((1 - progress) * travelDuration / 1000).toFixed(1);
         const ampPercent = Math.round(wave.amplitude * 100);
+        const yOffset = 130 + i * waveItemHeight;
+
+        // Wave text
         ctx.fillStyle = '#aaa';
-        ctx.fillText(`  • ${ampPercent}% amp, ${timeToShore}s`, w - 210, 130 + i * 16);
+        ctx.fillText(`  • ${ampPercent}% amp, ${timeToShore}s`, w - 210, yOffset);
+
+        // Wave progress bar (countdown - starts full at horizon, empties as wave approaches shore)
+        ctx.fillStyle = '#333';
+        ctx.fillRect(w - 195, yOffset + 4, 175, 6);
+        ctx.fillStyle = '#6ab0d4';  // Lighter blue for wave progress
+        ctx.fillRect(w - 195, yOffset + 4, 175 * (1 - progress), 6);
     }
 }
 
