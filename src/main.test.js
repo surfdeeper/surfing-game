@@ -141,3 +141,111 @@ describe('Wave sets and lulls', () => {
         expect(amp60).toBeGreaterThan(amp80);
     });
 });
+
+// Tab visibility handling - prevents huge jumps after returning from background
+const MAX_DELTA_TIME = 0.1;  // 100ms max, matching main.js
+
+function clampDeltaTime(deltaTime) {
+    if (deltaTime > MAX_DELTA_TIME) {
+        return MAX_DELTA_TIME;
+    }
+    return deltaTime;
+}
+
+// Simulates the gameLoop behavior with clamping
+function simulateFrameUpdate(world, rawDeltaTime) {
+    const deltaTime = clampDeltaTime(rawDeltaTime);
+    updateWaves(world, deltaTime);
+    return deltaTime;
+}
+
+describe('Tab visibility handling', () => {
+    it('should cap deltaTime to prevent huge jumps (MAX_DELTA_TIME = 100ms)', () => {
+        const world = createWorld();
+        world.waves.push({ y: 0, amplitude: 1.0 });
+
+        // Simulate returning from background with 5 second gap
+        const actualDelta = simulateFrameUpdate(world, 5.0);
+
+        // Delta should be capped to MAX_DELTA_TIME
+        expect(actualDelta).toBe(MAX_DELTA_TIME);
+        // Wave should only move 5 pixels (50 px/s * 0.1s), not 250 pixels
+        expect(world.waves[0].y).toBeCloseTo(5, 5);
+    });
+
+    it('should not cap normal frame deltas', () => {
+        const world = createWorld();
+        world.waves.push({ y: 0, amplitude: 1.0 });
+
+        // Normal 60fps frame
+        const actualDelta = simulateFrameUpdate(world, 1/60);
+
+        expect(actualDelta).toBeCloseTo(1/60, 10);
+        // Wave moves at normal rate
+        expect(world.waves[0].y).toBeCloseTo(50 / 60, 5);
+    });
+
+    it('should handle exactly MAX_DELTA_TIME without capping', () => {
+        const clamped = clampDeltaTime(MAX_DELTA_TIME);
+        expect(clamped).toBe(MAX_DELTA_TIME);
+    });
+
+    it('should handle multiple capped frames smoothly', () => {
+        const world = createWorld();
+        world.waves.push({ y: 0, amplitude: 1.0 });
+
+        // Simulate multiple background returns (e.g., user switching tabs rapidly)
+        simulateFrameUpdate(world, 2.0);  // Would be 100 pixels, capped to 5
+        simulateFrameUpdate(world, 3.0);  // Would be 150 pixels, capped to 5
+        simulateFrameUpdate(world, 1.0);  // Would be 50 pixels, capped to 5
+
+        // Total movement should be 15 pixels (3 * 5), not 300 pixels
+        expect(world.waves[0].y).toBeCloseTo(15, 5);
+    });
+
+    it('should prevent wave position jumps on visibility restore', () => {
+        const world = createWorld();
+        world.waves.push({ y: 100, amplitude: 1.0 });
+
+        // Normal operation
+        simulateFrameUpdate(world, 1/60);
+        const posAfterNormal = world.waves[0].y;
+
+        // Visibility restore with large gap should not cause huge jump
+        const posBeforeGap = world.waves[0].y;
+        simulateFrameUpdate(world, 10.0);  // 10 second gap
+        const posAfterGap = world.waves[0].y;
+
+        // Jump should be capped (max 5 pixels), not 500 pixels
+        const jump = posAfterGap - posBeforeGap;
+        expect(jump).toBeLessThanOrEqual(50 * MAX_DELTA_TIME + 0.01);
+    });
+
+    it('should resume smoothly after visibility change', () => {
+        const world = createWorld();
+        world.waves.push({ y: 0, amplitude: 1.0 });
+
+        // Simulate: normal frames -> visibility hidden -> visibility restored -> normal frames
+        // Normal operation (10 frames at 60fps)
+        for (let i = 0; i < 10; i++) {
+            simulateFrameUpdate(world, 1/60);
+        }
+        const posBeforeHidden = world.waves[0].y;
+
+        // Large gap (visibility restore)
+        simulateFrameUpdate(world, 5.0);  // Capped to 0.1s
+        const posAfterRestore = world.waves[0].y;
+
+        // Continue normal operation (10 more frames)
+        for (let i = 0; i < 10; i++) {
+            simulateFrameUpdate(world, 1/60);
+        }
+        const posAfterResume = world.waves[0].y;
+
+        // Verify movement rates are correct
+        // 10 frames at 60fps = 10/60 seconds = ~8.33 pixels
+        // 1 capped frame = 0.1s = 5 pixels
+        // Total: ~8.33 + 5 + ~8.33 = ~21.67 pixels
+        expect(world.waves[0].y).toBeCloseTo(50 * (10/60 + 0.1 + 10/60), 1);
+    });
+});

@@ -511,4 +511,130 @@ describe('setLullModel', () => {
             expect(maxTime).toBe(DEFAULT_CONFIG.swellPeriod + DEFAULT_CONFIG.periodVariation);
         });
     });
+
+    describe('Edge Cases', () => {
+        describe('Timing Edge Cases', () => {
+            it('handles zero deltaTime without breaking updates', () => {
+                let state = createInitialState(DEFAULT_CONFIG, fixedRandom(0.5));
+                const initialTimer = state.setTimer;
+
+                const result = updateSetLullState(state, 0, DEFAULT_CONFIG, fixedRandom(0.5));
+                expect(result.state.setTimer).toBe(initialTimer);
+                expect(result.shouldSpawn).toBe(false);
+            });
+
+            it('handles very large deltaTime (simulates lag spike handling)', () => {
+                // Note: main.js clamps deltaTime, but setLullModel should handle any value
+                let state = createInitialState(DEFAULT_CONFIG, fixedRandom(0.5));
+                const result = updateSetLullState(state, 1000, DEFAULT_CONFIG, fixedRandom(0.5));
+
+                // Should transition through states without crashing
+                expect(result.state).toBeDefined();
+                expect([STATE.LULL, STATE.SET]).toContain(result.state.setState);
+            });
+
+            it('handles negative deltaTime gracefully (edge case)', () => {
+                let state = createInitialState(DEFAULT_CONFIG, fixedRandom(0.5));
+                const initialTimer = state.setTimer;
+
+                // Negative time would make timer go negative
+                const result = updateSetLullState(state, -1, DEFAULT_CONFIG, fixedRandom(0.5));
+                expect(result.state.setTimer).toBe(initialTimer - 1);
+            });
+        });
+
+        describe('State Edge Cases', () => {
+            it('handles rapid state transitions', () => {
+                // Create a config with very short durations
+                const fastConfig = {
+                    ...DEFAULT_CONFIG,
+                    lullDuration: 0.1,
+                    lullVariation: 0,
+                    swellPeriod: 0.1,
+                    periodVariation: 0,
+                    wavesPerSet: [1, 1],
+                    lullWavesPerSet: [1, 1],
+                };
+
+                let state = createInitialState(fastConfig, fixedRandom(0.5));
+                let transitions = 0;
+                let lastState = state.setState;
+
+                // Rapid updates
+                for (let i = 0; i < 100; i++) {
+                    const result = updateSetLullState(state, 0.2, fastConfig, fixedRandom(0.5));
+                    state = result.state;
+                    if (state.setState !== lastState) {
+                        transitions++;
+                        lastState = state.setState;
+                    }
+                }
+
+                // Should have multiple transitions without crashing
+                expect(transitions).toBeGreaterThan(5);
+            });
+
+            it('handles single-wave sets correctly', () => {
+                const singleWaveConfig = {
+                    ...DEFAULT_CONFIG,
+                    wavesPerSet: [1, 1],
+                };
+
+                let state = initializeSet({}, singleWaveConfig, fixedRandom(0.5));
+                expect(state.currentSetWaves).toBe(1);
+
+                // Progress calculation for single wave set (avoid division by zero)
+                state.timeSinceLastWave = 16;
+                const result = updateSetLullState(state, 0.1, singleWaveConfig, fixedRandom(0.5));
+
+                // Should spawn with amplitude at peak position
+                expect(result.shouldSpawn).toBe(true);
+                expect(result.amplitude).toBe(calculateSetAmplitude(singleWaveConfig.peakPosition, singleWaveConfig));
+            });
+
+            it('handles empty config gracefully by using defaults', () => {
+                // updateSetLullState should use DEFAULT_CONFIG if not provided
+                let state = createInitialState();
+                const result = updateSetLullState(state, 1.0);
+                expect(result.state).toBeDefined();
+            });
+        });
+
+        describe('Amplitude Edge Cases', () => {
+            it('handles extreme peakPosition of 0 (peak at start)', () => {
+                const config = { ...DEFAULT_CONFIG, peakPosition: 0 };
+                // When peakPosition=0, progress 0 is exactly at peak
+                // The building phase (progress < peak) is skipped, so it uses fading formula
+                // At progress 0, t = (0 - 0) / (1 - 0) = 0, so amplitude = 1.0
+                const amp = calculateSetAmplitude(0, config);
+                expect(amp).toBe(1.0);
+            });
+
+            it('handles peakPosition of 1 (peak at end) causes NaN', () => {
+                const config = { ...DEFAULT_CONFIG, peakPosition: 1 };
+                // When peakPosition=1, fading phase has division by zero: (1-1)=0
+                // This is an edge case that produces NaN - documenting current behavior
+                const amp = calculateSetAmplitude(1, config);
+                expect(amp).toBeNaN();
+            });
+
+            it('handles minAmplitude of 0', () => {
+                const config = { ...DEFAULT_CONFIG, minAmplitude: 0 };
+                const ampStart = calculateSetAmplitude(0, config);
+                const ampPeak = calculateSetAmplitude(config.peakPosition, config);
+                expect(ampStart).toBe(0);
+                expect(ampPeak).toBe(1.0);
+            });
+
+            it('handles minAmplitude of 1 (all waves same amplitude)', () => {
+                const config = { ...DEFAULT_CONFIG, minAmplitude: 1 };
+                const ampStart = calculateSetAmplitude(0, config);
+                const ampMid = calculateSetAmplitude(0.5, config);
+                const ampEnd = calculateSetAmplitude(1, config);
+                expect(ampStart).toBe(1);
+                expect(ampMid).toBe(1);
+                expect(ampEnd).toBe(1);
+            });
+        });
+    });
 });

@@ -127,4 +127,78 @@ describe('waveModel', () => {
             expect(active).toHaveLength(0);
         });
     });
+
+    describe('Edge Cases', () => {
+        describe('Wave Progress Edge Cases', () => {
+            it('handles zero travel duration gracefully', () => {
+                const wave = createWave(1000, 0.8);
+                // Division by zero - should clamp to 1 (wave instantly at shore)
+                const progress = getWaveProgress(wave, 1001, 0);
+                // elapsed / 0 = Infinity, clamped to 1
+                expect(progress).toBe(1);
+            });
+
+            it('handles very large time values', () => {
+                const wave = createWave(0, 0.8);
+                const progress = getWaveProgress(wave, 1e12, 5000);
+                expect(progress).toBe(1);
+            });
+
+            it('handles concurrent waves at same spawn time', () => {
+                const wave1 = createWave(1000, 0.5);
+                const wave2 = createWave(1000, 0.8);
+                const progress1 = getWaveProgress(wave1, 3500, 5000);
+                const progress2 = getWaveProgress(wave2, 3500, 5000);
+                expect(progress1).toBe(progress2);
+            });
+        });
+
+        describe('State Edge Cases', () => {
+            it('handles 100+ waves without issues', () => {
+                const waves = [];
+                for (let i = 0; i < 100; i++) {
+                    waves.push(createWave(i * 100, 0.5));
+                }
+                // All waves should be created
+                expect(waves).toHaveLength(100);
+                // Filter should handle large array
+                const active = getActiveWaves(waves, 5000, 5000);
+                expect(active.length).toBeLessThanOrEqual(100);
+            });
+
+            it('handles waves with zero amplitude', () => {
+                const wave = createWave(1000, 0);
+                expect(wave.amplitude).toBe(0);
+                // Progress should still work
+                expect(getWaveProgress(wave, 3500, 5000)).toBe(0.5);
+            });
+
+            it('handles waves with amplitude > 1', () => {
+                // Not strictly valid, but shouldn't crash
+                const wave = createWave(1000, 1.5);
+                expect(wave.amplitude).toBe(1.5);
+            });
+        });
+
+        describe('Timing Edge Cases', () => {
+            it('handles zero deltaTime (no time passed)', () => {
+                const wave = createWave(1000, 0.8);
+                const progress = getWaveProgress(wave, 1000, 5000);
+                expect(progress).toBe(0);
+            });
+
+            it('handles negative time (should clamp to 0)', () => {
+                const wave = createWave(1000, 0.8);
+                const progress = getWaveProgress(wave, -500, 5000);
+                expect(progress).toBe(0);
+            });
+
+            it('handles float precision in progress calculation', () => {
+                const wave = createWave(0, 0.8);
+                // 1/3 of duration = should be very close to 0.333...
+                const progress = getWaveProgress(wave, 1666.666, 5000);
+                expect(progress).toBeCloseTo(0.333, 2);
+            });
+        });
+    });
 });

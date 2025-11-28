@@ -83,4 +83,57 @@ describe('coordinates', () => {
             expect(calculateTravelDuration(1000, 50)).toBe(20000);
         });
     });
+
+    describe('Edge Cases', () => {
+        describe('Coordinate Edge Cases', () => {
+            it('zero-height ocean returns oceanTop for all progress values', () => {
+                // When oceanTop === oceanBottom, all progress values should return oceanTop
+                const result = progressToScreenY(0.5, 100, 100);
+                expect(result).toBe(100);
+            });
+
+            it('negative progress is handled (not clamped in coordinates)', () => {
+                // Coordinates module doesn't clamp - that's waveModel's job
+                const y = progressToScreenY(-0.5, 0, 500);
+                expect(y).toBe(-250);
+            });
+
+            it('progress > 1 is handled (not clamped in coordinates)', () => {
+                // Coordinates module doesn't clamp - that's waveModel's job
+                const y = progressToScreenY(1.5, 0, 500);
+                expect(y).toBe(750);
+            });
+
+            it('handles very small canvas heights', () => {
+                const bounds = getOceanBounds(10, 5);
+                expect(bounds.oceanTop).toBe(0);
+                expect(bounds.oceanBottom).toBe(5);
+                expect(bounds.shoreY).toBe(5);
+            });
+
+            it('handles very large canvas heights', () => {
+                const bounds = getOceanBounds(10000, 500);
+                expect(bounds.oceanTop).toBe(0);
+                expect(bounds.oceanBottom).toBe(9500);
+            });
+        });
+
+        describe('Timing Edge Cases', () => {
+            it('zero speed returns Infinity duration', () => {
+                const duration = calculateTravelDuration(500, 0);
+                expect(duration).toBe(Infinity);
+            });
+
+            it('very small speed returns very large duration', () => {
+                const duration = calculateTravelDuration(500, 0.001);
+                expect(duration).toBe(500000000); // 500 / 0.001 * 1000
+            });
+
+            it('negative speed returns negative duration (caller responsibility)', () => {
+                // Coordinates don't validate - caller's responsibility
+                const duration = calculateTravelDuration(500, -50);
+                expect(duration).toBe(-10000);
+            });
+        });
+    });
 });
