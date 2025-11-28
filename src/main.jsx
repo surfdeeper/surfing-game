@@ -284,7 +284,12 @@ function loadGameState() {
         const state = JSON.parse(saved);
         world.gameTime = state.gameTime || 0;
         timeScale = state.timeScale || 1;
-        world.waves = state.waves || [];
+        // Migrate waves to ensure they have progressPerX (added in wave refraction feature)
+        world.waves = (state.waves || []).map(wave => ({
+            ...wave,
+            progressPerX: wave.progressPerX || new Array(WAVE_X_SAMPLES).fill(0),
+            lastUpdateTime: wave.lastUpdateTime ?? wave.spawnTime,
+        }));
         world.foamSegments = state.foamSegments || [];
         if (state.setLullState) {
             // Validate timestamps aren't corrupted (stale data from previous session)
