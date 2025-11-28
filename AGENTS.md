@@ -7,8 +7,11 @@ Guidelines for AI agents working on this codebase.
 ### Tight Feedback Loops
 Always prefer the fastest feedback mechanism available:
 1. **Lint first** (`npm run lint`) - catches syntax/import errors in ~1 second
-2. **Run single tests** - don't run all tests when iterating on one
-3. **Don't chain commands** - run `npm run lint` separately from tests; if lint passes, then run tests. Don't `lint && test` which delays test feedback.
+2. **Smoke test** (`npx playwright test tests/smoke.spec.js:3`) - verifies app loads without JS errors (~3 seconds)
+3. **Run specific tests** - test files related to your changes, not the entire suite
+4. **Don't chain commands** - run `npm run lint` separately from tests; if lint passes, then run tests. Don't `lint && test` which delays test feedback.
+
+**CRITICAL**: Always run the smoke test after changes. Unit tests can pass while the app is broken (e.g., broken imports not exercised by unit tests).
 
 ### Use Pre-approved Commands
 These commands are pre-approved and won't prompt for confirmation:

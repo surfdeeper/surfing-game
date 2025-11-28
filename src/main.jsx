@@ -9,36 +9,37 @@
 import {
     createWave,
     getWaveProgress,
-    getActiveWaves,
     WAVE_TYPE,
-    isWaveBreaking,
-    isWaveBreakingWithEnergy,
-    updateWaveRefraction,
     WAVE_X_SAMPLES,
 } from './state/waveModel.js';
-import { createFoam, updateFoam, getActiveFoam } from './state/foamModel.js';
 import { DEFAULT_BATHYMETRY, getDepth } from './state/bathymetryModel.js';
-import { progressToScreenY, screenYToProgress, getOceanBounds, calculateTravelDuration } from './render/coordinates.js';
+import { progressToScreenY, getOceanBounds, calculateTravelDuration } from './render/coordinates.js';
 import {
     DEFAULT_CONFIG,
     createInitialState,
-    updateSetLullState,
 } from './state/setLullModel.js';
 import {
     BACKGROUND_CONFIG,
     createInitialBackgroundState,
-    updateBackgroundWaveState,
 } from './state/backgroundWaveModel.js';
+import {
+    updateWaveSpawning,
+    updateWaves,
+    depositFoam,
+    updateFoamLifecycle,
+    depositFoamRows,
+    updateFoamRowLifecycle,
+    updatePlayer,
+} from './update/index.js';
+import { EventType } from './state/eventStore.js';
 import {
     PLAYER_PROXY_CONFIG,
     createPlayerProxy,
-    updatePlayerProxy,
     drawPlayerProxy,
     sampleFoamIntensity,
 } from './state/playerProxyModel.js';
 import {
     createAIState,
-    updateAIPlayer,
     drawAIKeyIndicator,
     AI_MODE,
 } from './state/aiPlayerModel.js';
@@ -46,7 +47,6 @@ import {
     createEnergyField,
     updateEnergyField,
     injectWavePulse,
-    drainEnergyAt,
     getHeightAt,
 } from './state/energyFieldModel.js';
 import { renderEnergyField } from './render/energyFieldRenderer.js';
@@ -412,242 +412,88 @@ function update(deltaTime) {
         updateEnergyField(world.energyField, getDepthForField, scaledDelta, travelDuration);
     }
 
-    // Update set/lull state machine (handles set waves only)
-    // Pass absolute gameTime instead of deltaTime
-    const setResult = updateSetLullState(
-        world.setLullState,
-        world.gameTime,
-        world.setConfig
-    );
-    world.setLullState = setResult.state;
-
-    // Spawn set wave if the state machine says to
-    if (setResult.shouldSpawn) {
-        spawnWave(setResult.amplitude, WAVE_TYPE.SET);
-    }
-
-    // Update background wave state (always spawning, independent of set/lull)
-    const bgResult = updateBackgroundWaveState(
-        world.backgroundState,
+    // Update wave spawning via orchestrator (returns events + new state)
+    const spawnResult = updateWaveSpawning(
+        {
+            setLullState: world.setLullState,
+            setConfig: world.setConfig,
+            backgroundState: world.backgroundState,
+            backgroundConfig: world.backgroundConfig,
+        },
         scaledDelta,
-        world.backgroundConfig
+        world.gameTime
     );
-    world.backgroundState = bgResult.state;
 
-    // Spawn background wave if needed
-    if (bgResult.shouldSpawn) {
-        spawnWave(bgResult.amplitude, WAVE_TYPE.BACKGROUND);
+    // Apply state updates
+    world.setLullState = spawnResult.setLullState;
+    world.backgroundState = spawnResult.backgroundState;
+
+    // Process spawn events
+    for (const event of spawnResult.events) {
+        if (event.type === EventType.WAVE_SPAWN) {
+            spawnWave(event.amplitude, event.waveType);
+        }
     }
 
-    // Remove waves that have completed their journey (time-based)
-    const { oceanTop, oceanBottom } = getOceanBounds(canvas.height, world.shoreHeight);
+    // Update wave lifecycle (filter completed waves + update refraction) via orchestrator
+    const { oceanBottom } = getOceanBounds(canvas.height, world.shoreHeight);
     const travelDuration = calculateTravelDuration(oceanBottom, world.swellSpeed);
-    // Add buffer for visual spacing past shore
     const bufferDuration = (world.swellSpacing / world.swellSpeed) * 1000;
-    world.waves = getActiveWaves(world.waves, world.gameTime - bufferDuration, travelDuration);
+    world.waves = updateWaves(
+        world.waves,
+        world.gameTime,
+        travelDuration,
+        bufferDuration,
+        world.bathymetry
+    );
 
-    // Update wave refraction (per-X progress based on bathymetry)
-    // Waves slow down in shallow water, causing them to bend
-    const getDepthForRefraction = (normalizedX, progress) =>
-        getDepth(normalizedX, world.bathymetry, progress);
+    // Foam state for orchestrator functions
+    const foamState = {
+        gameTime: world.gameTime,
+        bathymetry: world.bathymetry,
+        energyField: world.energyField,
+        canvasHeight: canvas.height,
+        shoreHeight: world.shoreHeight,
+        swellSpeed: world.swellSpeed,
+        showEnergyField: toggles.showEnergyField,
+    };
 
-    for (const wave of world.waves) {
-        updateWaveRefraction(
-            wave,
-            world.gameTime,
-            travelDuration,
-            getDepthForRefraction,
-            world.bathymetry.deepDepth
-        );
-    }
+    // Deposit foam segments (point-based) via orchestrator
+    world.foamSegments = depositFoam(world.waves, world.foamSegments, foamState);
 
-    // Deposit foam where waves are breaking
-    // Foam is deposited at the wave's current position and stays there (doesn't move)
-    // Shape of foam naturally follows bathymetry because it's deposited wherever depth triggers breaking
-    const numXSamples = 80;  // Higher resolution for smoother contours
-    const foamYSpacing = 3;  // Y spacing between foam deposits (pixels)
+    // Update foam lifecycle (fade and remove)
+    world.foamSegments = updateFoamLifecycle(world.foamSegments, scaledDelta, world.gameTime);
 
-    for (const wave of world.waves) {
-        const progress = getWaveProgress(wave, world.gameTime, travelDuration);
-        const waveY = progressToScreenY(progress, oceanTop, oceanBottom);
+    // Deposit foam rows (span-based) via orchestrator
+    world.foamRows = depositFoamRows(world.waves, world.foamRows, foamState);
 
-        // Skip if wave hasn't moved enough since last deposit
-        if (wave.lastFoamY >= 0 && Math.abs(waveY - wave.lastFoamY) < foamYSpacing) {
-            continue;
-        }
+    // Update foam row lifecycle (fade and remove)
+    world.foamRows = updateFoamRowLifecycle(world.foamRows, world.gameTime);
 
-        // Calculate how many foam rows to deposit (fill in skipped positions at high time scales)
-        const startY = wave.lastFoamY >= 0 ? wave.lastFoamY : waveY;
-        const yDelta = waveY - startY;
-        const direction = Math.sign(yDelta);
-        const numRows = Math.max(1, Math.floor(Math.abs(yDelta) / foamYSpacing));
-
-        for (let row = 0; row < numRows; row++) {
-            // Interpolate Y position for this foam row
-            const foamY = startY + direction * (row + 1) * foamYSpacing;
-            // Interpolate progress for this Y position to get correct depth sampling
-            const foamProgress = screenYToProgress(foamY, oceanTop, oceanBottom);
-
-            let depositedAny = false;
-            for (let i = 0; i < numXSamples; i++) {
-                const normalizedX = (i + 0.5) / numXSamples;
-                const depth = getDepth(normalizedX, world.bathymetry, foamProgress);
-
-                // Check breaking condition - use energy-aware check when energy field is enabled
-                let shouldBreak;
-                let energyAtPoint = 0;
-                if (toggles.showEnergyField) {
-                    energyAtPoint = getHeightAt(world.energyField, normalizedX, foamProgress);
-                    shouldBreak = isWaveBreakingWithEnergy(wave, depth, energyAtPoint);
-                } else {
-                    shouldBreak = isWaveBreaking(wave, depth);
-                }
-
-                if (shouldBreak) {
-                    // Drain energy where foam is deposited (wave breaks = energy loss)
-                    let energyReleased = wave.amplitude; // Default for non-energy mode
-                    if (toggles.showEnergyField) {
-                        // TEMP: EXTREME drain for testing - drain 20x wave amplitude to nearly empty energy
-                        energyReleased = drainEnergyAt(world.energyField, normalizedX, foamProgress, wave.amplitude * 20.0);
-                    }
-
-                    // Deposit foam at this location - it stays here!
-                    // Foam opacity scales with energy released (Plan 141 Phase 3)
-                    const foam = createFoam(world.gameTime, normalizedX, foamY, wave.id);
-                    foam.opacity = Math.min(1.0, energyReleased * 2);
-                    world.foamSegments.push(foam);
-                    depositedAny = true;
-                }
-            }
-
-            if (depositedAny) {
-                wave.lastFoamY = foamY;
-            }
-        }
-    }
-
-    // Update existing foam (just fades, doesn't move)
-    for (const foam of world.foamSegments) {
-        updateFoam(foam, scaledDelta, world.gameTime);
-    }
-
-    // Remove faded foam
-    world.foamSegments = getActiveFoam(world.foamSegments);
-
-    // Deposit foam rows (span-based) for smooth rendering - NEW LAYER
-    // This runs in parallel to the point-based system above
-    for (const wave of world.waves) {
-        const progress = getWaveProgress(wave, world.gameTime, travelDuration);
-        const waveY = progressToScreenY(progress, oceanTop, oceanBottom);
-
-        // Skip if wave hasn't moved enough since last row deposit
-        if (wave.lastFoamRowY >= 0 && Math.abs(waveY - wave.lastFoamRowY) < foamYSpacing) {
-            continue;
-        }
-
-        // Calculate how many foam rows to deposit
-        const startY = wave.lastFoamRowY >= 0 ? wave.lastFoamRowY : waveY;
-        const yDelta = waveY - startY;
-        const direction = Math.sign(yDelta);
-        const numRowsToDeposit = Math.max(1, Math.floor(Math.abs(yDelta) / foamYSpacing));
-
-        for (let rowIdx = 0; rowIdx < numRowsToDeposit; rowIdx++) {
-            const foamY = startY + direction * (rowIdx + 1) * foamYSpacing;
-            const foamProgress = screenYToProgress(foamY, oceanTop, oceanBottom);
-
-            // Scan across X to find contiguous breaking regions (spans)
-            const segments = [];
-            let spanStart = null;
-            let spanIntensitySum = 0;
-            let spanSampleCount = 0;
-
-            for (let i = 0; i <= numXSamples; i++) {
-                const normalizedX = (i + 0.5) / numXSamples;
-                const depth = i < numXSamples ? getDepth(normalizedX, world.bathymetry, foamProgress) : Infinity;
-                const isBreaking = i < numXSamples && isWaveBreaking(wave, depth);
-
-                if (isBreaking) {
-                    if (spanStart === null) {
-                        spanStart = normalizedX;
-                        spanIntensitySum = 0;
-                        spanSampleCount = 0;
-                    }
-                    // Calculate intensity based on how shallow (more shallow = more intense)
-                    // Breaking threshold is around 1.5-2m depth, so intensity scales from 0 to 1
-                    const intensity = Math.max(0, Math.min(1, 1 - depth / 3));
-                    spanIntensitySum += intensity;
-                    spanSampleCount++;
-                } else if (spanStart !== null) {
-                    // End of a breaking span
-                    const avgIntensity = spanSampleCount > 0 ? spanIntensitySum / spanSampleCount : 0.5;
-                    segments.push({
-                        startX: spanStart,
-                        endX: (i - 0.5) / numXSamples,
-                        intensity: avgIntensity
-                    });
-                    spanStart = null;
-                }
-            }
-
-            if (segments.length > 0) {
-                world.foamRows.push({
-                    y: foamY,
-                    spawnTime: world.gameTime,
-                    segments
-                });
-                wave.lastFoamRowY = foamY;
-            }
-        }
-    }
-
-    // Update and remove faded foam rows
-    const foamRowFadeTime = 4000; // 4 seconds in ms
-    world.foamRows = world.foamRows.filter(row => {
-        const age = world.gameTime - row.spawnTime;
-        row.opacity = Math.max(0, 1 - age / foamRowFadeTime);
-        return row.opacity > 0;
-    });
-
-    // Update player proxy if enabled
+    // Update player proxy if enabled via orchestrator
     if (toggles.showPlayer && world.playerProxy) {
-        const { oceanTop, oceanBottom: ob, shoreY: sy } = getOceanBounds(canvas.height, world.shoreHeight);
-        const td = calculateTravelDuration(ob, world.swellSpeed);
+        const playerState = {
+            canvasWidth: canvas.width,
+            canvasHeight: canvas.height,
+            shoreHeight: world.shoreHeight,
+            swellSpeed: world.swellSpeed,
+            foamRows: world.foamRows,
+            deltaTime: scaledDelta,
+            showAIPlayer: toggles.showAIPlayer,
+            world,
+        };
 
-        // Determine input source: AI or keyboard
-        let input;
-        if (toggles.showAIPlayer) {
-            // Initialize AI state if needed
-            if (!world.aiState) {
-                world.aiState = createAIState(world.aiMode);
-            }
-            // Get AI decision
-            input = updateAIPlayer(
-                world.playerProxy,
-                world.aiState,
-                world,
-                scaledDelta,
-                canvas.width,
-                canvas.height,
-                oceanTop,
-                ob,
-                td
-            );
-            world.lastAIInput = input;
-        } else {
-            input = keyboard.getKeys();
-            world.lastAIInput = { left: false, right: false, up: false, down: false };
-        }
-
-        world.playerProxy = updatePlayerProxy(
+        const playerResult = updatePlayer(
             world.playerProxy,
-            scaledDelta,
-            input,
-            world.foamRows,
-            sy,
-            canvas.width,
-            canvas.height,
-            PLAYER_PROXY_CONFIG
+            world.aiState,
+            world.aiMode,
+            keyboard.getKeys(),
+            playerState
         );
+
+        world.playerProxy = playerResult.playerProxy;
+        world.aiState = playerResult.aiState;
+        world.lastAIInput = playerResult.lastAIInput;
     }
 
     // Save game state periodically (every ~1 second)

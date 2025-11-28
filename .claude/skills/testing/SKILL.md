@@ -43,9 +43,12 @@ This project has a comprehensive testing strategy with multiple test types.
 # Linting (run first for fast feedback)
 npm run lint                          # ESLint - catch syntax/import errors
 
-# Unit tests
-npm test                              # Run all unit tests
-npx vitest run src/path/file.test.js  # Run specific test
+# Smoke test (MUST run after any changes to verify app loads)
+npx playwright test tests/smoke.spec.js:3  # Quick smoke test - app loads without JS errors
+
+# Unit tests (run specific file first, not entire suite)
+npx vitest run src/path/file.test.js  # Run specific test file
+npm test                              # Run all unit tests (slower, use sparingly)
 
 # Visual tests
 npm run test:visual:headless          # Headless (CI/agents)
@@ -55,7 +58,18 @@ npm run reset:visual                  # Clear results/reports
 npm run reset:visual:all              # Clear results + baselines
 ```
 
-**Always run `npm run lint` before running tests** - it's much faster and catches common errors like undefined variables, missing imports, and syntax issues.
+## CRITICAL: Test Order After Changes
+
+After making code changes, run tests in this order:
+
+1. **`npm run lint`** - Fast syntax/import check (~1 second)
+2. **`npx playwright test tests/smoke.spec.js:3`** - Verify app loads without JS errors (~3 seconds)
+3. **`npx vitest run src/path/changed-file.test.js`** - Test specific changed file
+4. **Full suite only if needed** - `npm test` (minutes, use sparingly)
+
+**DO NOT skip the smoke test** - unit tests can pass while the app is completely broken (e.g., broken imports that aren't exercised in unit tests).
+
+**DO NOT run the full test suite first** - it wastes time. Start with specific tests related to your changes.
 
 ## Unit Test Patterns (Vitest)
 

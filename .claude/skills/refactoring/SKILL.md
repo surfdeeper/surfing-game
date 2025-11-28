@@ -167,4 +167,25 @@ npm run lint && npm test
 - [ ] Tests exist for affected code
 - [ ] User approved proposed pattern/naming
 - [ ] Plan document created (if significant change)
-- [ ] Ready to run lint + tests after each step
+
+## CRITICAL: Testing After Refactoring
+
+After EVERY refactoring change, run tests in this order:
+
+```bash
+# 1. Lint first (fast feedback)
+npm run lint
+
+# 2. Smoke test - verify app actually loads
+npx playwright test tests/smoke.spec.js:3
+
+# 3. Specific tests for changed files
+npx vitest run src/path/changed-file.test.js
+
+# 4. Full suite only if needed
+npm test
+```
+
+**DO NOT skip the smoke test** - unit tests can pass while the app is broken (e.g., broken imports not exercised in unit tests).
+
+**DO NOT run the full test suite first** - start with specific tests for faster iteration.
