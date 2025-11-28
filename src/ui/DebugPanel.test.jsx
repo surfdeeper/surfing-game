@@ -6,44 +6,73 @@ afterEach(() => {
   cleanup();
 });
 
+// Helper to convert seconds to ms
+const sec = (s) => s * 1000;
+
+// Helper to create setLullState with absolute timestamps
+// The component computes derived timers from: gameTime - stateStartTime and gameTime - lastWaveSpawnTime
+function createSetLullState(opts = {}) {
+  const {
+    setState = 'SET',
+    wavesSpawned = 2,
+    currentSetWaves = 5,
+    setTimer = 15.5,        // Desired setTimer value (derived)
+    setDuration = 60.0,
+    timeSinceLastWave = 8.3, // Desired timeSinceLastWave value (derived)
+    nextWaveTime = 15.0,
+    gameTime = sec(100),     // Reference game time
+  } = opts;
+
+  return {
+    setState,
+    wavesSpawned,
+    currentSetWaves,
+    stateStartTime: gameTime - sec(setTimer),
+    setDuration,
+    lastWaveSpawnTime: gameTime - sec(timeSinceLastWave),
+    nextWaveTime,
+    _gameTime: gameTime, // Store for test props
+  };
+}
+
 // Default props for testing
-const createDefaultProps = (overrides = {}) => ({
-  setLullState: {
-    setState: 'SET',
-    wavesSpawned: 2,
-    currentSetWaves: 5,
-    setTimer: 15.5,
-    setDuration: 60.0,
-    timeSinceLastWave: 8.3,
-    nextWaveTime: 15.0,
-  },
-  displayWaves: [
-    { wave: { id: 1, type: 'SET', amplitude: 0.8 }, progress: 0.3, travelDuration: 10000 },
-    { wave: { id: 2, type: 'SET', amplitude: 0.6 }, progress: 0.5, travelDuration: 10000 },
-    { wave: { id: 3, type: 'BACKGROUND', amplitude: 0.3 }, progress: 0.7, travelDuration: 8000 },
-  ],
-  foamCount: 42,
-  timeScale: 1,
-  onTimeScaleChange: vi.fn(),
-  toggles: {
-    showBathymetry: true,
-    showSetWaves: true,
-    showBackgroundWaves: false,
-    showFoamZones: true,
-    showFoamSamples: false,
-    showPlayer: true,
-  },
-  onToggle: vi.fn(),
-  fps: 60,
-  playerConfig: {
-    waterSpeed: 30,
-    foamSpeed: 20,
-    maxPushForce: 50,
-    foamSpeedPenalty: 0.3,
-  },
-  onPlayerConfigChange: vi.fn(),
-  ...overrides,
-});
+const createDefaultProps = (overrides = {}) => {
+  const defaultSetLullState = createSetLullState();
+  const setLullState = overrides.setLullState || defaultSetLullState;
+  const gameTime = overrides.gameTime !== undefined
+    ? overrides.gameTime
+    : (setLullState._gameTime || sec(100));
+
+  return {
+    setLullState,
+    gameTime,
+    displayWaves: overrides.displayWaves || [
+      { wave: { id: 1, type: 'set', amplitude: 0.8 }, progress: 0.3, travelDuration: 10000 },
+      { wave: { id: 2, type: 'set', amplitude: 0.6 }, progress: 0.5, travelDuration: 10000 },
+      { wave: { id: 3, type: 'background', amplitude: 0.3 }, progress: 0.7, travelDuration: 8000 },
+    ],
+    foamCount: overrides.foamCount !== undefined ? overrides.foamCount : 42,
+    timeScale: overrides.timeScale !== undefined ? overrides.timeScale : 1,
+    onTimeScaleChange: overrides.onTimeScaleChange || vi.fn(),
+    toggles: overrides.toggles || {
+      showBathymetry: true,
+      showSetWaves: true,
+      showBackgroundWaves: false,
+      showFoamZones: true,
+      showFoamSamples: false,
+      showPlayer: true,
+    },
+    onToggle: overrides.onToggle || vi.fn(),
+    fps: overrides.fps !== undefined ? overrides.fps : 60,
+    playerConfig: overrides.playerConfig !== undefined ? overrides.playerConfig : {
+      waterSpeed: 30,
+      foamSpeed: 20,
+      maxPushForce: 50,
+      foamSpeedPenalty: 0.3,
+    },
+    onPlayerConfigChange: overrides.onPlayerConfigChange || vi.fn(),
+  };
+};
 
 describe('DebugPanel', () => {
   describe('FPS Counter', () => {
@@ -161,21 +190,27 @@ describe('DebugPanel', () => {
       expect(screen.getByText('2/5')).toBeInTheDocument();
     });
 
-    it('displays set timer with circular progress', () => {
-      render(<DebugPanel {...createDefaultProps()} />);
-      expect(screen.getByText('15.5s / 60.0s')).toBeInTheDocument();
-      // Verify circular progress SVG exists
+    it('displays countdown timer with circular progress in LULL', () => {
+      const lullState = createSetLullState({ setState: 'LULL' });
+      render(<DebugPanel {...createDefaultProps({ setLullState: lullState })} />);
+      // setDuration=60, setTimer=15.5 => remaining = 44.5s
+      expect(screen.getByText('44.5s')).toBeInTheDocument();
+      // Verify circular progress SVG exists (2 in LULL: lull timer + wave timer)
       const svgs = document.querySelectorAll('.circular-progress');
-      expect(svgs.length).toBeGreaterThan(0);
+      expect(svgs.length).toBe(2);
     });
 
-    it('displays wave timer with circular progress', () => {
+    it('displays wave countdown timer with circular progress', () => {
       render(<DebugPanel {...createDefaultProps()} />);
-      expect(screen.getByText('8.3s / 15.0s')).toBeInTheDocument();
+      // nextWaveTime=15, timeSinceLastWave=8.3 => remaining = 6.7s
+      expect(screen.getByText('6.7s')).toBeInTheDocument();
+      // In SET state (default), only 1 circular progress (wave timer)
+      const svgs = document.querySelectorAll('.circular-progress');
+      expect(svgs.length).toBe(1);
     });
 
     it('shows LULL state correctly', () => {
-      const setLullState = {
+      const setLullState = createSetLullState({
         setState: 'LULL',
         wavesSpawned: 0,
         currentSetWaves: 3,
@@ -183,7 +218,7 @@ describe('DebugPanel', () => {
         setDuration: 30.0,
         timeSinceLastWave: 5.0,
         nextWaveTime: 12.0,
-      };
+      });
       render(<DebugPanel {...createDefaultProps({ setLullState })} />);
       expect(screen.getByText('LULL')).toBeInTheDocument();
     });
@@ -324,7 +359,7 @@ describe('DebugPanel', () => {
     });
 
     it('applies correct color to progress fill', () => {
-      const setLullState = {
+      const setLullState = createSetLullState({
         setState: 'LULL',
         wavesSpawned: 0,
         currentSetWaves: 3,
@@ -332,7 +367,7 @@ describe('DebugPanel', () => {
         setDuration: 30.0,
         timeSinceLastWave: 5.0,
         nextWaveTime: 12.0,
-      };
+      });
       render(<DebugPanel {...createDefaultProps({ setLullState })} />);
 
       const progressFills = document.querySelectorAll('.circular-progress-fill');
@@ -341,7 +376,7 @@ describe('DebugPanel', () => {
     });
 
     it('calculates stroke-dashoffset based on progress', () => {
-      const setLullState = {
+      const setLullState = createSetLullState({
         setState: 'SET',
         wavesSpawned: 0,
         currentSetWaves: 3,
@@ -349,7 +384,7 @@ describe('DebugPanel', () => {
         setDuration: 60.0,
         timeSinceLastWave: 5.0,
         nextWaveTime: 10.0,
-      };
+      });
       render(<DebugPanel {...createDefaultProps({ setLullState })} />);
 
       const progressFill = document.querySelector('.circular-progress-fill');
@@ -390,124 +425,127 @@ describe('DebugPanel', () => {
     const defaultCircumference = 2 * Math.PI * defaultRadius;
 
     it('displays 0% progress correctly (circle empty)', () => {
-      const setLullState = {
-        setState: 'SET',
+      // Use LULL state to get both circular progress indicators
+      const setLullState = createSetLullState({
+        setState: 'LULL',
         wavesSpawned: 0,
         currentSetWaves: 5,
         setTimer: 0,           // 0% progress
         setDuration: 60.0,
         timeSinceLastWave: 0,  // 0% progress
         nextWaveTime: 15.0,
-      };
+      });
       render(<DebugPanel {...createDefaultProps({ setLullState })} />);
 
       const progressFills = document.querySelectorAll('.circular-progress-fill');
 
       // At 0% progress, offset should equal full circumference (no fill visible)
-      const setTimerOffset = parseFloat(progressFills[0].getAttribute('stroke-dashoffset'));
+      const lullTimerOffset = parseFloat(progressFills[0].getAttribute('stroke-dashoffset'));
       const waveTimerOffset = parseFloat(progressFills[1].getAttribute('stroke-dashoffset'));
 
-      expect(setTimerOffset).toBeCloseTo(defaultCircumference, 1);
+      expect(lullTimerOffset).toBeCloseTo(defaultCircumference, 1);
       expect(waveTimerOffset).toBeCloseTo(defaultCircumference, 1);
     });
 
     it('displays 50% progress correctly (circle half-filled)', () => {
-      const setLullState = {
-        setState: 'SET',
+      // Use LULL state to get both circular progress indicators
+      const setLullState = createSetLullState({
+        setState: 'LULL',
         wavesSpawned: 2,
         currentSetWaves: 5,
         setTimer: 30.0,         // 50% of 60
         setDuration: 60.0,
         timeSinceLastWave: 7.5, // 50% of 15
         nextWaveTime: 15.0,
-      };
+      });
       render(<DebugPanel {...createDefaultProps({ setLullState })} />);
 
       const progressFills = document.querySelectorAll('.circular-progress-fill');
       const expectedOffset = defaultCircumference * 0.5; // half circumference
 
-      const setTimerOffset = parseFloat(progressFills[0].getAttribute('stroke-dashoffset'));
+      const lullTimerOffset = parseFloat(progressFills[0].getAttribute('stroke-dashoffset'));
       const waveTimerOffset = parseFloat(progressFills[1].getAttribute('stroke-dashoffset'));
 
-      expect(setTimerOffset).toBeCloseTo(expectedOffset, 1);
+      expect(lullTimerOffset).toBeCloseTo(expectedOffset, 1);
       expect(waveTimerOffset).toBeCloseTo(expectedOffset, 1);
     });
 
     it('displays 100% progress correctly (circle full)', () => {
-      const setLullState = {
-        setState: 'SET',
+      // Use LULL state to get both circular progress indicators
+      const setLullState = createSetLullState({
+        setState: 'LULL',
         wavesSpawned: 5,
         currentSetWaves: 5,
         setTimer: 60.0,         // 100% of 60
         setDuration: 60.0,
         timeSinceLastWave: 15.0, // 100% of 15
         nextWaveTime: 15.0,
-      };
+      });
       render(<DebugPanel {...createDefaultProps({ setLullState })} />);
 
       const progressFills = document.querySelectorAll('.circular-progress-fill');
 
       // At 100% progress, offset should be 0 (full circle visible)
-      const setTimerOffset = parseFloat(progressFills[0].getAttribute('stroke-dashoffset'));
+      const lullTimerOffset = parseFloat(progressFills[0].getAttribute('stroke-dashoffset'));
       const waveTimerOffset = parseFloat(progressFills[1].getAttribute('stroke-dashoffset'));
 
-      expect(setTimerOffset).toBeCloseTo(0, 1);
+      expect(lullTimerOffset).toBeCloseTo(0, 1);
       expect(waveTimerOffset).toBeCloseTo(0, 1);
     });
 
     it('clamps progress at 100% when values exceed total (prevents >100% display)', () => {
-      // This test catches the "120/106" bug - where timer exceeds nextWaveTime
-      const setLullState = {
-        setState: 'SET',
+      // With absolute timestamps, this scenario tests when derived timer exceeds duration
+      // Use LULL state to get both circular progress indicators
+      const setLullState = createSetLullState({
+        setState: 'LULL',
         wavesSpawned: 5,
         currentSetWaves: 5,
         setTimer: 120.0,         // EXCEEDS setDuration!
         setDuration: 60.0,
-        timeSinceLastWave: 120.0, // EXCEEDS nextWaveTime! (like the 120/106 bug)
+        timeSinceLastWave: 120.0, // EXCEEDS nextWaveTime!
         nextWaveTime: 106.0,
-      };
+      });
       render(<DebugPanel {...createDefaultProps({ setLullState })} />);
 
       const progressFills = document.querySelectorAll('.circular-progress-fill');
 
       // Even though values exceed totals, progress should clamp to 100%
       // offset = circumference * (1 - 1.0) = 0
-      const setTimerOffset = parseFloat(progressFills[0].getAttribute('stroke-dashoffset'));
+      const lullTimerOffset = parseFloat(progressFills[0].getAttribute('stroke-dashoffset'));
       const waveTimerOffset = parseFloat(progressFills[1].getAttribute('stroke-dashoffset'));
 
-      expect(setTimerOffset).toBeCloseTo(0, 1);
+      expect(lullTimerOffset).toBeCloseTo(0, 1);
       expect(waveTimerOffset).toBeCloseTo(0, 1);
     });
 
-    it('displays correct text values even when exceeding total', () => {
-      // The text display shows the raw values (120s / 106s)
-      // This documents the current behavior - the TEXT shows impossible state
-      const setLullState = {
-        setState: 'SET',
+    it('displays 0s remaining when timer exceeds total (edge case)', () => {
+      // With absolute timestamps, if this happens it's due to time going backwards
+      // or a save/load bug - this tests the UI still renders correctly with clamped countdown
+      // Use LULL state to get both circular progress indicators
+      const setLullState = createSetLullState({
+        setState: 'LULL',
         wavesSpawned: 5,
         currentSetWaves: 5,
         setTimer: 120.0,
         setDuration: 106.0,
-        timeSinceLastWave: 85.0,  // Different value to avoid duplicate text
+        timeSinceLastWave: 85.0,
         nextWaveTime: 70.0,
-      };
+      });
       render(<DebugPanel {...createDefaultProps({ setLullState })} />);
 
-      // These texts show the impossible state (which is the actual bug symptom)
-      // Set timer shows 120/106 (exceeding total)
-      expect(screen.getByText('120.0s / 106.0s')).toBeInTheDocument();
-      // Wave timer shows 85/70 (also exceeding total)
-      expect(screen.getByText('85.0s / 70.0s')).toBeInTheDocument();
+      // Countdown is clamped to 0 when elapsed exceeds duration
+      // Both timers should show 0.0s since elapsed > total
+      const zeroTimers = screen.getAllByText('0.0s');
+      expect(zeroTimers.length).toBe(2);
     });
   });
 
   describe('Circular Progress - Valid State Constraints', () => {
     // These tests document expected invariants from the setLullModel
 
-    it('nextWaveTime should be within expected range (swellPeriod ± variation)', () => {
+    it('displays countdown for next wave', () => {
       // Default: swellPeriod=15, periodVariation=5, so range is 10-20 seconds
-      // If nextWaveTime is outside this range, something is wrong
-      const validState = {
+      const validState = createSetLullState({
         setState: 'SET',
         wavesSpawned: 0,
         currentSetWaves: 5,
@@ -515,29 +553,29 @@ describe('DebugPanel', () => {
         setDuration: 60.0,
         timeSinceLastWave: 5.0,
         nextWaveTime: 15.0, // Valid: within 10-20 range
-      };
+      });
       render(<DebugPanel {...createDefaultProps({ setLullState: validState })} />);
 
-      // This should render normally
-      expect(screen.getByText('5.0s / 15.0s')).toBeInTheDocument();
+      // Countdown: 15.0 - 5.0 = 10.0s remaining
+      expect(screen.getByText('10.0s')).toBeInTheDocument();
     });
 
-    it('timeSinceLastWave should reset to 0 after wave spawn', () => {
+    it('shows long countdown just after wave spawn', () => {
       // After a wave spawns, timeSinceLastWave resets to 0
-      // If we see timeSinceLastWave > nextWaveTime by a large margin, state wasn't reset
-      const freshSpawnState = {
-        setState: 'SET',
+      // Use LULL to get both progress indicators
+      const freshSpawnState = createSetLullState({
+        setState: 'LULL',
         wavesSpawned: 1,  // Just spawned one wave
         currentSetWaves: 5,
         setTimer: 15.0,
         setDuration: 60.0,
         timeSinceLastWave: 0.5, // Just after spawn, should be small
         nextWaveTime: 14.0,     // New nextWaveTime after spawn
-      };
+      });
       render(<DebugPanel {...createDefaultProps({ setLullState: freshSpawnState })} />);
 
-      // timeSinceLastWave should be much smaller than nextWaveTime after spawn
-      expect(screen.getByText('0.5s / 14.0s')).toBeInTheDocument();
+      // Countdown: 14.0 - 0.5 = 13.5s remaining
+      expect(screen.getByText('13.5s')).toBeInTheDocument();
 
       const progressFills = document.querySelectorAll('.circular-progress-fill');
       const waveTimerOffset = parseFloat(progressFills[1].getAttribute('stroke-dashoffset'));
@@ -547,33 +585,37 @@ describe('DebugPanel', () => {
       expect(waveTimerOffset).toBeGreaterThan(50); // Nearly full circumference
     });
 
-    it('setTimer should be less than or equal to setDuration during normal operation', () => {
-      const normalState = {
-        setState: 'SET',
+    it('shows correct countdown during normal operation', () => {
+      // Use LULL to get both progress indicators
+      const normalState = createSetLullState({
+        setState: 'LULL',
         wavesSpawned: 2,
         currentSetWaves: 5,
         setTimer: 25.0,  // Normal: less than setDuration
         setDuration: 60.0,
         timeSinceLastWave: 8.0,
         nextWaveTime: 15.0,
-      };
+      });
       render(<DebugPanel {...createDefaultProps({ setLullState: normalState })} />);
 
-      expect(screen.getByText('25.0s / 60.0s')).toBeInTheDocument();
+      // Lull countdown: 60.0 - 25.0 = 35.0s remaining
+      expect(screen.getByText('35.0s')).toBeInTheDocument();
 
       const progressFills = document.querySelectorAll('.circular-progress-fill');
-      const setTimerOffset = parseFloat(progressFills[0].getAttribute('stroke-dashoffset'));
+      const lullTimerOffset = parseFloat(progressFills[0].getAttribute('stroke-dashoffset'));
 
       // ~41.7% progress, offset should be ~58.3% of circumference
       const defaultCircumference = 2 * Math.PI * 8.5;
       const expectedOffset = defaultCircumference * (1 - 25/60);
-      expect(setTimerOffset).toBeCloseTo(expectedOffset, 1);
+      expect(lullTimerOffset).toBeCloseTo(expectedOffset, 1);
     });
   });
 
   describe('Circular Progress - SVG Geometry', () => {
     it('has correct radius calculation (size - strokeWidth) / 2', () => {
-      render(<DebugPanel {...createDefaultProps()} />);
+      // Use LULL to get both progress indicators
+      const lullState = createSetLullState({ setState: 'LULL' });
+      render(<DebugPanel {...createDefaultProps({ setLullState: lullState })} />);
 
       const circles = document.querySelectorAll('.circular-progress circle');
       // Each CircularProgress has 2 circles (bg and fill), we have 2 components
@@ -635,8 +677,8 @@ describe('DebugPanel', () => {
 
   describe('Circular Progress - Color Application', () => {
     it('wave timer is always blue regardless of state', () => {
-      // In LULL state
-      const lullState = {
+      // In LULL state - has 2 progress indicators
+      const lullState = createSetLullState({
         setState: 'LULL',
         wavesSpawned: 0,
         currentSetWaves: 3,
@@ -644,7 +686,7 @@ describe('DebugPanel', () => {
         setDuration: 30.0,
         timeSinceLastWave: 5.0,
         nextWaveTime: 12.0,
-      };
+      });
       render(<DebugPanel {...createDefaultProps({ setLullState: lullState })} />);
 
       const progressFills = document.querySelectorAll('.circular-progress-fill');
@@ -653,8 +695,8 @@ describe('DebugPanel', () => {
 
       cleanup();
 
-      // In SET state
-      const setState = {
+      // In SET state - only has 1 progress indicator (wave timer)
+      const setState = createSetLullState({
         setState: 'SET',
         wavesSpawned: 2,
         currentSetWaves: 5,
@@ -662,16 +704,16 @@ describe('DebugPanel', () => {
         setDuration: 60.0,
         timeSinceLastWave: 8.0,
         nextWaveTime: 15.0,
-      };
+      });
       render(<DebugPanel {...createDefaultProps({ setLullState: setState })} />);
 
       const progressFills2 = document.querySelectorAll('.circular-progress-fill');
-      // Still blue
-      expect(progressFills2[1]).toHaveAttribute('stroke', '#4a90b8');
+      // Only wave timer in SET state, should be blue
+      expect(progressFills2[0]).toHaveAttribute('stroke', '#4a90b8');
     });
 
     it('set timer is orange during LULL', () => {
-      const lullState = {
+      const lullState = createSetLullState({
         setState: 'LULL',
         wavesSpawned: 0,
         currentSetWaves: 3,
@@ -679,7 +721,7 @@ describe('DebugPanel', () => {
         setDuration: 30.0,
         timeSinceLastWave: 5.0,
         nextWaveTime: 12.0,
-      };
+      });
       render(<DebugPanel {...createDefaultProps({ setLullState: lullState })} />);
 
       const progressFills = document.querySelectorAll('.circular-progress-fill');
@@ -687,8 +729,8 @@ describe('DebugPanel', () => {
       expect(progressFills[0]).toHaveAttribute('stroke', '#e8a644');
     });
 
-    it('set timer is green during SET', () => {
-      const setState = {
+    it('SET state shows waves left instead of timer', () => {
+      const setState = createSetLullState({
         setState: 'SET',
         wavesSpawned: 2,
         currentSetWaves: 5,
@@ -696,41 +738,50 @@ describe('DebugPanel', () => {
         setDuration: 60.0,
         timeSinceLastWave: 8.0,
         nextWaveTime: 15.0,
-      };
+      });
       render(<DebugPanel {...createDefaultProps({ setLullState: setState })} />);
 
+      // In SET state, we show "Waves left" instead of a progress timer
+      expect(screen.getByText('Waves left')).toBeInTheDocument();
+      // 5 - 2 = 3 waves left, check the label and value are present
+      const wavesLeftLabel = screen.getByText('Waves left');
+      expect(wavesLeftLabel.closest('.read-only').querySelector('.value').textContent).toBe('3');
+
+      // Only one progress indicator (wave timer) in SET state
       const progressFills = document.querySelectorAll('.circular-progress-fill');
-      // First circle is set timer - should be green in SET
-      expect(progressFills[0]).toHaveAttribute('stroke', '#44e8a6');
+      expect(progressFills.length).toBe(1);
     });
   });
 
   describe('Circular Progress - Edge Cases', () => {
     it('handles zero setDuration without crashing (division by zero)', () => {
-      const zeroDurationState = {
-        setState: 'SET',
+      // Use LULL to get both progress indicators
+      const zeroDurationState = createSetLullState({
+        setState: 'LULL',
         wavesSpawned: 0,
         currentSetWaves: 1,
         setTimer: 5.0,
         setDuration: 0,  // Edge case: zero duration
         timeSinceLastWave: 2.0,
         nextWaveTime: 10.0,
-      };
+      });
 
       // Should not throw
       expect(() => {
         render(<DebugPanel {...createDefaultProps({ setLullState: zeroDurationState })} />);
       }).not.toThrow();
 
-      // Progress calculation: 5/0 = Infinity, Math.min(Infinity, 1) = 1
+      // Progress calculation: 5/0 = Infinity, clamped to 1 in component
+      // But with our new clamping: sls.setDuration > 0 check returns 0 progress
       const progressFills = document.querySelectorAll('.circular-progress-fill');
-      const setTimerOffset = parseFloat(progressFills[0].getAttribute('stroke-dashoffset'));
-      // At 100% (clamped), offset should be 0
-      expect(setTimerOffset).toBeCloseTo(0, 1);
+      const lullTimerOffset = parseFloat(progressFills[0].getAttribute('stroke-dashoffset'));
+      // With zero duration, progress is 0 (special case in component)
+      const circumference = 2 * Math.PI * 8.5;
+      expect(lullTimerOffset).toBeCloseTo(circumference, 1);
     });
 
     it('handles zero nextWaveTime without crashing', () => {
-      const zeroNextWaveState = {
+      const zeroNextWaveState = createSetLullState({
         setState: 'SET',
         wavesSpawned: 0,
         currentSetWaves: 5,
@@ -738,7 +789,7 @@ describe('DebugPanel', () => {
         setDuration: 60.0,
         timeSinceLastWave: 3.0,
         nextWaveTime: 0,  // Edge case: zero
-      };
+      });
 
       // Should not throw
       expect(() => {
@@ -747,49 +798,51 @@ describe('DebugPanel', () => {
     });
 
     it('handles negative timer values gracefully', () => {
-      // This shouldn't happen in practice, but tests robustness
-      const negativeState = {
-        setState: 'SET',
+      // With absolute timestamps, this happens if gameTime < stateStartTime
+      // (e.g., time went backwards due to bug)
+      // Use LULL to get both progress indicators
+      const negativeState = createSetLullState({
+        setState: 'LULL',
         wavesSpawned: 0,
         currentSetWaves: 5,
-        setTimer: -5.0,  // Negative (shouldn't happen)
+        setTimer: -5.0,  // Negative (time went backwards)
         setDuration: 60.0,
         timeSinceLastWave: -2.0,  // Negative
         nextWaveTime: 15.0,
-      };
+      });
 
       expect(() => {
         render(<DebugPanel {...createDefaultProps({ setLullState: negativeState })} />);
       }).not.toThrow();
 
-      // Negative progress results in offset > circumference
-      // This shows progress bar "before" start, which is weird but doesn't crash
+      // With clamping: Math.max(progress, 0), negative progress becomes 0
       const progressFills = document.querySelectorAll('.circular-progress-fill');
-      const setTimerOffset = parseFloat(progressFills[0].getAttribute('stroke-dashoffset'));
+      const lullTimerOffset = parseFloat(progressFills[0].getAttribute('stroke-dashoffset'));
       const circumference = 2 * Math.PI * 8.5;
 
-      // -5/60 = -0.083, so offset = circumference * (1 - (-0.083)) = circumference * 1.083
-      expect(setTimerOffset).toBeGreaterThan(circumference);
+      // Clamped to 0 progress, offset should be full circumference
+      expect(lullTimerOffset).toBeCloseTo(circumference, 1);
     });
 
     it('handles very small progress values accurately', () => {
-      const smallProgressState = {
-        setState: 'SET',
+      // Use LULL to get both progress indicators
+      const smallProgressState = createSetLullState({
+        setState: 'LULL',
         wavesSpawned: 0,
         currentSetWaves: 5,
         setTimer: 0.1,  // Very small
         setDuration: 60.0,
         timeSinceLastWave: 0.1,
         nextWaveTime: 15.0,
-      };
+      });
       render(<DebugPanel {...createDefaultProps({ setLullState: smallProgressState })} />);
 
       const progressFills = document.querySelectorAll('.circular-progress-fill');
       const circumference = 2 * Math.PI * 8.5;
 
-      // setTimer: 0.1/60 = 0.00167, offset = circumference * 0.998
-      const setTimerOffset = parseFloat(progressFills[0].getAttribute('stroke-dashoffset'));
-      expect(setTimerOffset).toBeCloseTo(circumference * (1 - 0.1/60), 1);
+      // lullTimer: 0.1/60 = 0.00167, offset = circumference * 0.998
+      const lullTimerOffset = parseFloat(progressFills[0].getAttribute('stroke-dashoffset'));
+      expect(lullTimerOffset).toBeCloseTo(circumference * (1 - 0.1/60), 1);
 
       // waveTimer: 0.1/15 = 0.00667, offset = circumference * 0.993
       const waveTimerOffset = parseFloat(progressFills[1].getAttribute('stroke-dashoffset'));

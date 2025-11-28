@@ -2,14 +2,28 @@ import './DebugPanel.css';
 import { Tooltip } from 'react-tooltip';
 
 // Pure component - receives all data as props, rendered from game loop via requestAnimationFrame
-export function DebugPanel({ setLullState, displayWaves, foamCount, timeScale, onTimeScaleChange, toggles, onToggle, fps, playerConfig, onPlayerConfigChange }) {
+export function DebugPanel({ setLullState, gameTime, displayWaves, foamCount, timeScale, onTimeScaleChange, toggles, onToggle, fps, playerConfig, onPlayerConfigChange, aiMode, onAIModeChange }) {
   const sls = setLullState;
-  const setWaves = displayWaves.filter(w => w.wave.type === 'SET');
-  const bgWaves = displayWaves.filter(w => w.wave.type === 'BACKGROUND');
+  const setWaves = displayWaves.filter(w => w.wave.type === 'set');
+  const bgWaves = displayWaves.filter(w => w.wave.type === 'background');
 
-  // Calculate progress values for circular indicators
-  const waveTimerProgress = Math.min(sls.timeSinceLastWave / sls.nextWaveTime, 1);
-  const setTimerProgress = Math.min(sls.setTimer / sls.setDuration, 1);
+  // Compute countdown timers (time remaining, not elapsed)
+  // Use defaults of 0 if state fields are undefined (e.g., from old localStorage)
+  const stateStartTime = sls.stateStartTime ?? 0;
+  const lastWaveSpawnTime = sls.lastWaveSpawnTime ?? 0;
+  const setDuration = sls.setDuration ?? 0;
+  const nextWaveTime = sls.nextWaveTime ?? 0;
+
+  const elapsedInState = (gameTime - stateStartTime) / 1000;
+  const timeSinceLastWave = (gameTime - lastWaveSpawnTime) / 1000;
+
+  // Countdown: time remaining until state/wave ends (clamped to 0)
+  const stateTimeRemaining = Math.max(0, setDuration - elapsedInState);
+  const waveTimeRemaining = Math.max(0, nextWaveTime - timeSinceLastWave);
+
+  // Calculate progress values for circular indicators (clamped to valid range)
+  const waveTimerProgress = nextWaveTime > 0 ? Math.min(Math.max(timeSinceLastWave / nextWaveTime, 0), 1) : 0;
+  const setTimerProgress = setDuration > 0 ? Math.min(Math.max(elapsedInState / setDuration, 0), 1) : 0;
 
   return (
     <div className="debug-panel">
@@ -52,6 +66,23 @@ export function DebugPanel({ setLullState, displayWaves, foamCount, timeScale, o
           onChange={() => onToggle('showPlayer')}
           hotkey="P"
         />
+        {toggles.showPlayer && (
+          <Toggle
+            label="AI Player"
+            checked={toggles.showAIPlayer}
+            onChange={() => onToggle('showAIPlayer')}
+            hotkey="A"
+          />
+        )}
+        {toggles.showPlayer && toggles.showAIPlayer && (
+          <Toggle
+            label="AI Mode"
+            checked={true}
+            onChange={onAIModeChange}
+            hotkey="M"
+            text={aiMode}
+          />
+        )}
       </Section>
 
       <Section title="Foam Dispersion">
@@ -88,17 +119,19 @@ export function DebugPanel({ setLullState, displayWaves, foamCount, timeScale, o
       <Section title="Set/Lull State">
         <ReadOnly label="State" value={sls.setState} />
         <ReadOnly label="Waves" value={`${sls.wavesSpawned}/${sls.currentSetWaves}`} />
-        <TimerReadOnly
-          label="Set Timer"
-          current={sls.setTimer}
-          total={sls.setDuration}
-          progress={setTimerProgress}
-          color={sls.setState === 'LULL' ? '#e8a644' : '#44e8a6'}
-        />
-        <TimerReadOnly
-          label="Wave Timer"
-          current={sls.timeSinceLastWave}
-          total={sls.nextWaveTime}
+        {sls.setState === 'LULL' ? (
+          <CountdownReadOnly
+            label="Lull ends in"
+            remaining={stateTimeRemaining}
+            progress={setTimerProgress}
+            color="#e8a644"
+          />
+        ) : (
+          <ReadOnly label="Waves left" value={sls.currentSetWaves - sls.wavesSpawned} />
+        )}
+        <CountdownReadOnly
+          label="Next wave in"
+          remaining={waveTimeRemaining}
           progress={waveTimerProgress}
           color="#4a90b8"
         />
@@ -177,7 +210,7 @@ function Section({ title, children }) {
   );
 }
 
-function Toggle({ label, checked, onChange, hotkey }) {
+function Toggle({ label, checked, onChange, hotkey, text }) {
   return (
     <label className="control toggle-control">
       <span className="label">
@@ -187,7 +220,7 @@ function Toggle({ label, checked, onChange, hotkey }) {
         className={`toggle-btn ${checked ? 'active' : ''}`}
         onClick={onChange}
       >
-        {checked ? 'ON' : 'OFF'}
+        {text ?? (checked ? 'ON' : 'OFF')}
       </button>
     </label>
   );
@@ -316,13 +349,13 @@ function CircularProgress({ progress, size = 20, strokeWidth = 3, color }) {
   );
 }
 
-function TimerReadOnly({ label, current, total, progress, color }) {
+function CountdownReadOnly({ label, remaining, progress, color }) {
   return (
     <div className="control read-only timer-control">
       <span className="label">{label}</span>
       <span className="timer-value">
         <CircularProgress progress={progress} color={color} />
-        <span className="value">{current.toFixed(1)}s / {total.toFixed(1)}s</span>
+        <span className="value">{remaining.toFixed(1)}s</span>
       </span>
     </div>
   );

@@ -20,6 +20,7 @@ import {
     DEFAULT_CONFIG,
     createInitialState,
     updateSetLullState,
+    computeDerivedTimers,
 } from './state/setLullModel.js';
 import {
     BACKGROUND_CONFIG,
@@ -33,6 +34,12 @@ import {
     drawPlayerProxy,
     sampleFoamIntensity,
 } from './state/playerProxyModel.js';
+import {
+    createAIState,
+    updateAIPlayer,
+    drawAIKeyIndicator,
+    AI_MODE,
+} from './state/aiPlayerModel.js';
 import { KeyboardInput } from './input/keyboard.js';
 import { createRoot } from 'react-dom/client';
 import { DebugPanel } from './ui/DebugPanel.jsx';
@@ -93,6 +100,11 @@ const world = {
 
     // Player proxy (Plan 71) - initialized lazily after first resize
     playerProxy: null,
+
+    // AI player state (Plan 16) - initialized lazily when AI toggle enabled
+    aiState: null,
+    aiMode: AI_MODE.INTERMEDIATE,  // Current AI mode
+    lastAIInput: { left: false, right: false, up: false, down: false },
 };
 
 // Keyboard input for player movement (arrow keys / WASD)
@@ -104,9 +116,15 @@ const colors = {
     shore: '#c2a86e',
     swellLine: '#4a90b8',
     grid: '#2a5a7e',
-    // Gradient swell colors
-    swellPeak: '#1a4a6e',    // Dark blue at wave peaks (crests)
-    swellTrough: '#4a90b8',  // Lighter blue at wave troughs (valleys)
+    // Type-specific wave palettes
+    setWave: {
+        peak: '#0d3a5c',      // Deep, rich blue at peaks
+        trough: '#2e7aa8',    // Saturated trough - full contrast
+    },
+    backgroundWave: {
+        peak: '#2a5a7e',      // Lighter, more muted peak
+        trough: '#5a9ac0',    // Desaturated, subtle trough
+    },
 };
 
 // Parse hex color to RGB components
@@ -124,19 +142,29 @@ function rgbToHex(r, g, b) {
     return '#' + [r, g, b].map(x => Math.round(x).toString(16).padStart(2, '0')).join('');
 }
 
-// Lerp between two colors based on amplitude
-// At low amplitude, trough color approaches peak color (less contrast)
-function getTroughColor(amplitude) {
-    const peak = hexToRgb(colors.swellPeak);
-    const trough = hexToRgb(colors.swellTrough);
+// Get wave colors based on type and amplitude
+// Set waves: full contrast, rich colors
+// Background waves: reduced contrast, muted colors
+function getWaveColors(wave) {
+    const isSet = wave.type === WAVE_TYPE.SET;
+    const palette = isSet ? colors.setWave : colors.backgroundWave;
 
-    // Linear scaling - direct amplitude to contrast mapping
-    // Ensures all waves are clearly visible
-    const r = peak.r + (trough.r - peak.r) * amplitude;
-    const g = peak.g + (trough.g - peak.g) * amplitude;
-    const b = peak.b + (trough.b - peak.b) * amplitude;
+    // Set waves get full contrast; background waves max out at 60%
+    const maxContrast = isSet ? 1.0 : 0.6;
+    const contrast = wave.amplitude * maxContrast;
 
-    return rgbToHex(r, g, b);
+    const peak = hexToRgb(palette.peak);
+    const trough = hexToRgb(palette.trough);
+
+    // Lerp from peak toward trough based on contrast
+    const r = peak.r + (trough.r - peak.r) * contrast;
+    const g = peak.g + (trough.g - peak.g) * contrast;
+    const b = peak.b + (trough.b - peak.b) * contrast;
+
+    return {
+        peak: palette.peak,
+        trough: rgbToHex(r, g, b),
+    };
 }
 
 // Time scale for testing (1x, 2x, 4x, 8x)
@@ -152,6 +180,7 @@ const toggles = {
     showFoamZones: localStorage.getItem('showFoamZones') !== 'false',  // default true - smooth foam polygons
     showFoamSamples: localStorage.getItem('showFoamSamples') === 'true',  // default false - debug rectangles
     showPlayer: localStorage.getItem('showPlayer') === 'true',  // default false - player proxy
+    showAIPlayer: localStorage.getItem('showAIPlayer') === 'true',  // default false - AI controlled player
     // Foam dispersion experimental options (compare different algorithms)
     showFoamOptionA: localStorage.getItem('showFoamOptionA') === 'true',  // Expand bounds
     showFoamOptionB: localStorage.getItem('showFoamOptionB') === 'true',  // Age-based blur
@@ -166,6 +195,7 @@ function saveToggleState() {
     localStorage.setItem('showFoamZones', toggles.showFoamZones);
     localStorage.setItem('showFoamSamples', toggles.showFoamSamples);
     localStorage.setItem('showPlayer', toggles.showPlayer);
+    localStorage.setItem('showAIPlayer', toggles.showAIPlayer);
     localStorage.setItem('showFoamOptionA', toggles.showFoamOptionA);
     localStorage.setItem('showFoamOptionB', toggles.showFoamOptionB);
     localStorage.setItem('showFoamOptionC', toggles.showFoamOptionC);
@@ -191,6 +221,15 @@ function handleTimeScaleChange(newScale) {
 // Player config handler for React UI
 function handlePlayerConfigChange(key, value) {
     PLAYER_PROXY_CONFIG[key] = value;
+}
+
+// AI mode handler for React UI
+function handleAIModeChange() {
+    const modes = [AI_MODE.BEGINNER, AI_MODE.INTERMEDIATE, AI_MODE.EXPERT];
+    const currentIdx = modes.indexOf(world.aiMode);
+    world.aiMode = modes[(currentIdx + 1) % modes.length];
+    world.aiState = createAIState(world.aiMode);
+    console.log(`[AI] Switched to ${world.aiMode} mode`);
 }
 
 // Create UI container for React
@@ -223,7 +262,21 @@ function loadGameState() {
         timeScale = state.timeScale || 1;
         world.waves = state.waves || [];
         world.foamSegments = state.foamSegments || [];
-        if (state.setLullState) world.setLullState = state.setLullState;
+        if (state.setLullState) {
+            // Validate timestamps aren't corrupted (stale data from previous session)
+            const sls = state.setLullState;
+            const timeSinceLastWave = (world.gameTime - sls.lastWaveSpawnTime) / 1000;
+            const elapsedInState = (world.gameTime - sls.stateStartTime) / 1000;
+
+            // If timers are negative or absurdly large, reset state
+            if (timeSinceLastWave < 0 || timeSinceLastWave > 300 ||
+                elapsedInState < 0 || elapsedInState > 300) {
+                console.warn('Stale setLullState detected, reinitializing');
+                world.setLullState = createInitialState(DEFAULT_CONFIG, Math.random, world.gameTime);
+            } else {
+                world.setLullState = sls;
+            }
+        }
         if (state.backgroundState) world.backgroundState = state.backgroundState;
         if (state.playerProxy) world.playerProxy = state.playerProxy;
         return true;
@@ -272,6 +325,22 @@ document.addEventListener('keydown', (e) => {
             world.playerProxy = createPlayerProxy(canvas.width, shoreY);
         }
     }
+    if (e.key === 'a' || e.key === 'A') {
+        // AI Player toggle only works if Player is enabled
+        if (toggles.showPlayer) {
+            handleToggle('showAIPlayer');
+        }
+    }
+    if (e.key === 'm' || e.key === 'M') {
+        // Cycle AI mode: BEGINNER -> INTERMEDIATE -> EXPERT -> BEGINNER
+        if (toggles.showPlayer && toggles.showAIPlayer) {
+            const modes = [AI_MODE.BEGINNER, AI_MODE.INTERMEDIATE, AI_MODE.EXPERT];
+            const currentIdx = modes.indexOf(world.aiMode);
+            world.aiMode = modes[(currentIdx + 1) % modes.length];
+            world.aiState = createAIState(world.aiMode);
+            console.log(`[AI] Switched to ${world.aiMode} mode`);
+        }
+    }
     // Foam dispersion option toggles (1, 2, 3 keys)
     if (e.key === '1') {
         handleToggle('showFoamOptionA');
@@ -297,9 +366,10 @@ function update(deltaTime) {
     world.gameTime += scaledDelta * 1000;
 
     // Update set/lull state machine (handles set waves only)
+    // Pass absolute gameTime instead of deltaTime
     const setResult = updateSetLullState(
         world.setLullState,
-        scaledDelta,
+        world.gameTime,
         world.setConfig
     );
     world.setLullState = setResult.state;
@@ -459,13 +529,40 @@ function update(deltaTime) {
 
     // Update player proxy if enabled
     if (toggles.showPlayer && world.playerProxy) {
-        const { shoreY } = getOceanBounds(canvas.height, world.shoreHeight);
+        const { oceanTop, oceanBottom: ob, shoreY: sy } = getOceanBounds(canvas.height, world.shoreHeight);
+        const td = calculateTravelDuration(ob, world.swellSpeed);
+
+        // Determine input source: AI or keyboard
+        let input;
+        if (toggles.showAIPlayer) {
+            // Initialize AI state if needed
+            if (!world.aiState) {
+                world.aiState = createAIState(world.aiMode);
+            }
+            // Get AI decision
+            input = updateAIPlayer(
+                world.playerProxy,
+                world.aiState,
+                world,
+                scaledDelta,
+                canvas.width,
+                canvas.height,
+                oceanTop,
+                ob,
+                td
+            );
+            world.lastAIInput = input;
+        } else {
+            input = keyboard.getKeys();
+            world.lastAIInput = { left: false, right: false, up: false, down: false };
+        }
+
         world.playerProxy = updatePlayerProxy(
             world.playerProxy,
             scaledDelta,
-            keyboard.getKeys(),
+            input,
             world.foamRows,
-            shoreY,
+            sy,
             canvas.width,
             canvas.height,
             PLAYER_PROXY_CONFIG
@@ -520,11 +617,13 @@ function draw() {
 
     // Helper function to draw a wave as a gradient band
     const drawWave = (wave) => {
-        // Scale thickness based on amplitude
-        // Low amplitude (0.15) → thin band (40px)
-        // High amplitude (1.0) → thick band (120px)
-        const minThickness = 40;
-        const maxThickness = 120;
+        const isSet = wave.type === WAVE_TYPE.SET;
+
+        // Type-specific thickness ranges
+        // Set waves: 40-120px (prominent)
+        // Background waves: 25-60px (subtle)
+        const minThickness = isSet ? 40 : 25;
+        const maxThickness = isSet ? 120 : 60;
         const waveSpacing = minThickness + (maxThickness - minThickness) * wave.amplitude;
         const halfSpacing = waveSpacing / 2;
 
@@ -532,16 +631,20 @@ function draw() {
         const peakY = progressToScreenY(progress, oceanTop, oceanBottom);
         const troughY = peakY + halfSpacing;
         const nextPeakY = peakY + waveSpacing;
-        const currentTroughColor = getTroughColor(wave.amplitude);
 
-        // When bathymetry is showing, make waves semi-transparent so you can see both
-        ctx.globalAlpha = toggles.showBathymetry ? 0.7 : 1.0;
+        // Get type-specific colors
+        const waveColors = getWaveColors(wave);
+
+        // Set alpha: bathymetry override, then type-based
+        // Background waves slightly transparent (85%) for subtlety
+        const baseAlpha = isSet ? 1.0 : 0.85;
+        ctx.globalAlpha = toggles.showBathymetry ? 0.7 : baseAlpha;
 
         // First half: peak (dark) to trough (light)
         if (troughY > 0 && peakY < shoreY) {
             const grad1 = ctx.createLinearGradient(0, peakY, 0, troughY);
-            grad1.addColorStop(0, colors.swellPeak);
-            grad1.addColorStop(1, currentTroughColor);
+            grad1.addColorStop(0, waveColors.peak);
+            grad1.addColorStop(1, waveColors.trough);
             ctx.fillStyle = grad1;
             ctx.fillRect(0, Math.max(0, peakY), w, Math.min(troughY, shoreY) - Math.max(0, peakY));
         }
@@ -549,8 +652,8 @@ function draw() {
         // Second half: trough (light) to next peak (dark)
         if (nextPeakY > 0 && troughY < shoreY) {
             const grad2 = ctx.createLinearGradient(0, troughY, 0, nextPeakY);
-            grad2.addColorStop(0, currentTroughColor);
-            grad2.addColorStop(1, colors.swellPeak);
+            grad2.addColorStop(0, waveColors.trough);
+            grad2.addColorStop(1, waveColors.peak);
             ctx.fillStyle = grad2;
             ctx.fillRect(0, Math.max(0, troughY), w, Math.min(nextPeakY, shoreY) - Math.max(0, troughY));
         }
@@ -748,6 +851,11 @@ function draw() {
             w
         );
         drawPlayerProxy(ctx, world.playerProxy, foamIntensity, PLAYER_PROXY_CONFIG);
+
+        // Draw AI key indicator in bottom right corner
+        if (toggles.showAIPlayer && world.aiState) {
+            drawAIKeyIndicator(ctx, world.lastAIInput, world.aiState, w - 60, h - 60);
+        }
     }
 
     // Prepare display data for Preact debug panel
@@ -764,6 +872,7 @@ function draw() {
     reactRoot.render(
         <DebugPanel
             setLullState={world.setLullState}
+            gameTime={world.gameTime}
             displayWaves={displayWaves}
             foamCount={world.foamSegments.length}
             timeScale={timeScale}
@@ -773,6 +882,8 @@ function draw() {
             fps={displayFps}
             playerConfig={PLAYER_PROXY_CONFIG}
             onPlayerConfigChange={handlePlayerConfigChange}
+            aiMode={world.aiMode}
+            onAIModeChange={handleAIModeChange}
         />
     );
 }
@@ -825,6 +936,12 @@ document.addEventListener('visibilitychange', () => {
 
 // Background waves spawn immediately and continuously
 // Set waves only spawn during SET state (lulls are empty of set waves)
+
+// Expose world state for E2E testing
+window.world = world;
+window.toggles = toggles;
+window.AI_MODE = AI_MODE;
+window.createAIState = createAIState;
 
 requestAnimationFrame(gameLoop);
 

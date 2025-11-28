@@ -33,21 +33,22 @@ export const STATE = {
  * Create initial set/lull state
  * @param {object} config - Configuration options (uses DEFAULT_CONFIG if not provided)
  * @param {function} randomFn - Random function returning 0-1 (defaults to Math.random)
+ * @param {number} gameTime - Current game time in ms (defaults to 0)
  * @returns {object} Initial state object
  */
-export function createInitialState(config = DEFAULT_CONFIG, randomFn = Math.random) {
+export function createInitialState(config = DEFAULT_CONFIG, randomFn = Math.random, gameTime = 0) {
     const state = {
         setState: STATE.LULL,
-        setTimer: 0,
+        stateStartTime: gameTime,      // Absolute game time when state started
         setDuration: 0,
         currentSetWaves: 0,
         wavesSpawned: 0,
-        timeSinceLastWave: 0,
+        lastWaveSpawnTime: gameTime,   // Absolute game time of last spawn
         nextWaveTime: 0,
     };
 
     // Initialize with a lull
-    return initializeLull(state, config, randomFn);
+    return initializeLull(state, config, randomFn, gameTime);
 }
 
 /**
@@ -76,9 +77,10 @@ export function getNextWaveTime(config, randomFn = Math.random) {
  * @param {object} state - Current state
  * @param {object} config - Configuration
  * @param {function} randomFn - Random function returning 0-1
+ * @param {number} gameTime - Current game time in ms
  * @returns {object} New state in LULL
  */
-export function initializeLull(state, config, randomFn = Math.random) {
+export function initializeLull(state, config, randomFn = Math.random, gameTime = 0) {
     const lullDuration = config.lullDuration +
         randomInRange(-config.lullVariation, config.lullVariation, randomFn);
     const currentSetWaves = Math.floor(randomInRange(
@@ -90,11 +92,11 @@ export function initializeLull(state, config, randomFn = Math.random) {
     return {
         ...state,
         setState: STATE.LULL,
-        setTimer: 0,
+        stateStartTime: gameTime,
         setDuration: lullDuration,
         currentSetWaves,
         wavesSpawned: 0,
-        timeSinceLastWave: 0,
+        lastWaveSpawnTime: gameTime,
         nextWaveTime: getNextWaveTime(config, randomFn),
     };
 }
@@ -104,9 +106,10 @@ export function initializeLull(state, config, randomFn = Math.random) {
  * @param {object} state - Current state
  * @param {object} config - Configuration
  * @param {function} randomFn - Random function returning 0-1
+ * @param {number} gameTime - Current game time in ms
  * @returns {object} New state in SET
  */
-export function initializeSet(state, config, randomFn = Math.random) {
+export function initializeSet(state, config, randomFn = Math.random, gameTime = 0) {
     const currentSetWaves = Math.floor(randomInRange(
         config.wavesPerSet[0],
         config.wavesPerSet[1] + 1,
@@ -118,11 +121,11 @@ export function initializeSet(state, config, randomFn = Math.random) {
     return {
         ...state,
         setState: STATE.SET,
-        setTimer: 0,
+        stateStartTime: gameTime,
         setDuration,
         currentSetWaves,
         wavesSpawned: 0,
-        timeSinceLastWave: 0,
+        lastWaveSpawnTime: gameTime,
         nextWaveTime: getNextWaveTime(config, randomFn),
     };
 }
@@ -166,10 +169,14 @@ export function calculateLullAmplitude(config, randomFn = Math.random) {
 /**
  * Check if it's time to spawn a wave
  * @param {object} state - Current state
+ * @param {number} gameTime - Current game time in ms
  * @returns {boolean}
  */
-export function shouldSpawnWave(state) {
-    return state.timeSinceLastWave >= state.nextWaveTime &&
+export function shouldSpawnWave(state, gameTime) {
+    // Default lastWaveSpawnTime to 0 if undefined (legacy state from localStorage)
+    const lastWaveSpawnTime = state.lastWaveSpawnTime ?? 0;
+    const timeSinceLastWave = (gameTime - lastWaveSpawnTime) / 1000; // Convert ms to seconds
+    return timeSinceLastWave >= state.nextWaveTime &&
            state.wavesSpawned < state.currentSetWaves;
 }
 
@@ -197,14 +204,29 @@ export function getNextWaveAmplitude(state, config, randomFn = Math.random) {
  * @param {object} state - Current state
  * @param {object} config - Configuration
  * @param {function} randomFn - Random function returning 0-1
+ * @param {number} gameTime - Current game time in ms
  * @returns {object} Updated state
  */
-export function recordWaveSpawned(state, config, randomFn = Math.random) {
+export function recordWaveSpawned(state, config, randomFn = Math.random, gameTime = 0) {
     return {
         ...state,
         wavesSpawned: state.wavesSpawned + 1,
-        timeSinceLastWave: 0,
+        lastWaveSpawnTime: gameTime,
         nextWaveTime: getNextWaveTime(config, randomFn),
+    };
+}
+
+/**
+ * Compute derived timer values from absolute timestamps
+ * Used by UI to display timers without storing them in state
+ * @param {object} state - Current state with absolute timestamps
+ * @param {number} gameTime - Current game time in ms
+ * @returns {object} Object with { setTimer, timeSinceLastWave } in seconds
+ */
+export function computeDerivedTimers(state, gameTime) {
+    return {
+        setTimer: (gameTime - (state.stateStartTime ?? 0)) / 1000,
+        timeSinceLastWave: (gameTime - (state.lastWaveSpawnTime ?? 0)) / 1000,
     };
 }
 
@@ -213,7 +235,7 @@ export function recordWaveSpawned(state, config, randomFn = Math.random) {
  * This is the main update function called each frame
  *
  * @param {object} state - Current state
- * @param {number} deltaTime - Time elapsed in seconds
+ * @param {number} gameTime - Current game time in ms (absolute time)
  * @param {object} config - Configuration (uses DEFAULT_CONFIG if not provided)
  * @param {function} randomFn - Random function returning 0-1 (defaults to Math.random)
  * @returns {object} Object with { state, shouldSpawn, amplitude }
@@ -221,15 +243,12 @@ export function recordWaveSpawned(state, config, randomFn = Math.random) {
  *   - shouldSpawn: Whether a wave should be spawned this frame
  *   - amplitude: Amplitude for the wave (only valid if shouldSpawn is true)
  */
-export function updateSetLullState(state, deltaTime, config = DEFAULT_CONFIG, randomFn = Math.random) {
-    // Advance timers
-    let newState = {
-        ...state,
-        setTimer: state.setTimer + deltaTime,
-        timeSinceLastWave: state.timeSinceLastWave + deltaTime,
-    };
+export function updateSetLullState(state, gameTime, config = DEFAULT_CONFIG, randomFn = Math.random) {
+    // Compute derived timer values from absolute timestamps
+    const setTimer = (gameTime - state.stateStartTime) / 1000; // Convert ms to seconds
 
-    let shouldSpawn = false;
+    let newState = { ...state };
+    let spawn = false;
     let amplitude = 0;
 
     if (newState.setState === STATE.LULL) {
@@ -237,12 +256,12 @@ export function updateSetLullState(state, deltaTime, config = DEFAULT_CONFIG, ra
         // (Background waves are handled separately, not by this state machine)
 
         // Lull duration over, time for a real set
-        if (newState.setTimer >= newState.setDuration) {
-            newState = initializeSet(newState, config, randomFn);
+        if (setTimer >= newState.setDuration) {
+            newState = initializeSet(newState, config, randomFn, gameTime);
         }
     } else if (newState.setState === STATE.SET) {
         // Check if it's time to spawn a wave (only in SET state)
-        const canSpawn = shouldSpawnWave(newState);
+        const canSpawn = shouldSpawnWave(newState, gameTime);
 
         // During set, spawn waves with envelope amplitude
         if (canSpawn) {
@@ -251,19 +270,19 @@ export function updateSetLullState(state, deltaTime, config = DEFAULT_CONFIG, ra
                 ? newState.wavesSpawned / (newState.currentSetWaves - 1)
                 : config.peakPosition;
             amplitude = calculateSetAmplitude(progress, config);
-            newState = recordWaveSpawned(newState, config, randomFn);
-            shouldSpawn = true;
+            newState = recordWaveSpawned(newState, config, randomFn, gameTime);
+            spawn = true;
         }
 
         // Set complete, start lull
         if (newState.wavesSpawned >= newState.currentSetWaves) {
-            newState = initializeLull(newState, config, randomFn);
+            newState = initializeLull(newState, config, randomFn, gameTime);
         }
     }
 
     return {
         state: newState,
-        shouldSpawn,
+        shouldSpawn: spawn,
         amplitude,
     };
 }
