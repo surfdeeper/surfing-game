@@ -40,7 +40,14 @@ When creating a new bug plan, use this structure:
 ## Request
 $ARGUMENTS
 
-If this is a new bug:
+If the request is empty or too vague to understand the specific bug:
+1. Ask the user to describe:
+   - What they observed (the symptom)
+   - What they expected to happen
+   - Steps to reproduce (if known)
+2. Do NOT start investigating until you have enough information
+
+If this is a new bug with sufficient detail:
 1. Create a plan in `plans/bugfixes/` with descriptive name (e.g., `fix-wave-timing-drift.md`)
 2. Document the symptom and expected behavior
 3. Investigate root cause before proposing a fix

@@ -1,0 +1,5 @@
+ The foam test failures are unrelated to my changes - they're testing foam behavior with a
+  4-second fade time but the current code uses 15-second fade time. These appear to be
+  pre-existing test issues. Let me check the foam test file:
+
+  look for duplicate code.
