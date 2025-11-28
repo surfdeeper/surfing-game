@@ -13,7 +13,7 @@ import {
     WAVE_X_SAMPLES,
 } from './state/waveModel.js';
 import { DEFAULT_BATHYMETRY, getDepth } from './state/bathymetryModel.js';
-import { progressToScreenY, getOceanBounds, calculateTravelDuration } from './render/coordinates.js';
+import { getOceanBounds, calculateTravelDuration } from './render/coordinates.js';
 import {
     DEFAULT_CONFIG,
     createInitialState,
@@ -55,9 +55,9 @@ import {
     createEnergyField,
     updateEnergyField,
     injectWavePulse,
-    getHeightAt,
 } from './state/energyFieldModel.js';
 import { renderEnergyField } from './render/energyFieldRenderer.js';
+import { renderWaves } from './render/waveRenderer.js';
 import { KeyboardInput } from './input/keyboard.js';
 import { createRoot } from 'react-dom/client';
 import { DebugPanel } from './ui/DebugPanel.jsx';
@@ -137,62 +137,11 @@ const world = {
 // Keyboard input for player movement (arrow keys / WASD)
 const keyboard = new KeyboardInput();
 
-// Colors
+// Colors (wave colors now in render/waveRenderer.js)
 const colors = {
     ocean: '#1a4a6e',
     shore: '#c2a86e',
-    swellLine: '#4a90b8',
-    grid: '#2a5a7e',
-    // Type-specific wave palettes
-    setWave: {
-        peak: '#0d3a5c',      // Deep, rich blue at peaks
-        trough: '#2e7aa8',    // Saturated trough - full contrast
-    },
-    backgroundWave: {
-        peak: '#2a5a7e',      // Lighter, more muted peak
-        trough: '#5a9ac0',    // Desaturated, subtle trough
-    },
 };
-
-// Parse hex color to RGB components
-function hexToRgb(hex) {
-    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    return {
-        r: parseInt(result[1], 16),
-        g: parseInt(result[2], 16),
-        b: parseInt(result[3], 16)
-    };
-}
-
-// Convert RGB to hex
-function rgbToHex(r, g, b) {
-    return '#' + [r, g, b].map(x => Math.round(x).toString(16).padStart(2, '0')).join('');
-}
-
-// Get wave colors based on type and amplitude
-// Set waves: full contrast, rich colors
-// Background waves: reduced contrast, muted colors
-function getWaveColors(wave) {
-    const isSet = wave.type === WAVE_TYPE.SET;
-    const palette = isSet ? colors.setWave : colors.backgroundWave;
-
-    // Set waves get full contrast; background waves max out at 60%
-    const maxContrast = isSet ? 1.0 : 0.6;
-    const contrast = wave.amplitude * maxContrast;
-
-    const peak = hexToRgb(palette.peak);
-    const trough = hexToRgb(palette.trough);
-
-    // Lerp from peak toward trough based on contrast
-    const r = peak.r + (trough.r - peak.r) * contrast;
-    const g = peak.g + (trough.g - peak.g) * contrast;
-    const b = peak.b + (trough.b - peak.b) * contrast;
-
-    return {
-        peak: palette.peak,
-        trough: rgbToHex(r, g, b),
-    };
-}
 
 // Settings loaded from settingsModel (schema-validated, versioned)
 // This replaces the old inline localStorage reading
@@ -516,90 +465,21 @@ function draw() {
     ctx.fillStyle = colors.shore;
     ctx.fillRect(0, shoreY, w, world.shoreHeight);
 
-    // Helper function to draw a wave as a bent gradient band
-    // Uses per-X progress data for refraction (bending based on bathymetry)
-    // When energy field is enabled, wave thickness scales with local energy (Plan 141 Phase 4)
-    const drawWave = (wave) => {
-        const isSet = wave.type === WAVE_TYPE.SET;
-
-        // Type-specific thickness ranges
-        // Set waves: 40-120px (prominent)
-        // Background waves: 25-60px (subtle)
-        const minThickness = isSet ? 40 : 25;
-        const maxThickness = isSet ? 120 : 60;
-
-        // Get type-specific colors
-        const waveColors = getWaveColors(wave);
-
-        // Set alpha: bathymetry override, then type-based
-        // Background waves slightly transparent (85%) for subtlety
-        const baseAlpha = isSet ? 1.0 : 0.85;
-        ctx.globalAlpha = toggles.showBathymetry ? 0.7 : baseAlpha;
-
-        // Draw wave as vertical slices, each at its own Y position based on per-X progress
-        const numSlices = wave.progressPerX ? wave.progressPerX.length : WAVE_X_SAMPLES;
-        const sliceWidth = w / numSlices;
-
-        for (let i = 0; i < numSlices; i++) {
-            const normalizedX = (i + 0.5) / numSlices;
-            const progress = wave.progressPerX ? wave.progressPerX[i] : getWaveProgress(wave, world.gameTime, travelDuration);
-            const peakY = progressToScreenY(progress, oceanTop, oceanBottom);
-
-            // Calculate thickness for this slice
-            // When energy field is enabled, scale by local energy (Plan 141 Phase 4)
-            let thicknessMultiplier = wave.amplitude;
-            if (toggles.showEnergyField) {
-                const energyAtSlice = getHeightAt(world.energyField, normalizedX, progress);
-                // TEMP: EXTREMELY exaggerated for testing - wave nearly disappears without energy
-                // energyAtSlice is typically 0-1, we want 0 energy = 0.01 thickness, full energy = full thickness
-                thicknessMultiplier = 0.01 + energyAtSlice * 0.99;
-            }
-
-            const waveSpacing = minThickness + (maxThickness - minThickness) * thicknessMultiplier;
-            const halfSpacing = waveSpacing / 2;
-            const troughY = peakY + halfSpacing;
-            const nextPeakY = peakY + waveSpacing;
-
-            const sliceX = i * sliceWidth;
-
-            // First half: peak (dark) to trough (light)
-            if (troughY > 0 && peakY < shoreY) {
-                const grad1 = ctx.createLinearGradient(0, peakY, 0, troughY);
-                grad1.addColorStop(0, waveColors.peak);
-                grad1.addColorStop(1, waveColors.trough);
-                ctx.fillStyle = grad1;
-                ctx.fillRect(sliceX, Math.max(0, peakY), sliceWidth + 1, Math.min(troughY, shoreY) - Math.max(0, peakY));
-            }
-
-            // Second half: trough (light) to next peak (dark)
-            if (nextPeakY > 0 && troughY < shoreY) {
-                const grad2 = ctx.createLinearGradient(0, troughY, 0, nextPeakY);
-                grad2.addColorStop(0, waveColors.trough);
-                grad2.addColorStop(1, waveColors.peak);
-                ctx.fillStyle = grad2;
-                ctx.fillRect(sliceX, Math.max(0, troughY), sliceWidth + 1, Math.min(nextPeakY, shoreY) - Math.max(0, troughY));
-            }
-        }
-    };
-
-    // Draw all waves in spawn order (natural interleaving, no artificial layering)
-    // Sort by progress so waves closer to horizon render first (painter's algorithm)
-    const sortedWaves = [...world.waves].sort((a, b) => {
-        const progressA = getWaveProgress(a, world.gameTime, travelDuration);
-        const progressB = getWaveProgress(b, world.gameTime, travelDuration);
-        return progressA - progressB;
+    // Render waves using extracted helper (Plan 170 Phase 2)
+    renderWaves(ctx, world.waves, {
+        canvasWidth: w,
+        oceanTop,
+        oceanBottom,
+        shoreY,
+        gameTime: world.gameTime,
+        travelDuration,
+        showBathymetry: toggles.showBathymetry,
+        showEnergyField: toggles.showEnergyField,
+        energyField: world.energyField,
+    }, {
+        showSetWaves: toggles.showSetWaves,
+        showBackgroundWaves: toggles.showBackgroundWaves,
     });
-
-    // Draw waves based on visibility toggles
-    // Note: waves still exist and simulate even when hidden
-    for (const wave of sortedWaves) {
-        const isSetWave = wave.type === WAVE_TYPE.SET;
-        const isVisible = isSetWave ? toggles.showSetWaves : toggles.showBackgroundWaves;
-        if (isVisible) {
-            drawWave(wave);
-        }
-    }
-    ctx.globalAlpha = 1.0; // Reset alpha after waves
 
     // LAYER 1: Foam contours using marching squares
     // Builds an intensity grid, applies blur, then extracts contour lines

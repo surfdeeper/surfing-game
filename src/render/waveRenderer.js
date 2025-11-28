@@ -13,21 +13,37 @@ import { getHeightAt } from '../state/energyFieldModel.js';
 import { progressToScreenY } from './coordinates.js';
 
 /**
- * Wave color palettes by type
+ * Wave color palettes by type (hex values matching original main.jsx)
  */
 export const WAVE_COLORS = {
     setWave: {
-        peak: { r: 26, g: 60, b: 89 },     // Dark blue
-        trough: { r: 65, g: 110, b: 140 }, // Medium blue
+        peak: '#0d3a5c',      // Deep, rich blue at peaks
+        trough: '#2e7aa8',    // Saturated trough - full contrast
     },
     backgroundWave: {
-        peak: { r: 35, g: 70, b: 95 },     // Slightly lighter dark
-        trough: { r: 55, g: 100, b: 130 }, // Muted blue
+        peak: '#2a5a7e',      // Lighter, more muted peak
+        trough: '#5a9ac0',    // Desaturated, subtle trough
     },
 };
 
+// Parse hex color to RGB components
+function hexToRgb(hex) {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+    };
+}
+
+// Convert RGB to hex
+function rgbToHex(r, g, b) {
+    return '#' + [r, g, b].map(x => Math.round(x).toString(16).padStart(2, '0')).join('');
+}
+
 /**
  * Get wave colors based on type and amplitude
+ * Matches original main.jsx algorithm for visual parity
  * @param {object} wave - Wave object
  * @returns {{peak: string, trough: string}} CSS color strings
  */
@@ -35,22 +51,21 @@ export function getWaveColors(wave) {
     const isSet = wave.type === WAVE_TYPE.SET;
     const palette = isSet ? WAVE_COLORS.setWave : WAVE_COLORS.backgroundWave;
 
-    // Increase contrast for high amplitude waves
-    const maxContrast = isSet ? 0.5 : 0.3;
+    // Set waves get full contrast; background waves max out at 60%
+    const maxContrast = isSet ? 1.0 : 0.6;
     const contrast = wave.amplitude * maxContrast;
 
-    // Darken peak, lighten trough based on amplitude
-    const peakR = Math.floor(palette.peak.r * (1 - contrast * 0.5));
-    const peakG = Math.floor(palette.peak.g * (1 - contrast * 0.5));
-    const peakB = Math.floor(palette.peak.b * (1 - contrast * 0.5));
+    const peak = hexToRgb(palette.peak);
+    const trough = hexToRgb(palette.trough);
 
-    const troughR = Math.floor(Math.min(255, palette.trough.r * (1 + contrast * 0.3)));
-    const troughG = Math.floor(Math.min(255, palette.trough.g * (1 + contrast * 0.3)));
-    const troughB = Math.floor(Math.min(255, palette.trough.b * (1 + contrast * 0.3)));
+    // Lerp from peak toward trough based on contrast
+    const r = peak.r + (trough.r - peak.r) * contrast;
+    const g = peak.g + (trough.g - peak.g) * contrast;
+    const b = peak.b + (trough.b - peak.b) * contrast;
 
     return {
-        peak: `rgb(${peakR}, ${peakG}, ${peakB})`,
-        trough: `rgb(${troughR}, ${troughG}, ${troughB})`,
+        peak: palette.peak,
+        trough: rgbToHex(r, g, b),
     };
 }
 

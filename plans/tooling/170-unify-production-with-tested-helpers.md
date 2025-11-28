@@ -35,9 +35,13 @@ Incrementally migrate `main.jsx` to import and use the extracted, tested helpers
 - `timeScale` now managed via settings model with `cycleSetting()`.
 - Removed 42 lines of inline localStorage code from main.jsx (894 → 852 lines).
 
-### Phase 2: Rendering Consolidation (Pending)
-- Replace `drawWave` and inline color/thickness logic with `renderWaves()` from `src/render/waveRenderer.js`.
-- Import via `src/render/index.js` to keep imports tidy.
+### Phase 2: Rendering Consolidation ✅ DONE
+- Replaced inline `drawWave()` (65 lines) with `renderWaves()` from `src/render/waveRenderer.js`.
+- Removed duplicate color helpers (`hexToRgb`, `rgbToHex`, `getWaveColors`) from main.jsx.
+- Moved wave color palettes to waveRenderer.js (single source of truth).
+- Updated waveRenderer.js color algorithm to match original main.jsx behavior.
+- Updated waveRenderer.test.js to reflect hex format and trough-only variation.
+- Removed 120 lines from main.jsx (852 → 732 lines).
 
 ### Phase 3: Update Orchestrator ✅ DONE
 - Adopted event-based pattern: `updateWaveSpawning()` returns events, main.jsx processes them

@@ -34,12 +34,13 @@ describe('waveRenderer', () => {
     });
 
     describe('getWaveColors', () => {
-        it('returns CSS color strings', () => {
+        it('returns CSS color strings (hex format)', () => {
             const wave = createWave(0, 0.8, WAVE_TYPE.SET);
             const colors = getWaveColors(wave);
 
-            expect(colors.peak).toMatch(/^rgb\(\d+, \d+, \d+\)$/);
-            expect(colors.trough).toMatch(/^rgb\(\d+, \d+, \d+\)$/);
+            // Peak is always the palette hex, trough is computed hex
+            expect(colors.peak).toMatch(/^#[0-9a-f]{6}$/i);
+            expect(colors.trough).toMatch(/^#[0-9a-f]{6}$/i);
         });
 
         it('returns different colors for set vs background waves', () => {
@@ -52,14 +53,17 @@ describe('waveRenderer', () => {
             expect(setColors.peak).not.toBe(bgColors.peak);
         });
 
-        it('varies colors by amplitude', () => {
+        it('varies trough color by amplitude (peak stays constant)', () => {
             const lowAmpWave = createWave(0, 0.2, WAVE_TYPE.SET);
             const highAmpWave = createWave(0, 1.0, WAVE_TYPE.SET);
 
             const lowColors = getWaveColors(lowAmpWave);
             const highColors = getWaveColors(highAmpWave);
 
-            expect(lowColors.peak).not.toBe(highColors.peak);
+            // Peak stays constant (same palette color)
+            expect(lowColors.peak).toBe(highColors.peak);
+            // Trough varies by amplitude (lerp toward trough color)
+            expect(lowColors.trough).not.toBe(highColors.trough);
         });
     });
 
