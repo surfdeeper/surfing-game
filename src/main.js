@@ -1,10 +1,13 @@
-// Surfing Game - Step 1: Simple top-down view with swell lines
-// Just a grid, a shore line, and swell lines traveling in
+// Surfing Game - Time-based wave model
+// Wave position is derived from time, enabling deterministic tests
 //
-// Animation uses requestAnimationFrame with delta time:
-// - Frame-rate independent: movement is based on elapsed time, not frame count
-// - If frames are skipped/slow, deltaTime is larger so animation "catches up"
-// - Swell lines move at consistent real-world speed regardless of fps
+// Architecture:
+// - Wave objects store spawnTime (immutable), not position
+// - Position is calculated: progress = (currentTime - spawnTime) / travelDuration
+// - Coordinates mapped: progress (0-1) → screen pixels at render time
+
+import { createWave, getWaveProgress, getActiveWaves } from './state/waveModel.js';
+import { progressToScreenY, getOceanBounds, calculateTravelDuration } from './render/coordinates.js';
 
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
@@ -26,8 +29,9 @@ const world = {
     swellSpacing: 80,      // Visual spacing of wave gradient (pixels)
     swellSpeed: 50,        // Pixels per second toward shore (downward)
 
-    // Discrete wave objects
-    waves: [],             // Array of { y: number, amplitude: number }
+    // Discrete wave objects (time-based)
+    waves: [],             // Array of { id, spawnTime, amplitude }
+    gameTime: 0,           // Current game time in ms (for time-based positions)
 
     // Wave timing (in seconds) - based on real ocean physics
     // Swell period: time between wave crests passing a fixed point
@@ -136,12 +140,9 @@ function startSet() {
     world.nextWaveTime = getNextWaveTime();
 }
 
-// Spawn a wave at the top of the screen with the given amplitude
+// Spawn a wave at the horizon with the given amplitude
 function spawnWave(amplitude) {
-    world.waves.push({
-        y: 0,
-        amplitude: amplitude,
-    });
+    world.waves.push(createWave(world.gameTime, amplitude));
     world.timeSinceLastWave = 0;
     world.nextWaveTime = getNextWaveTime();
 }
@@ -221,23 +222,25 @@ function updateSetState(deltaTime) {
 }
 
 function update(deltaTime) {
+    // Advance game time (in ms)
+    world.gameTime += deltaTime * 1000;
+
     // Update set/lull state machine
     updateSetState(deltaTime);
 
-    // Move all waves toward shore
-    for (const wave of world.waves) {
-        wave.y += world.swellSpeed * deltaTime;
-    }
-
-    // Remove waves that have passed the shore
-    const shoreY = canvas.height - world.shoreHeight;
-    world.waves = world.waves.filter(wave => wave.y < shoreY + world.swellSpacing);
+    // Remove waves that have completed their journey (time-based)
+    const { oceanBottom } = getOceanBounds(canvas.height, world.shoreHeight);
+    const travelDuration = calculateTravelDuration(oceanBottom, world.swellSpeed);
+    // Add buffer for visual spacing past shore
+    const bufferDuration = (world.swellSpacing / world.swellSpeed) * 1000;
+    world.waves = getActiveWaves(world.waves, world.gameTime - bufferDuration, travelDuration);
 }
 
 function draw() {
     const w = canvas.width;
     const h = canvas.height;
-    const shoreY = h - world.shoreHeight;  // Y position where shore starts
+    const { oceanTop, oceanBottom, shoreY } = getOceanBounds(h, world.shoreHeight);
+    const travelDuration = calculateTravelDuration(oceanBottom, world.swellSpeed);
 
     // Clear with ocean color
     ctx.fillStyle = colors.ocean;
@@ -252,7 +255,9 @@ function draw() {
     const halfSpacing = world.swellSpacing / 2;
 
     for (const wave of world.waves) {
-        const peakY = wave.y;
+        // Calculate Y position from time-based progress
+        const progress = getWaveProgress(wave, world.gameTime, travelDuration);
+        const peakY = progressToScreenY(progress, oceanTop, oceanBottom);
         const troughY = peakY + halfSpacing;
         const nextPeakY = peakY + world.swellSpacing;
         const currentTroughColor = getTroughColor(wave.amplitude);
@@ -291,10 +296,14 @@ function draw() {
     const stateTimerProgress = Math.min(world.setTimer / world.setDuration, 1);
     const stateLabel2 = world.setState === 'LULL' ? 'Until set' : 'Set ends';
 
-    // Filter and sort waves for display (exclude at-shore, sort by distance from horizon)
+    // Filter and sort waves for display (exclude at-shore, sort by progress)
     const displayWaves = world.waves
-        .filter(wave => wave.y < shoreY)
-        .sort((a, b) => a.y - b.y);  // ascending: horizon first
+        .map(wave => ({
+            wave,
+            progress: getWaveProgress(wave, world.gameTime, travelDuration)
+        }))
+        .filter(({ progress }) => progress < 1)
+        .sort((a, b) => a.progress - b.progress);  // ascending: horizon first
 
     // Calculate panel height based on wave count
     const baseHeight = 130;
@@ -326,9 +335,9 @@ function draw() {
     ctx.fillText(`Active waves: ${displayWaves.length}`, w - 210, 115);
 
     for (let i = 0; i < displayWaves.length; i++) {
-        const wave = displayWaves[i];
-        const distanceToShore = shoreY - wave.y;
-        const timeToShore = (distanceToShore / world.swellSpeed).toFixed(1);
+        const { wave, progress } = displayWaves[i];
+        // Time to shore = remaining progress * travel duration (convert to seconds)
+        const timeToShore = ((1 - progress) * travelDuration / 1000).toFixed(1);
         const ampPercent = Math.round(wave.amplitude * 100);
         ctx.fillStyle = '#aaa';
         ctx.fillText(`  • ${ampPercent}% amp, ${timeToShore}s`, w - 210, 130 + i * 16);
