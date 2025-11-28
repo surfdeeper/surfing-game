@@ -194,7 +194,8 @@ describe('DebugPanel', () => {
       const lullState = createSetLullState({ setState: 'LULL' });
       render(<DebugPanel {...createDefaultProps({ setLullState: lullState })} />);
       // setDuration=60, setTimer=15.5 => remaining = 44.5s
-      expect(screen.getByText('44.5s')).toBeInTheDocument();
+      // Format: "remaining / total"
+      expect(screen.getByText('44.5s / 60.0s')).toBeInTheDocument();
       // Verify circular progress SVG exists (2 in LULL: lull timer + wave timer)
       const svgs = document.querySelectorAll('.circular-progress');
       expect(svgs.length).toBe(2);
@@ -203,7 +204,8 @@ describe('DebugPanel', () => {
     it('displays wave countdown timer with circular progress', () => {
       render(<DebugPanel {...createDefaultProps()} />);
       // nextWaveTime=15, timeSinceLastWave=8.3 => remaining = 6.7s
-      expect(screen.getByText('6.7s')).toBeInTheDocument();
+      // Format: "remaining / total"
+      expect(screen.getByText('6.7s / 15.0s')).toBeInTheDocument();
       // In SET state (default), only 1 circular progress (wave timer)
       const svgs = document.querySelectorAll('.circular-progress');
       expect(svgs.length).toBe(1);
@@ -534,9 +536,9 @@ describe('DebugPanel', () => {
       render(<DebugPanel {...createDefaultProps({ setLullState })} />);
 
       // Countdown is clamped to 0 when elapsed exceeds duration
-      // Both timers should show 0.0s since elapsed > total
-      const zeroTimers = screen.getAllByText('0.0s');
-      expect(zeroTimers.length).toBe(2);
+      // Format: "remaining / total"
+      expect(screen.getByText('0.0s / 106.0s')).toBeInTheDocument();
+      expect(screen.getByText('0.0s / 70.0s')).toBeInTheDocument();
     });
   });
 
@@ -557,7 +559,8 @@ describe('DebugPanel', () => {
       render(<DebugPanel {...createDefaultProps({ setLullState: validState })} />);
 
       // Countdown: 15.0 - 5.0 = 10.0s remaining
-      expect(screen.getByText('10.0s')).toBeInTheDocument();
+      // Format: "remaining / total"
+      expect(screen.getByText('10.0s / 15.0s')).toBeInTheDocument();
     });
 
     it('shows long countdown just after wave spawn', () => {
@@ -575,7 +578,8 @@ describe('DebugPanel', () => {
       render(<DebugPanel {...createDefaultProps({ setLullState: freshSpawnState })} />);
 
       // Countdown: 14.0 - 0.5 = 13.5s remaining
-      expect(screen.getByText('13.5s')).toBeInTheDocument();
+      // Format: "remaining / total"
+      expect(screen.getByText('13.5s / 14.0s')).toBeInTheDocument();
 
       const progressFills = document.querySelectorAll('.circular-progress-fill');
       const waveTimerOffset = parseFloat(progressFills[1].getAttribute('stroke-dashoffset'));
@@ -599,7 +603,8 @@ describe('DebugPanel', () => {
       render(<DebugPanel {...createDefaultProps({ setLullState: normalState })} />);
 
       // Lull countdown: 60.0 - 25.0 = 35.0s remaining
-      expect(screen.getByText('35.0s')).toBeInTheDocument();
+      // Format: "remaining / total"
+      expect(screen.getByText('35.0s / 60.0s')).toBeInTheDocument();
 
       const progressFills = document.querySelectorAll('.circular-progress-fill');
       const lullTimerOffset = parseFloat(progressFills[0].getAttribute('stroke-dashoffset'));
@@ -847,6 +852,137 @@ describe('DebugPanel', () => {
       // waveTimer: 0.1/15 = 0.00667, offset = circumference * 0.993
       const waveTimerOffset = parseFloat(progressFills[1].getAttribute('stroke-dashoffset'));
       expect(waveTimerOffset).toBeCloseTo(circumference * (1 - 0.1/15), 1);
+    });
+  });
+
+  describe('Progress Bar - Time Progression Integration', () => {
+    it('progress increases as gameTime advances', () => {
+      const baseGameTime = sec(100);
+      const lastWaveSpawnTime = baseGameTime; // Wave just spawned
+      const nextWaveTime = 15; // seconds
+
+      // Render at t=0 (wave just spawned)
+      const { rerender } = render(<DebugPanel {...createDefaultProps({
+        setLullState: {
+          setState: 'SET',
+          stateStartTime: baseGameTime,
+          setDuration: 60,
+          lastWaveSpawnTime: lastWaveSpawnTime,
+          nextWaveTime: nextWaveTime,
+          wavesSpawned: 1,
+          currentSetWaves: 5,
+        },
+        gameTime: baseGameTime,
+      })} />);
+
+      const circumference = 2 * Math.PI * 8.5;
+      let progressFill = document.querySelector('.circular-progress-fill');
+      let offset0 = parseFloat(progressFill.getAttribute('stroke-dashoffset'));
+
+      // Progress at t=0: timeSinceLastWave=0, progress=0/15=0
+      expect(offset0).toBeCloseTo(circumference, 1); // 0% progress = full offset
+
+      // Render at t=5s
+      rerender(<DebugPanel {...createDefaultProps({
+        setLullState: {
+          setState: 'SET',
+          stateStartTime: baseGameTime,
+          setDuration: 60,
+          lastWaveSpawnTime: lastWaveSpawnTime,
+          nextWaveTime: nextWaveTime,
+          wavesSpawned: 1,
+          currentSetWaves: 5,
+        },
+        gameTime: baseGameTime + sec(5),
+      })} />);
+
+      progressFill = document.querySelector('.circular-progress-fill');
+      let offset5 = parseFloat(progressFill.getAttribute('stroke-dashoffset'));
+
+      // Progress at t=5: timeSinceLastWave=5, progress=5/15=0.333
+      // offset = circumference * (1 - 0.333) = circumference * 0.667
+      expect(offset5).toBeCloseTo(circumference * (1 - 5/15), 1);
+
+      // Verify progress increased (offset decreased)
+      expect(offset5).toBeLessThan(offset0);
+
+      // Render at t=10s
+      rerender(<DebugPanel {...createDefaultProps({
+        setLullState: {
+          setState: 'SET',
+          stateStartTime: baseGameTime,
+          setDuration: 60,
+          lastWaveSpawnTime: lastWaveSpawnTime,
+          nextWaveTime: nextWaveTime,
+          wavesSpawned: 1,
+          currentSetWaves: 5,
+        },
+        gameTime: baseGameTime + sec(10),
+      })} />);
+
+      progressFill = document.querySelector('.circular-progress-fill');
+      let offset10 = parseFloat(progressFill.getAttribute('stroke-dashoffset'));
+
+      // Progress at t=10: timeSinceLastWave=10, progress=10/15=0.667
+      expect(offset10).toBeCloseTo(circumference * (1 - 10/15), 1);
+
+      // Verify monotonic increase
+      expect(offset10).toBeLessThan(offset5);
+
+      console.log('Progress test results:', {
+        't0_offset': offset0.toFixed(2),
+        't5_offset': offset5.toFixed(2),
+        't10_offset': offset10.toFixed(2),
+        't0_progress': (1 - offset0/circumference).toFixed(3),
+        't5_progress': (1 - offset5/circumference).toFixed(3),
+        't10_progress': (1 - offset10/circumference).toFixed(3),
+      });
+    });
+
+    it('logs actual values for debugging', () => {
+      const baseGameTime = sec(100);
+      const lastWaveSpawnTime = baseGameTime - sec(10.35); // 10.35s ago
+      const nextWaveTime = 15; // 15 seconds total
+
+      const setLullState = {
+        setState: 'SET',
+        stateStartTime: baseGameTime - sec(30),
+        setDuration: 60,
+        lastWaveSpawnTime: lastWaveSpawnTime,
+        nextWaveTime: nextWaveTime,
+        wavesSpawned: 2,
+        currentSetWaves: 5,
+      };
+
+      render(<DebugPanel {...createDefaultProps({
+        setLullState,
+        gameTime: baseGameTime,
+      })} />);
+
+      // Manual calculation to verify
+      const timeSinceLastWave = (baseGameTime - lastWaveSpawnTime) / 1000;
+      const expectedProgress = timeSinceLastWave / nextWaveTime;
+
+      console.log('Debug values:', {
+        gameTime: baseGameTime,
+        lastWaveSpawnTime: lastWaveSpawnTime,
+        nextWaveTime: nextWaveTime,
+        timeSinceLastWave: timeSinceLastWave.toFixed(2),
+        expectedProgress: expectedProgress.toFixed(3),
+      });
+
+      const circumference = 2 * Math.PI * 8.5;
+      const progressFill = document.querySelector('.circular-progress-fill');
+      const actualOffset = parseFloat(progressFill.getAttribute('stroke-dashoffset'));
+      const actualProgress = 1 - actualOffset / circumference;
+
+      console.log('Rendered values:', {
+        actualOffset: actualOffset.toFixed(2),
+        actualProgress: actualProgress.toFixed(3),
+        expectedOffset: (circumference * (1 - expectedProgress)).toFixed(2),
+      });
+
+      expect(actualProgress).toBeCloseTo(expectedProgress, 2);
     });
   });
 });

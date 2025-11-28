@@ -5,6 +5,27 @@ description: Apply testing best practices when writing or modifying tests. Use w
 
 # Testing Skill
 
+## Fundamental Principle
+
+**Tests must exercise the same code that runs in production.**
+
+If tests pass but the app is broken, you're testing the wrong code.
+
+```
+❌ Anti-pattern:
+   Helper module (tested) → Used by Storybook
+   Inline copy (untested) → Used by main.jsx
+
+   Tests pass, production runs different code.
+
+✅ Correct:
+   Helper module (tested) → Used by BOTH Storybook AND main.jsx
+```
+
+When writing tests, always verify you're testing code that production actually uses. If Storybook uses a helper function, main.jsx should use that same function.
+
+---
+
 This project has a comprehensive testing strategy with multiple test types.
 
 ## Test Framework Stack
@@ -130,6 +151,34 @@ describe('performance', () => {
 2. **After implementation**: Ensure edge cases covered
 3. **Bug fixes**: Add regression test that fails without fix
 4. **Visual changes**: Update baselines after review
+
+## Testing UI Behavior Over Time
+
+For components that update every frame (game loop, animations), write integration tests that simulate time progression:
+
+```javascript
+it('progress increases as gameTime advances', () => {
+  const { rerender } = render(<Component gameTime={0} />);
+  const offset0 = getProgressOffset();
+
+  rerender(<Component gameTime={5000} />);
+  const offset5 = getProgressOffset();
+
+  expect(offset5).toBeLessThan(offset0); // Progress increased
+});
+```
+
+This catches bugs where calculations are correct but don't update properly over time.
+
+## Debugging: CSS vs Logic Bugs
+
+| Symptom | Likely Cause | Test Strategy |
+|---------|--------------|---------------|
+| Calculation wrong | Logic bug | Unit test with known inputs |
+| Value correct, visual wrong | CSS/rendering | Integration test + CSS inspection |
+| Flickering/tweaking | CSS transition conflict | Remove transitions, test in Vitest |
+
+**Key principle**: If Vitest tests pass but browser looks wrong, suspect CSS (transitions, animations) not logic.
 
 ## Test Data Fixtures
 

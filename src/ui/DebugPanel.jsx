@@ -129,6 +129,7 @@ export function DebugPanel({ setLullState, gameTime, displayWaves, foamCount, ti
           <CountdownReadOnly
             label="Lull ends in"
             remaining={stateTimeRemaining}
+            total={setDuration}
             progress={setTimerProgress}
             color="#e8a644"
           />
@@ -138,6 +139,7 @@ export function DebugPanel({ setLullState, gameTime, displayWaves, foamCount, ti
         <CountdownReadOnly
           label="Next wave in"
           remaining={waveTimeRemaining}
+          total={nextWaveTime}
           progress={waveTimerProgress}
           color="#4a90b8"
         />
@@ -355,13 +357,13 @@ function CircularProgress({ progress, size = 20, strokeWidth = 3, color }) {
   );
 }
 
-function CountdownReadOnly({ label, remaining, progress, color }) {
+function CountdownReadOnly({ label, remaining, total, progress, color }) {
   return (
     <div className="control read-only timer-control">
       <span className="label">{label}</span>
       <span className="timer-value">
         <CircularProgress progress={progress} color={color} />
-        <span className="value">{remaining.toFixed(1)}s</span>
+        <span className="value">{remaining.toFixed(1)}s / {total.toFixed(1)}s</span>
       </span>
     </div>
   );

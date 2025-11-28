@@ -82,6 +82,26 @@ export const WithData = () => <ComponentName data={mockData} />;
 - Co-locate styles: `Component.jsx` + `Component.css`
 - Use BEM-like naming: `.debug-panel__section`
 
+### CSS Anti-Patterns for 60fps Updates
+
+**NEVER use CSS transitions on elements updated via requestAnimationFrame or every-frame React renders:**
+
+```css
+/* BAD - transition fights with 60fps updates, causes flickering */
+.progress-fill {
+  transition: stroke-dashoffset 0.1s ease-out;
+}
+
+/* GOOD - no transition for frequently-updated elements */
+.progress-fill {
+  /* Direct value updates, no transition */
+}
+```
+
+When React re-renders at 60fps, CSS transitions try to animate each change over their duration. But React updates faster than the transition completes, causing visual artifacts (flickering, "tweaking out").
+
+**If smooth animation is needed**, use JavaScript animation (RAF) or React Spring, not CSS transitions.
+
 ## Testing React Components
 
 ```javascript

@@ -37,6 +37,48 @@ Plans are organized by category in `/plans/`. See [plans/README.md](plans/README
 | `reference/` | Research docs |
 | `archive/` | Superseded plans |
 
+## Code Reuse Principle
+
+### Tests Must Test Production Code
+
+**The code that tests exercise MUST be the same code that runs in production.**
+
+❌ **Anti-pattern (what we found)**:
+```
+Helper module (tested) → Used by Storybook
+Inline copy (untested) → Used by main.jsx (production)
+```
+Tests pass, but production runs different code.
+
+✅ **Correct pattern**:
+```
+Helper module (tested) → Used by BOTH Storybook AND main.jsx
+```
+One implementation, tested once, used everywhere.
+
+### When Extracting Helpers
+
+When creating a reusable module (e.g., `src/render/fooRenderer.js`):
+
+1. **Use it immediately** - The caller must import and use it in the same commit
+2. **Delete inline code** - Remove any duplicated logic from main.jsx
+3. **Never create tested-but-unused helpers** - If nothing imports it, it shouldn't exist
+
+### Detecting Dead Helpers
+
+Before committing, verify helpers are actually used:
+```bash
+# Check if exports from render modules are imported somewhere
+grep -l "export function" src/render/*.js | while read f; do
+  funcs=$(grep -o "export function [a-zA-Z]*" "$f" | cut -d' ' -f3)
+  for func in $funcs; do
+    if ! grep -rq "$func" src/main.jsx src/stories/; then
+      echo "⚠️  $f: $func is exported but never imported"
+    fi
+  done
+done
+```
+
 ## Code Style
 
 - Vanilla JavaScript (no TypeScript currently)
@@ -85,6 +127,7 @@ Custom commands for common workflows (`.claude/commands/`):
 | `/physics` | Load wave physics context | `/physics` |
 | `/test` | Run tests with context | `/test unit` or `/test foamDispersion.test.js` |
 | `/visual` | Visual regression workflows | `/visual run` or `/visual update` |
+| `/refactor` | Find duplicate code, discuss consolidation | `/refactor src/render/` |
 
 ## Skills
 
@@ -98,6 +141,32 @@ Skills are auto-applied by Claude based on context (`.claude/skills/`):
 | `visualization-algorithms` | Editing `src/render/`, graphics algorithms |
 | `react-ui` | JSX files, React component work |
 | `performance` | "slow", "fps", "lag", optimization discussions |
+| `refactoring` | "duplicate", "refactor", "DRY", "extract", "consolidate" |
+| `debugging` | "bug", "broken", "not working", "glitch", "flickering" |
+
+## Debugging Methodology
+
+When debugging issues:
+
+1. **Automate first** - Write a Vitest test to reproduce the bug, never ask user to manually check console
+2. **Isolate the layer** - Is it calculation (logic) or rendering (CSS/browser)?
+3. **Check CSS interactions** - Transitions, animations, transforms can conflict with React 60fps updates
+4. **Time progression tests** - For game loop bugs, test with simulated time advancement
+
+### Debug State Exposure
+
+For complex debugging, expose state to browser console (dev only):
+```javascript
+if (import.meta.env.DEV) {
+  window.__debug = { setLullState, gameTime };
+}
+```
+
+Then inspect: `window.__debug.setLullState`
+
+### Common Pitfall: CSS + 60fps
+
+If Vitest tests pass but browser visuals are wrong (flickering, stuck values), check for CSS transitions on frequently-updated elements. Remove them - CSS transitions fight with React's 60fps re-renders.
 
 ## Context File Hierarchy
 

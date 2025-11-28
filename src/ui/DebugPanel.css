@@ -223,7 +223,7 @@
 
 .circular-progress-fill {
   fill: none;
-  transition: stroke-dashoffset 0.1s ease-out;
+  /* Removed transition - causes visual glitches when React re-renders at 60fps */
 }
 
 /* Timer control with circular progress */
