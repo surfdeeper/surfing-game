@@ -12,6 +12,9 @@ import {
     getActiveWaves,
     WAVE_TYPE,
     isWaveBreaking,
+    updateWaveRefraction,
+    getProgressAtX,
+    WAVE_X_SAMPLES,
 } from './state/waveModel.js';
 import { createFoam, updateFoam, getActiveFoam } from './state/foamModel.js';
 import { DEFAULT_BATHYMETRY, getDepth, getPeakX } from './state/bathymetryModel.js';
@@ -405,6 +408,21 @@ function update(deltaTime) {
     const bufferDuration = (world.swellSpacing / world.swellSpeed) * 1000;
     world.waves = getActiveWaves(world.waves, world.gameTime - bufferDuration, travelDuration);
 
+    // Update wave refraction (per-X progress based on bathymetry)
+    // Waves slow down in shallow water, causing them to bend
+    const getDepthForRefraction = (normalizedX, progress) =>
+        getDepth(normalizedX, world.bathymetry, progress);
+
+    for (const wave of world.waves) {
+        updateWaveRefraction(
+            wave,
+            world.gameTime,
+            travelDuration,
+            getDepthForRefraction,
+            world.bathymetry.deepDepth
+        );
+    }
+
     // Deposit foam where waves are breaking
     // Foam is deposited at the wave's current position and stays there (doesn't move)
     // Shape of foam naturally follows bathymetry because it's deposited wherever depth triggers breaking
@@ -630,7 +648,8 @@ function draw() {
     ctx.fillStyle = colors.shore;
     ctx.fillRect(0, shoreY, w, world.shoreHeight);
 
-    // Helper function to draw a wave as a gradient band
+    // Helper function to draw a wave as a bent gradient band
+    // Uses per-X progress data for refraction (bending based on bathymetry)
     const drawWave = (wave) => {
         const isSet = wave.type === WAVE_TYPE.SET;
 
@@ -642,11 +661,6 @@ function draw() {
         const waveSpacing = minThickness + (maxThickness - minThickness) * wave.amplitude;
         const halfSpacing = waveSpacing / 2;
 
-        const progress = getWaveProgress(wave, world.gameTime, travelDuration);
-        const peakY = progressToScreenY(progress, oceanTop, oceanBottom);
-        const troughY = peakY + halfSpacing;
-        const nextPeakY = peakY + waveSpacing;
-
         // Get type-specific colors
         const waveColors = getWaveColors(wave);
 
@@ -655,22 +669,35 @@ function draw() {
         const baseAlpha = isSet ? 1.0 : 0.85;
         ctx.globalAlpha = toggles.showBathymetry ? 0.7 : baseAlpha;
 
-        // First half: peak (dark) to trough (light)
-        if (troughY > 0 && peakY < shoreY) {
-            const grad1 = ctx.createLinearGradient(0, peakY, 0, troughY);
-            grad1.addColorStop(0, waveColors.peak);
-            grad1.addColorStop(1, waveColors.trough);
-            ctx.fillStyle = grad1;
-            ctx.fillRect(0, Math.max(0, peakY), w, Math.min(troughY, shoreY) - Math.max(0, peakY));
-        }
+        // Draw wave as vertical slices, each at its own Y position based on per-X progress
+        const numSlices = wave.progressPerX ? wave.progressPerX.length : WAVE_X_SAMPLES;
+        const sliceWidth = w / numSlices;
 
-        // Second half: trough (light) to next peak (dark)
-        if (nextPeakY > 0 && troughY < shoreY) {
-            const grad2 = ctx.createLinearGradient(0, troughY, 0, nextPeakY);
-            grad2.addColorStop(0, waveColors.trough);
-            grad2.addColorStop(1, waveColors.peak);
-            ctx.fillStyle = grad2;
-            ctx.fillRect(0, Math.max(0, troughY), w, Math.min(nextPeakY, shoreY) - Math.max(0, troughY));
+        for (let i = 0; i < numSlices; i++) {
+            const progress = wave.progressPerX ? wave.progressPerX[i] : getWaveProgress(wave, world.gameTime, travelDuration);
+            const peakY = progressToScreenY(progress, oceanTop, oceanBottom);
+            const troughY = peakY + halfSpacing;
+            const nextPeakY = peakY + waveSpacing;
+
+            const sliceX = i * sliceWidth;
+
+            // First half: peak (dark) to trough (light)
+            if (troughY > 0 && peakY < shoreY) {
+                const grad1 = ctx.createLinearGradient(0, peakY, 0, troughY);
+                grad1.addColorStop(0, waveColors.peak);
+                grad1.addColorStop(1, waveColors.trough);
+                ctx.fillStyle = grad1;
+                ctx.fillRect(sliceX, Math.max(0, peakY), sliceWidth + 1, Math.min(troughY, shoreY) - Math.max(0, peakY));
+            }
+
+            // Second half: trough (light) to next peak (dark)
+            if (nextPeakY > 0 && troughY < shoreY) {
+                const grad2 = ctx.createLinearGradient(0, troughY, 0, nextPeakY);
+                grad2.addColorStop(0, waveColors.trough);
+                grad2.addColorStop(1, waveColors.peak);
+                ctx.fillStyle = grad2;
+                ctx.fillRect(sliceX, Math.max(0, troughY), sliceWidth + 1, Math.min(nextPeakY, shoreY) - Math.max(0, troughY));
+            }
         }
     };
 

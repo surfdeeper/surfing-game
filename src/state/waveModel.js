@@ -1,7 +1,10 @@
 // Wave Model - Time-based wave position calculation
-// Wave position is derived from time, never stored/mutated
+// Base progress derived from time, per-X progress stored for refraction
 
 let nextWaveId = 1;
+
+// Number of X samples for per-X progress tracking
+export const WAVE_X_SAMPLES = 40;
 
 /**
  * Wave types
@@ -19,6 +22,9 @@ export const WAVE_TYPE = {
  * @returns {object} Immutable wave object
  */
 export function createWave(spawnTime, amplitude, type = WAVE_TYPE.SET) {
+    // Initialize per-X progress array - all start at 0 (horizon)
+    const progressPerX = new Array(WAVE_X_SAMPLES).fill(0);
+
     return {
         id: `wave-${nextWaveId++}`,
         spawnTime,
@@ -26,6 +32,11 @@ export function createWave(spawnTime, amplitude, type = WAVE_TYPE.SET) {
         type,
         // Track the last Y position where we deposited foam, to avoid duplicates
         lastFoamY: -1,
+        // Per-X progress for wave refraction (bending based on bathymetry)
+        // Each element is progress (0-1) at that X position
+        progressPerX,
+        // Track last update time for incremental updates
+        lastUpdateTime: spawnTime,
     };
 }
 
@@ -101,4 +112,126 @@ export function isWaveBreaking(wave, depth) {
     // Apply breaker index rule: H > 0.78 * d
     const breakerIndex = 0.78;
     return waveHeight > breakerIndex * depth;
+}
+
+// Refraction strength: 0 = no bending, 1 = full physics
+// Full physics (sqrt ratio) creates ~4x speed difference which is too extreme visually
+// 0.3 gives subtle but visible bending
+export const REFRACTION_STRENGTH = 0.3;
+
+// Lateral diffusion: how much adjacent X slices influence each other
+// This causes the wave to try to reform into a line after passing over bathymetry
+// 0 = no diffusion (independent slices), 1 = instant equalization
+// 0.15 gives gradual reformation while preserving some of the bend
+export const LATERAL_DIFFUSION = 0.15;
+
+/**
+ * Update wave's per-X progress based on bathymetry (refraction)
+ * Waves travel slower in shallow water: c = sqrt(g * depth)
+ * This creates bending as different X positions advance at different rates
+ *
+ * The effect is dampened by REFRACTION_STRENGTH to avoid extreme visual artifacts.
+ * Lateral diffusion causes the wave to gradually reform into a line.
+ *
+ * @param {object} wave - Wave object with progressPerX array
+ * @param {number} currentTime - Current game time in ms
+ * @param {number} baseTravelDuration - Base time for wave to travel horizon to shore (ms)
+ * @param {function} getDepthFn - Function(normalizedX, progress) returning depth in meters
+ * @param {number} deepDepth - Reference deep water depth (meters)
+ */
+export function updateWaveRefraction(wave, currentTime, baseTravelDuration, getDepthFn, deepDepth = 30) {
+    const dt = currentTime - wave.lastUpdateTime;
+    if (dt <= 0) return;
+
+    wave.lastUpdateTime = currentTime;
+
+    // Base progress increment for this time step (in deep water)
+    const baseIncrement = dt / baseTravelDuration;
+
+    // Reference speed in deep water: c = sqrt(g * deepDepth)
+    // We normalize speeds relative to this
+    const g = 9.8; // gravity m/s²
+    const deepSpeed = Math.sqrt(g * deepDepth);
+
+    const n = wave.progressPerX.length;
+
+    // Step 1: Apply bathymetry-based speed differences
+    for (let i = 0; i < n; i++) {
+        const normalizedX = (i + 0.5) / n;
+        const currentProgress = wave.progressPerX[i];
+
+        // Get depth at this X position and current progress
+        const depth = getDepthFn(normalizedX, currentProgress);
+
+        // Wave speed at this depth: c = sqrt(g * depth)
+        // Clamp depth to avoid sqrt(0) and very slow speeds
+        const clampedDepth = Math.max(0.5, depth);
+        const localSpeed = Math.sqrt(g * clampedDepth);
+
+        // Raw speed ratio from physics (can be ~0.25 for shallow vs deep)
+        const rawSpeedRatio = localSpeed / deepSpeed;
+
+        // Dampen the effect: blend between 1.0 (no refraction) and raw ratio
+        // At REFRACTION_STRENGTH=0.3: shallow water at 0.25 ratio becomes 0.775 ratio
+        const speedRatio = 1 - (1 - rawSpeedRatio) * REFRACTION_STRENGTH;
+
+        // Apply increment scaled by speed ratio
+        wave.progressPerX[i] = Math.min(1, currentProgress + baseIncrement * speedRatio);
+    }
+
+    // Step 2: Apply lateral diffusion (wave tries to reform into a line)
+    // This simulates the connected nature of wave energy - tension along the wave
+    if (LATERAL_DIFFUSION > 0) {
+        // Scale diffusion by time step (larger dt = more diffusion)
+        const diffusionAmount = LATERAL_DIFFUSION * Math.min(1, dt / 16.67); // normalized to 60fps
+
+        // Make a copy to read from while writing
+        const oldProgress = [...wave.progressPerX];
+
+        for (let i = 0; i < n; i++) {
+            // Get neighbors (wrap at edges to avoid boundary artifacts)
+            const left = oldProgress[i > 0 ? i - 1 : i];
+            const right = oldProgress[i < n - 1 ? i + 1 : i];
+            const current = oldProgress[i];
+
+            // Average of neighbors
+            const neighborAvg = (left + right) / 2;
+
+            // Blend toward neighbor average (reformation)
+            // This pulls the wave toward being a straight line
+            wave.progressPerX[i] = current + (neighborAvg - current) * diffusionAmount;
+
+            // Clamp to valid range
+            wave.progressPerX[i] = Math.min(1, Math.max(0, wave.progressPerX[i]));
+        }
+    }
+}
+
+/**
+ * Get the average progress of a wave (for compatibility with existing code)
+ * @param {object} wave - Wave object
+ * @returns {number} Average progress across all X positions
+ */
+export function getAverageProgress(wave) {
+    if (!wave.progressPerX || wave.progressPerX.length === 0) {
+        return 0;
+    }
+    const sum = wave.progressPerX.reduce((a, b) => a + b, 0);
+    return sum / wave.progressPerX.length;
+}
+
+/**
+ * Get progress at a specific X position
+ * @param {object} wave - Wave object
+ * @param {number} normalizedX - X position (0-1)
+ * @returns {number} Progress at that X position (0-1)
+ */
+export function getProgressAtX(wave, normalizedX) {
+    if (!wave.progressPerX || wave.progressPerX.length === 0) {
+        return 0;
+    }
+    // Find the index for this X position
+    const index = Math.floor(normalizedX * wave.progressPerX.length);
+    const clampedIndex = Math.max(0, Math.min(wave.progressPerX.length - 1, index));
+    return wave.progressPerX[clampedIndex];
 }
