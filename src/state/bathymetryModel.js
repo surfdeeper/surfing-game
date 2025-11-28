@@ -12,7 +12,7 @@
  * Default bathymetry configuration
  *
  * Features:
- * - Sandbar: horizontal shallow band further out, waves break here first
+ * - Sandbar: organic blob-shaped shallow area with irregular curves
  * - Point: triangular shallow area near shore, waves break again here
  * - Deep zone between sandbar and point where waves reform
  */
@@ -20,11 +20,23 @@ export const DEFAULT_BATHYMETRY = {
     deepDepth: 30,           // meters at horizon (progress=0)
     shoreDepth: 0.5,         // meters at shore (progress=1)
 
-    // Sandbar - horizontal shallow band (waves break here, reform, then hit point)
+    // Sandbar - organic blob shape (not a straight line)
+    // Defined as a series of lobes/blobs that create an irregular shape
     sandbar: {
-        progress: 0.35,      // where sandbar is (35% to shore)
-        width: 0.15,         // thickness in progress units (thicker band)
-        shallowBonus: 18,    // how much shallower (meters) - causes more breaking
+        baseProgress: 0.35,  // center Y position of sandbar
+        width: 0.12,         // base thickness in progress units
+        shallowBonus: 18,    // how much shallower (meters) at peak
+        // Lobes create the irregular curved shape
+        // Each lobe: { x: lateral position (0-1), size: relative size, yOffset: shift toward/away from shore }
+        // Size affects both depth bonus AND lateral spread - bigger lobes are wider
+        lobes: [
+            { x: 0.10, size: 1.1, yOffset: 0.05 },   // Left lobe, toward shore
+            { x: 0.32, size: 1.35, yOffset: -0.03 }, // Main peak, toward horizon
+            { x: 0.55, size: 1.2, yOffset: 0.02 },   // Center lobe
+            { x: 0.75, size: 1.1, yOffset: -0.02 },  // Right lobe, toward horizon
+            { x: 0.92, size: 1.0, yOffset: 0.03 },   // Far right edge, toward shore
+        ],
+        lobeWidth: 0.25,     // how wide each lobe spreads laterally (wider = more overlap)
     },
 
     // Point/reef - triangular shallow area extending from shore
@@ -49,15 +61,38 @@ export function getDepth(normalizedX, config = DEFAULT_BATHYMETRY, progress = 0)
 
     let totalBonus = 0;
 
-    // Sandbar bonus: horizontal shallow band spanning full width
+    // Sandbar bonus: organic blob-shaped shallow area
     if (config.sandbar) {
         const sandbar = config.sandbar;
-        const distFromSandbar = Math.abs(progress - sandbar.progress) / sandbar.width;
-        if (distFromSandbar < 1) {
-            // Smooth falloff from center of sandbar
-            const t = 1 - distFromSandbar;
-            totalBonus += sandbar.shallowBonus * t * t;
+        const lobes = sandbar.lobes || [{ x: 0.5, size: 1, yOffset: 0 }];
+        const lobeWidth = sandbar.lobeWidth || 0.15;
+
+        // Sum contribution from each lobe
+        let sandbarBonus = 0;
+        for (const lobe of lobes) {
+            // Lateral distance from this lobe's center
+            const lateralDist = Math.abs(normalizedX - lobe.x) / lobeWidth;
+            if (lateralDist >= 1) continue; // Too far laterally
+
+            // This lobe's Y position (with offset)
+            const lobeProgress = sandbar.baseProgress + lobe.yOffset;
+            // Effective width scaled by lobe size
+            const effectiveWidth = sandbar.width * lobe.size;
+
+            // Distance from lobe center in Y direction
+            const yDist = Math.abs(progress - lobeProgress) / effectiveWidth;
+            if (yDist >= 1) continue; // Too far in Y
+
+            // Combined distance (elliptical falloff)
+            const combinedDist = Math.sqrt(lateralDist * lateralDist + yDist * yDist);
+            if (combinedDist >= 1) continue;
+
+            // Smooth falloff using cosine for natural blob shape
+            const t = Math.cos(combinedDist * Math.PI / 2);
+            const lobeBonus = sandbar.shallowBonus * lobe.size * t * t;
+            sandbarBonus = Math.max(sandbarBonus, lobeBonus); // Use max, not sum (overlapping lobes don't stack)
         }
+        totalBonus += sandbarBonus;
     }
 
     // Peak/point bonus: triangular shallow area extending from shore

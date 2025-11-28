@@ -17,10 +17,12 @@ describe('bathymetryModel', () => {
             expect(DEFAULT_BATHYMETRY.peakWidth).toBe(0.2);
             expect(DEFAULT_BATHYMETRY.peakShallowBonus).toBe(12);
             expect(DEFAULT_BATHYMETRY.peakStartProgress).toBe(0.55);
-            // Sandbar config
-            expect(DEFAULT_BATHYMETRY.sandbar.progress).toBe(0.35);
-            expect(DEFAULT_BATHYMETRY.sandbar.width).toBe(0.15);
+            // Sandbar config (organic blob shape)
+            expect(DEFAULT_BATHYMETRY.sandbar.baseProgress).toBe(0.35);
+            expect(DEFAULT_BATHYMETRY.sandbar.width).toBe(0.12);
             expect(DEFAULT_BATHYMETRY.sandbar.shallowBonus).toBe(18);
+            expect(DEFAULT_BATHYMETRY.sandbar.lobes).toHaveLength(5);
+            expect(DEFAULT_BATHYMETRY.sandbar.lobeWidth).toBe(0.25);
         });
     });
 
@@ -58,7 +60,8 @@ describe('bathymetryModel', () => {
             });
 
             it('peak effect is symmetric around peakX', () => {
-                const progress = 0.5;
+                // Test at progress=0.7 which is past the sandbar (only point/peak affects depth here)
+                const progress = 0.7;
                 // Test symmetry at equal distances from peak (0.35)
                 const depthLeft = getDepth(0.25, DEFAULT_BATHYMETRY, progress);  // 0.1 left of peak
                 const depthRight = getDepth(0.45, DEFAULT_BATHYMETRY, progress); // 0.1 right of peak
