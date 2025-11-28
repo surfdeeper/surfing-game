@@ -272,6 +272,14 @@ describe('setLullModel', () => {
                 expect(result.amplitude).toBeGreaterThanOrEqual(DEFAULT_CONFIG.lullMinAmplitude);
                 expect(result.amplitude).toBeLessThanOrEqual(DEFAULT_CONFIG.lullMaxAmplitude);
             });
+
+            it('should advance setTimer during LULL state', () => {
+                let state = createInitialState(DEFAULT_CONFIG, fixedRandom(0.5));
+                const initialTimer = state.setTimer;
+
+                const result = updateSetLullState(state, 5.0, DEFAULT_CONFIG, fixedRandom(0.5));
+                expect(result.state.setTimer).toBe(initialTimer + 5.0);
+            });
         });
 
         describe('SET state behavior', () => {
@@ -294,6 +302,24 @@ describe('setLullModel', () => {
 
                 const result = updateSetLullState(state, 0.1, DEFAULT_CONFIG, fixedRandom(0.5));
                 expect(result.state.setState).toBe(STATE.LULL);
+            });
+
+            it('should remain in SET while waves still pending', () => {
+                // Create state already in SET with some waves spawned
+                let state = initializeSet({}, DEFAULT_CONFIG, fixedRandom(0.5));
+                state.wavesSpawned = 2; // Only 2 of 6 waves spawned
+
+                // Advance time but not enough to spawn next wave
+                const result = updateSetLullState(state, 1.0, DEFAULT_CONFIG, fixedRandom(0.5));
+                expect(result.state.setState).toBe(STATE.SET);
+            });
+
+            it('should advance setTimer during SET state', () => {
+                let state = initializeSet({}, DEFAULT_CONFIG, fixedRandom(0.5));
+                const initialTimer = state.setTimer;
+
+                const result = updateSetLullState(state, 5.0, DEFAULT_CONFIG, fixedRandom(0.5));
+                expect(result.state.setTimer).toBe(initialTimer + 5.0);
             });
         });
 
@@ -370,6 +396,119 @@ describe('setLullModel', () => {
 
             // Should have spawned several waves in 2 minutes
             expect(totalSpawns).toBeGreaterThan(5);
+        });
+
+        it('should reset setTimer when transitioning LULL → SET', () => {
+            let state = createInitialState(DEFAULT_CONFIG, fixedRandom(0.5));
+            // Advance past lull duration (30s)
+            state = updateSetLullState(state, 31.0, DEFAULT_CONFIG, fixedRandom(0.5)).state;
+            expect(state.setState).toBe(STATE.SET);
+            expect(state.setTimer).toBe(0);
+        });
+
+        it('should reset setTimer when transitioning SET → LULL', () => {
+            // Create state already in SET with all waves spawned
+            let state = initializeSet({}, DEFAULT_CONFIG, fixedRandom(0.5));
+            state.wavesSpawned = state.currentSetWaves;
+            state.setTimer = 50.0; // Simulate time passed
+
+            const result = updateSetLullState(state, 0.1, DEFAULT_CONFIG, fixedRandom(0.5));
+            expect(result.state.setState).toBe(STATE.LULL);
+            expect(result.state.setTimer).toBe(0);
+        });
+    });
+
+    describe('amplitude envelope progression', () => {
+        it('should follow bell curve through entire set', () => {
+            // Create a set with exactly 5 waves
+            const config = { ...DEFAULT_CONFIG, wavesPerSet: [5, 5] };
+            let state = initializeSet({}, config, fixedRandom(0.5));
+            const amplitudes = [];
+
+            // Spawn all 5 waves
+            for (let i = 0; i < 5; i++) {
+                state.timeSinceLastWave = 16; // Ready to spawn
+                const result = updateSetLullState(state, 0.1, config, fixedRandom(0.5));
+                if (result.shouldSpawn) {
+                    amplitudes.push(result.amplitude);
+                }
+                state = result.state;
+            }
+
+            expect(amplitudes.length).toBe(5);
+            // First wave should be at minAmplitude (progress = 0)
+            expect(amplitudes[0]).toBeCloseTo(DEFAULT_CONFIG.minAmplitude, 5);
+            // Middle waves should be higher
+            expect(amplitudes[1]).toBeGreaterThan(amplitudes[0]);
+            // Peak should be higher than first and last
+            const peakIdx = 1; // At 40% through 5 waves (index ~1-2)
+            expect(amplitudes[peakIdx]).toBeGreaterThan(amplitudes[0]);
+            // Last wave should be back to low amplitude
+            expect(amplitudes[4]).toBeCloseTo(DEFAULT_CONFIG.minAmplitude, 5);
+        });
+
+        it('should have peak amplitude at configured position', () => {
+            // With 5 waves, wave at index 2 (progress=0.5) is close to peak at 0.4
+            const progress = DEFAULT_CONFIG.peakPosition;
+            const amp = calculateSetAmplitude(progress, DEFAULT_CONFIG);
+            expect(amp).toBe(1.0);
+        });
+    });
+
+    describe('wave count bounds', () => {
+        it('should generate set waves within configured range', () => {
+            // Test with specific random values (Math.random returns [0, 1), never exactly 1)
+            const testValues = [0, 0.1, 0.25, 0.5, 0.75, 0.9, 0.99, 0.999];
+            for (const r of testValues) {
+                const state = initializeSet({}, DEFAULT_CONFIG, fixedRandom(r));
+                expect(state.currentSetWaves).toBeGreaterThanOrEqual(DEFAULT_CONFIG.wavesPerSet[0]);
+                expect(state.currentSetWaves).toBeLessThanOrEqual(DEFAULT_CONFIG.wavesPerSet[1]);
+            }
+        });
+
+        it('should generate lull waves within configured range', () => {
+            // Test with specific random values (Math.random returns [0, 1), never exactly 1)
+            const testValues = [0, 0.1, 0.25, 0.5, 0.75, 0.9, 0.99, 0.999];
+            for (const r of testValues) {
+                const state = initializeLull({}, DEFAULT_CONFIG, fixedRandom(r));
+                expect(state.currentSetWaves).toBeGreaterThanOrEqual(DEFAULT_CONFIG.lullWavesPerSet[0]);
+                expect(state.currentSetWaves).toBeLessThanOrEqual(DEFAULT_CONFIG.lullWavesPerSet[1]);
+            }
+        });
+
+        it('should handle minimum wave count (4)', () => {
+            const config = { ...DEFAULT_CONFIG, wavesPerSet: [4, 4] };
+            const state = initializeSet({}, config, fixedRandom(0.5));
+            expect(state.currentSetWaves).toBe(4);
+        });
+
+        it('should handle maximum wave count (8)', () => {
+            // Random = 1 should give max - need to account for floor
+            const config = { ...DEFAULT_CONFIG, wavesPerSet: [8, 8] };
+            const state = initializeSet({}, config, fixedRandom(0.5));
+            expect(state.currentSetWaves).toBe(8);
+        });
+    });
+
+    describe('spawn timing variation', () => {
+        it('should spawn at base period when random is 0.5', () => {
+            const state = {
+                timeSinceLastWave: DEFAULT_CONFIG.swellPeriod,
+                nextWaveTime: DEFAULT_CONFIG.swellPeriod,
+                wavesSpawned: 0,
+                currentSetWaves: 5,
+            };
+            expect(shouldSpawnWave(state)).toBe(true);
+        });
+
+        it('should spawn earlier with random < 0.5', () => {
+            const minTime = getNextWaveTime(DEFAULT_CONFIG, fixedRandom(0));
+            expect(minTime).toBe(DEFAULT_CONFIG.swellPeriod - DEFAULT_CONFIG.periodVariation);
+        });
+
+        it('should spawn later with random > 0.5', () => {
+            const maxTime = getNextWaveTime(DEFAULT_CONFIG, fixedRandom(1));
+            expect(maxTime).toBe(DEFAULT_CONFIG.swellPeriod + DEFAULT_CONFIG.periodVariation);
         });
     });
 });
