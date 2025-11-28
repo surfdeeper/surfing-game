@@ -85,14 +85,21 @@ function rgbToHex(r, g, b) {
 
 // Lerp between two colors based on amplitude
 // At low amplitude, trough color approaches peak color (less contrast)
+// Uses quadratic scaling so high-amplitude waves have more pronounced contrast
 function getTroughColor(amplitude) {
     const peak = hexToRgb(colors.swellPeak);
     const trough = hexToRgb(colors.swellTrough);
 
+    // Quadratic scaling: makes high amplitudes more distinct
+    // amplitude 0.1 → 0.01 (very subtle)
+    // amplitude 0.5 → 0.25 (moderate)
+    // amplitude 1.0 → 1.0  (full contrast)
+    const scaledAmplitude = amplitude * amplitude;
+
     // Interpolate: at amplitude=1, use full trough color; at amplitude=0, use peak color
-    const r = peak.r + (trough.r - peak.r) * amplitude;
-    const g = peak.g + (trough.g - peak.g) * amplitude;
-    const b = peak.b + (trough.b - peak.b) * amplitude;
+    const r = peak.r + (trough.r - peak.r) * scaledAmplitude;
+    const g = peak.g + (trough.g - peak.g) * scaledAmplitude;
+    const b = peak.b + (trough.b - peak.b) * scaledAmplitude;
 
     return rgbToHex(r, g, b);
 }
@@ -179,11 +186,18 @@ function draw() {
 
     // Helper function to draw a wave as a gradient band
     const drawWave = (wave, opacity = 1.0) => {
-        const halfSpacing = world.swellSpacing / 2;
+        // Scale thickness based on amplitude
+        // Low amplitude (0.05) → thin band (40px)
+        // High amplitude (1.0) → thick band (120px)
+        const minThickness = 40;
+        const maxThickness = 120;
+        const waveSpacing = minThickness + (maxThickness - minThickness) * wave.amplitude;
+        const halfSpacing = waveSpacing / 2;
+
         const progress = getWaveProgress(wave, world.gameTime, travelDuration);
         const peakY = progressToScreenY(progress, oceanTop, oceanBottom);
         const troughY = peakY + halfSpacing;
-        const nextPeakY = peakY + world.swellSpacing;
+        const nextPeakY = peakY + waveSpacing;
         const currentTroughColor = getTroughColor(wave.amplitude);
 
         ctx.globalAlpha = opacity;
