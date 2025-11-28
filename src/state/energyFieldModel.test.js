@@ -5,6 +5,8 @@ import {
     injectSwells,
     updateEnergyField,
     getHeightAt,
+    drainEnergyAt,
+    injectWavePulse,
     resetRowAccumulator,
     FIELD_WIDTH,
     FIELD_HEIGHT,
@@ -136,6 +138,116 @@ describe('energyFieldModel', () => {
 
             // Average of 0, 2, 2, 4 = 2
             expect(centerHeight).toBeCloseTo(2, 1);
+        });
+    });
+
+    describe('drainEnergyAt (Plan 141)', () => {
+        it('returns amount of energy actually drained', () => {
+            const field = createEnergyField();
+
+            // Set energy at a point
+            field.height[0] = 1.0;
+
+            // Drain 0.3 energy
+            const drained = drainEnergyAt(field, 0, 0, 0.3);
+
+            expect(drained).toBeCloseTo(0.3, 5);
+            expect(field.height[0]).toBeCloseTo(0.7, 5);
+        });
+
+        it('returns less than requested if not enough energy', () => {
+            const field = createEnergyField();
+
+            // Set low energy
+            field.height[0] = 0.2;
+
+            // Try to drain more than available
+            const drained = drainEnergyAt(field, 0, 0, 0.5);
+
+            expect(drained).toBeCloseTo(0.2, 5); // Only 0.2 was available
+            expect(field.height[0]).toBe(0); // Now empty
+        });
+
+        it('returns 0 when draining empty cell', () => {
+            const field = createEnergyField();
+
+            // Cell is already empty (initialized to 0)
+            const drained = drainEnergyAt(field, 0.5, 0.5, 0.5);
+
+            expect(drained).toBe(0);
+        });
+
+        it('drains at correct position in field', () => {
+            const field = createEnergyField();
+
+            // Fill entire field
+            for (let i = 0; i < field.height.length; i++) {
+                field.height[i] = 1.0;
+            }
+
+            // Drain at center
+            drainEnergyAt(field, 0.5, 0.5, 0.5);
+
+            // Check that energy was drained from the right place
+            const centerX = Math.floor(0.5 * field.width);
+            const centerY = Math.floor(0.5 * field.gridHeight);
+            const centerIdx = centerY * field.width + centerX;
+
+            expect(field.height[centerIdx]).toBeCloseTo(0.5, 5);
+        });
+    });
+
+    describe('injectWavePulse', () => {
+        it('adds energy across the horizon row', () => {
+            const field = createEnergyField();
+
+            injectWavePulse(field, 0.8);
+
+            // Check several points along horizon
+            expect(field.height[0]).toBeCloseTo(0.8, 5);
+            expect(field.height[field.width / 2]).toBeCloseTo(0.8, 5);
+            expect(field.height[field.width - 1]).toBeCloseTo(0.8, 5);
+        });
+
+        it('accumulates with existing energy', () => {
+            const field = createEnergyField();
+
+            // First pulse
+            injectWavePulse(field, 0.5);
+            // Second pulse
+            injectWavePulse(field, 0.3);
+
+            expect(field.height[0]).toBeCloseTo(0.8, 5);
+        });
+    });
+
+    describe('Energy drains after wave breaking (Plan 141 integration)', () => {
+        it('wave energy decreases when drained at sandbar position', () => {
+            const field = createEnergyField();
+            const getDepth = () => 10;
+            const travelDuration = 12;
+
+            // Inject a pulse at horizon
+            injectWavePulse(field, 1.0);
+
+            // Propagate energy to middle of field
+            for (let i = 0; i < 120; i++) { // 2 seconds at 60fps
+                updateEnergyField(field, getDepth, 1/60, travelDuration);
+            }
+
+            // Energy should have propagated to around row 6
+            const midY = 6 / field.gridHeight;
+            const energyBefore = getHeightAt(field, 0.5, midY);
+            expect(energyBefore).toBeGreaterThan(0);
+
+            // Drain energy at multiple X positions (simulating breaking across width)
+            for (let x = 0.3; x <= 0.7; x += 0.1) {
+                drainEnergyAt(field, x, midY, 0.5);
+            }
+
+            // Energy at drained positions should be lower
+            const energyAfter = getHeightAt(field, 0.5, midY);
+            expect(energyAfter).toBeLessThan(energyBefore);
         });
     });
 });

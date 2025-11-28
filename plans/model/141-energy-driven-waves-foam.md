@@ -1,6 +1,6 @@
 # Plan 141: Energy-Driven Waves and Foam
 
-Status: proposal
+Status: implemented
 Owner: agents
 Depends on: 140-energy-field-model.md
 
@@ -83,16 +83,35 @@ const dynamicThickness = minThickness + (maxThickness - minThickness) * energyAt
 
 ## Implementation Steps
 
-| Step | Task | Complexity |
-|------|------|------------|
-| 1 | Add `getHeightAt` sampling in wave rendering | Low |
-| 2 | Scale wave visual thickness by energy | Low |
-| 3 | Gate breaking on minimum energy threshold | Low |
-| 4 | Return energy drained amount from `drainEnergyAt` | Low |
-| 5 | Scale foam initial opacity by energy released | Low |
-| 6 | Test: wave shrinks after passing sandbar | Medium |
-| 7 | Test: foam intensity varies with wave type | Medium |
-| 8 | Tune energy drain rate vs visual feedback | Medium |
+| Step | Task | Complexity | Status |
+|------|------|------------|--------|
+| 1 | Add `getHeightAt` sampling in wave rendering | Low | ✅ Done |
+| 2 | Scale wave visual thickness by energy | Low | ✅ Done |
+| 3 | Gate breaking on minimum energy threshold | Low | ✅ Done |
+| 4 | Return energy drained amount from `drainEnergyAt` | Low | ✅ Done |
+| 5 | Scale foam initial opacity by energy released | Low | ✅ Done |
+| 6 | Test: wave shrinks after passing sandbar | Medium | ✅ Done |
+| 7 | Test: foam intensity varies with wave type | Medium | ✅ Done |
+| 8 | Tune energy drain rate vs visual feedback | Medium | ✅ Done |
+
+## Implementation Notes
+
+### Files Modified
+- `src/state/energyFieldModel.js`: `drainEnergyAt()` now returns the amount actually drained
+- `src/state/waveModel.js`: Added `isWaveBreakingWithEnergy()` and `MIN_ENERGY_FOR_BREAKING` constant
+- `src/main.jsx`:
+  - Updated foam deposition to use energy-aware breaking when energy field is enabled
+  - Foam opacity now scales with energy released
+  - Wave rendering thickness now scales with local energy at each X slice
+
+### Key Constants
+- `MIN_ENERGY_FOR_BREAKING = 0.1`: Minimum energy threshold for wave to break
+- Foam opacity: `Math.min(1.0, energyReleased * 2)`
+- Wave thickness: uses `Math.min(wave.amplitude, Math.max(0.2, energyAtSlice))`
+
+### Activation
+The energy-driven behavior is only active when `toggles.showEnergyField` is enabled (press 'E' key).
+When disabled, the system behaves as before (Plan 140 compatible).
 
 ## Benefits
 

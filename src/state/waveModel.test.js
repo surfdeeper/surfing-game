@@ -8,6 +8,8 @@ import {
     WAVE_TYPE,
     amplitudeToHeight,
     isWaveBreaking,
+    isWaveBreakingWithEnergy,
+    MIN_ENERGY_FOR_BREAKING,
     updateWaveRefraction,
     getAverageProgress,
     getProgressAtX,
@@ -258,6 +260,70 @@ describe('waveModel', () => {
                 expect(isWaveBreaking(wave, 20)).toBe(false);
                 // Over point (shallow again) - breaking again
                 expect(isWaveBreaking(wave, 2)).toBe(true);
+            });
+        });
+
+        describe('Energy-aware Wave Breaking (Plan 141)', () => {
+            it('MIN_ENERGY_FOR_BREAKING is defined', () => {
+                expect(MIN_ENERGY_FOR_BREAKING).toBeDefined();
+                expect(MIN_ENERGY_FOR_BREAKING).toBeGreaterThan(0);
+                expect(MIN_ENERGY_FOR_BREAKING).toBeLessThan(1);
+            });
+
+            it('wave breaks with sufficient energy in shallow water', () => {
+                const wave = createWave(1000, 1.0); // 3m height
+                const depth = 2; // shallow
+                const energyAtPoint = 0.5; // plenty of energy
+
+                expect(isWaveBreakingWithEnergy(wave, depth, energyAtPoint)).toBe(true);
+            });
+
+            it('wave does not break without sufficient energy', () => {
+                const wave = createWave(1000, 1.0); // 3m height
+                const depth = 2; // shallow - would normally break
+                const energyAtPoint = 0.05; // below MIN_ENERGY_FOR_BREAKING
+
+                expect(isWaveBreakingWithEnergy(wave, depth, energyAtPoint)).toBe(false);
+            });
+
+            it('wave does not break in deep water even with energy', () => {
+                const wave = createWave(1000, 1.0); // 3m height
+                const depth = 20; // deep water
+                const energyAtPoint = 1.0; // lots of energy
+
+                expect(isWaveBreakingWithEnergy(wave, depth, energyAtPoint)).toBe(false);
+            });
+
+            it('wave at minimum energy threshold still breaks', () => {
+                const wave = createWave(1000, 1.0); // 3m height
+                const depth = 2; // shallow
+                const energyAtPoint = MIN_ENERGY_FOR_BREAKING;
+
+                expect(isWaveBreakingWithEnergy(wave, depth, energyAtPoint)).toBe(true);
+            });
+
+            it('wave just below threshold does not break', () => {
+                const wave = createWave(1000, 1.0); // 3m height
+                const depth = 2; // shallow
+                const energyAtPoint = MIN_ENERGY_FOR_BREAKING - 0.01;
+
+                expect(isWaveBreakingWithEnergy(wave, depth, energyAtPoint)).toBe(false);
+            });
+
+            it('simulates wave breaking then running out of energy', () => {
+                // Simulate a wave passing over a sandbar
+                // First it breaks (has energy), then energy drains, then it can't break again
+                const wave = createWave(1000, 1.0);
+                const shallowDepth = 2;
+
+                // Wave arrives with full energy - breaks
+                expect(isWaveBreakingWithEnergy(wave, shallowDepth, 1.0)).toBe(true);
+
+                // After some breaking, energy partially drained - still breaks
+                expect(isWaveBreakingWithEnergy(wave, shallowDepth, 0.3)).toBe(true);
+
+                // After lots of breaking, energy depleted - no longer breaks
+                expect(isWaveBreakingWithEnergy(wave, shallowDepth, 0.05)).toBe(false);
             });
         });
 

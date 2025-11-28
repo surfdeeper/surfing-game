@@ -114,6 +114,29 @@ export function isWaveBreaking(wave, depth) {
     return waveHeight > breakerIndex * depth;
 }
 
+// Minimum energy threshold for wave breaking
+// Waves need sufficient energy to break; areas where energy was drained won't break again
+export const MIN_ENERGY_FOR_BREAKING = 0.1;
+
+/**
+ * Check if wave is currently breaking, accounting for energy field
+ * Requires both shallow water AND sufficient energy to break
+ *
+ * @param {object} wave - Wave object
+ * @param {number} depth - Water depth at this position (meters)
+ * @param {number} energyAtPoint - Energy level at this position (0-1+)
+ * @returns {boolean} True if wave has enough energy and is in shallow enough water to break
+ */
+export function isWaveBreakingWithEnergy(wave, depth, energyAtPoint) {
+    // Must have sufficient energy
+    if (energyAtPoint < MIN_ENERGY_FOR_BREAKING) {
+        return false;
+    }
+
+    // Standard breaking check
+    return isWaveBreaking(wave, depth);
+}
+
 // Refraction strength: 0 = no bending, 1 = full physics
 // Full physics (sqrt ratio) creates ~4x speed difference which is too extreme visually
 // 0.3 gives subtle but visible bending

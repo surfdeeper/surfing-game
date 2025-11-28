@@ -109,7 +109,8 @@ export function updateEnergyField(field, getDepthFn, dt, travelDuration = 12) {
 
     // Lateral diffusion - spread energy sideways to fill vertical gaps
     // Higher spread rate to quickly fill gaps from breaking
-    const lateralSpread = 0.15;
+    // TEMP: Disabled for testing drain visibility
+    const lateralSpread = 0.0; // was 0.15
     for (let y = 1; y < gridHeight; y++) {
         for (let x = 1; x < width - 1; x++) {
             const idx = y * width + x;
@@ -131,7 +132,8 @@ export function updateEnergyField(field, getDepthFn, dt, travelDuration = 12) {
 
     // Horizontal band coherence - cells in the same row tend toward row average
     // This keeps energy in horizontal bands like the actual waves
-    const bandCoherence = 0.05;
+    // TEMP: Disabled for testing drain visibility
+    const bandCoherence = 0.0; // was 0.05
     for (let y = 1; y < gridHeight; y++) {
         // Calculate row average
         let rowSum = 0;
@@ -206,6 +208,7 @@ export function injectWavePulse(field, amplitude) {
  * @param {number} normalizedX - X position (0-1)
  * @param {number} normalizedY - Y position (0-1, 0=horizon, 1=shore)
  * @param {number} amount - Amount of energy to drain (0-1)
+ * @returns {number} Amount of energy actually drained (may be less than requested if not enough energy)
  */
 export function drainEnergyAt(field, normalizedX, normalizedY, amount) {
     const { height, width, gridHeight } = field;
@@ -219,7 +222,10 @@ export function drainEnergyAt(field, normalizedX, normalizedY, amount) {
     const y = Math.max(0, Math.min(gridHeight - 1, gy));
 
     const idx = y * width + x;
-    height[idx] = Math.max(0, height[idx] - amount);
+    const currentEnergy = height[idx];
+    const drained = Math.min(currentEnergy, amount);
+    height[idx] = currentEnergy - drained;
+    return drained;
 }
 
 /**

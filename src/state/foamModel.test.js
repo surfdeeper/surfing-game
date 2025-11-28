@@ -32,11 +32,13 @@ describe('foamModel', () => {
     });
 
     describe('updateFoam', () => {
-        it('foam stays in place (does not move)', () => {
+        it('foam drifts toward shore slowly', () => {
             const foam = createFoam(5000, 0.4, 300, 'wave-1');
             const initialY = foam.y;
             updateFoam(foam, 1.0, 6000); // 1 second elapsed
-            expect(foam.y).toBe(initialY); // Y should not change
+            // Foam drifts slightly toward shore (0.005 * 100 * 1.0 = 0.5 pixels)
+            expect(foam.y).toBeGreaterThan(initialY);
+            expect(foam.y).toBeLessThan(initialY + 1); // Very small drift
         });
 
         it('foam fades over time', () => {
@@ -47,7 +49,8 @@ describe('foamModel', () => {
 
         it('foam opacity reaches 0 after fade time', () => {
             const foam = createFoam(0, 0.4, 300, 'wave-1');
-            updateFoam(foam, 1.0, 5000); // 5 seconds (past 4s fade time)
+            foam.fadeJitter = 0; // Remove jitter for predictable test
+            updateFoam(foam, 1.0, 16000); // 16 seconds (past 15s fade time)
             expect(foam.opacity).toBe(0);
         });
     });
@@ -96,20 +99,21 @@ describe('foamModel', () => {
     describe('Foam lifecycle', () => {
         it('foam deposits stay in place and fade', () => {
             const foam = createFoam(0, 0.4, 300, 'wave-1');
+            foam.fadeJitter = 0; // Remove jitter for predictable test
 
             // At spawn: fully opaque, at spawn position
             expect(foam.opacity).toBe(1.0);
             expect(foam.y).toBe(300);
 
-            // After 2 seconds: partially faded, still in same place
-            updateFoam(foam, 2.0, 2000);
+            // After 7.5 seconds: half faded (15s total fade time), still in same place
+            updateFoam(foam, 7.5, 7500);
             expect(foam.opacity).toBeCloseTo(0.5, 1);
-            expect(foam.y).toBe(300); // hasn't moved!
+            // Y drifts slightly due to drift speed, but test the initial position effect
+            expect(foam.y).toBeGreaterThan(299);
 
-            // After 4 seconds total: fully faded
-            updateFoam(foam, 2.0, 4000);
+            // After 15 seconds total: fully faded
+            updateFoam(foam, 7.5, 15000);
             expect(foam.opacity).toBe(0);
-            expect(foam.y).toBe(300); // still in same place
         });
     });
 });

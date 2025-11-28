@@ -12,6 +12,7 @@ import {
     getActiveWaves,
     WAVE_TYPE,
     isWaveBreaking,
+    isWaveBreakingWithEnergy,
     updateWaveRefraction,
     getProgressAtX,
     WAVE_X_SAMPLES,
@@ -48,6 +49,7 @@ import {
     updateEnergyField,
     injectWavePulse,
     drainEnergyAt,
+    getHeightAt,
 } from './state/energyFieldModel.js';
 import { renderEnergyField } from './render/energyFieldRenderer.js';
 import { KeyboardInput } from './input/keyboard.js';
@@ -488,16 +490,30 @@ function update(deltaTime) {
                 const normalizedX = (i + 0.5) / numXSamples;
                 const depth = getDepth(normalizedX, world.bathymetry, foamProgress);
 
-                if (isWaveBreaking(wave, depth)) {
+                // Check breaking condition - use energy-aware check when energy field is enabled
+                let shouldBreak;
+                let energyAtPoint = 0;
+                if (toggles.showEnergyField) {
+                    energyAtPoint = getHeightAt(world.energyField, normalizedX, foamProgress);
+                    shouldBreak = isWaveBreakingWithEnergy(wave, depth, energyAtPoint);
+                } else {
+                    shouldBreak = isWaveBreaking(wave, depth);
+                }
+
+                if (shouldBreak) {
+                    // Drain energy where foam is deposited (wave breaks = energy loss)
+                    let energyReleased = wave.amplitude; // Default for non-energy mode
+                    if (toggles.showEnergyField) {
+                        // TEMP: EXTREME drain for testing - drain 20x wave amplitude to nearly empty energy
+                        energyReleased = drainEnergyAt(world.energyField, normalizedX, foamProgress, wave.amplitude * 20.0);
+                    }
+
                     // Deposit foam at this location - it stays here!
+                    // Foam opacity scales with energy released (Plan 141 Phase 3)
                     const foam = createFoam(world.gameTime, normalizedX, foamY, wave.id);
+                    foam.opacity = Math.min(1.0, energyReleased * 2);
                     world.foamSegments.push(foam);
                     depositedAny = true;
-
-                    // Drain energy where foam is deposited (wave breaks = energy loss)
-                    if (toggles.showEnergyField) {
-                        drainEnergyAt(world.energyField, normalizedX, foamProgress, wave.amplitude * 1.5);
-                    }
                 }
             }
 
@@ -694,6 +710,7 @@ function draw() {
 
     // Helper function to draw a wave as a bent gradient band
     // Uses per-X progress data for refraction (bending based on bathymetry)
+    // When energy field is enabled, wave thickness scales with local energy (Plan 141 Phase 4)
     const drawWave = (wave) => {
         const isSet = wave.type === WAVE_TYPE.SET;
 
@@ -702,8 +719,6 @@ function draw() {
         // Background waves: 25-60px (subtle)
         const minThickness = isSet ? 40 : 25;
         const maxThickness = isSet ? 120 : 60;
-        const waveSpacing = minThickness + (maxThickness - minThickness) * wave.amplitude;
-        const halfSpacing = waveSpacing / 2;
 
         // Get type-specific colors
         const waveColors = getWaveColors(wave);
@@ -718,8 +733,22 @@ function draw() {
         const sliceWidth = w / numSlices;
 
         for (let i = 0; i < numSlices; i++) {
+            const normalizedX = (i + 0.5) / numSlices;
             const progress = wave.progressPerX ? wave.progressPerX[i] : getWaveProgress(wave, world.gameTime, travelDuration);
             const peakY = progressToScreenY(progress, oceanTop, oceanBottom);
+
+            // Calculate thickness for this slice
+            // When energy field is enabled, scale by local energy (Plan 141 Phase 4)
+            let thicknessMultiplier = wave.amplitude;
+            if (toggles.showEnergyField) {
+                const energyAtSlice = getHeightAt(world.energyField, normalizedX, progress);
+                // TEMP: EXTREMELY exaggerated for testing - wave nearly disappears without energy
+                // energyAtSlice is typically 0-1, we want 0 energy = 0.01 thickness, full energy = full thickness
+                thicknessMultiplier = 0.01 + energyAtSlice * 0.99;
+            }
+
+            const waveSpacing = minThickness + (maxThickness - minThickness) * thicknessMultiplier;
+            const halfSpacing = waveSpacing / 2;
             const troughY = peakY + halfSpacing;
             const nextPeakY = peakY + waveSpacing;
 
