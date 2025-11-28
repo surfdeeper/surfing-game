@@ -26,6 +26,8 @@ import {
     createInitialBackgroundState,
     updateBackgroundWaveState,
 } from './state/backgroundWaveModel.js';
+import { createRoot } from 'react-dom/client';
+import { DebugPanel } from './ui/DebugPanel.jsx';
 
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
@@ -117,16 +119,35 @@ const TIME_SCALES = [1, 2, 4, 8];
 
 // Debug view modes (toggles affect visibility only, not simulation)
 // Load from localStorage or use defaults
-let showBathymetry = localStorage.getItem('showBathymetry') === 'true';
-let showSetWaves = localStorage.getItem('showSetWaves') !== 'false';  // default true
-let showBackgroundWaves = localStorage.getItem('showBackgroundWaves') !== 'false';  // default true
+const toggles = {
+    showBathymetry: localStorage.getItem('showBathymetry') === 'true',
+    showSetWaves: localStorage.getItem('showSetWaves') !== 'false',  // default true
+    showBackgroundWaves: localStorage.getItem('showBackgroundWaves') !== 'false',  // default true
+};
 
 // Helper to save toggle state
 function saveToggleState() {
-    localStorage.setItem('showBathymetry', showBathymetry);
-    localStorage.setItem('showSetWaves', showSetWaves);
-    localStorage.setItem('showBackgroundWaves', showBackgroundWaves);
+    localStorage.setItem('showBathymetry', toggles.showBathymetry);
+    localStorage.setItem('showSetWaves', toggles.showSetWaves);
+    localStorage.setItem('showBackgroundWaves', toggles.showBackgroundWaves);
 }
+
+// Toggle handler for Preact UI
+function handleToggle(key) {
+    toggles[key] = !toggles[key];
+    saveToggleState();
+}
+
+// Time scale handler for React UI
+function handleTimeScaleChange(newScale) {
+    timeScale = newScale;
+}
+
+// Create UI container for React
+const uiContainer = document.createElement('div');
+uiContainer.id = 'ui-root';
+document.body.appendChild(uiContainer);
+const reactRoot = createRoot(uiContainer);
 
 // Game state persistence - save waves, time, set/lull state
 function saveGameState() {
@@ -171,42 +192,13 @@ document.addEventListener('keydown', (e) => {
         timeScale = TIME_SCALES[nextIndex];
     }
     if (e.key === 'b' || e.key === 'B') {
-        showBathymetry = !showBathymetry;
-        saveToggleState();
+        handleToggle('showBathymetry');
     }
     if (e.key === 's' || e.key === 'S') {
-        showSetWaves = !showSetWaves;
-        saveToggleState();
+        handleToggle('showSetWaves');
     }
     if (e.key === 'g' || e.key === 'G') {
-        showBackgroundWaves = !showBackgroundWaves;
-        saveToggleState();
-    }
-});
-
-// Button definitions for click handling
-const buttons = [];
-
-function registerButton(id, x, y, width, height, onClick) {
-    buttons.push({ id, x, y, width, height, onClick });
-}
-
-function clearButtons() {
-    buttons.length = 0;
-}
-
-// Mouse click handling
-canvas.addEventListener('click', (e) => {
-    const rect = canvas.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
-
-    for (const btn of buttons) {
-        if (mouseX >= btn.x && mouseX <= btn.x + btn.width &&
-            mouseY >= btn.y && mouseY <= btn.y + btn.height) {
-            btn.onClick();
-            break;
-        }
+        handleToggle('showBackgroundWaves');
     }
 });
 
@@ -328,7 +320,7 @@ function draw() {
     // Draw bathymetry depth heat map UNDER waves (toggle with 'B' key)
     // NOTE: This is STATIC - the ocean floor doesn't move. The blue waves
     // animate on top of this, which can be visually confusing at first.
-    if (showBathymetry) {
+    if (toggles.showBathymetry) {
         const stepX = 4;
         const stepY = 4;
         // Use a reference depth for color scaling (not deepDepth which is very deep)
@@ -372,7 +364,7 @@ function draw() {
         const currentTroughColor = getTroughColor(wave.amplitude);
 
         // When bathymetry is showing, make waves semi-transparent so you can see both
-        ctx.globalAlpha = showBathymetry ? 0.7 : 1.0;
+        ctx.globalAlpha = toggles.showBathymetry ? 0.7 : 1.0;
 
         // First half: peak (dark) to trough (light)
         if (troughY > 0 && peakY < shoreY) {
@@ -405,7 +397,7 @@ function draw() {
     // Note: waves still exist and simulate even when hidden
     for (const wave of sortedWaves) {
         const isSetWave = wave.type === WAVE_TYPE.SET;
-        const isVisible = isSetWave ? showSetWaves : showBackgroundWaves;
+        const isVisible = isSetWave ? toggles.showSetWaves : toggles.showBackgroundWaves;
         if (isVisible) {
             drawWave(wave);
         }
@@ -426,159 +418,39 @@ function draw() {
         ctx.fillRect(foamX - foamDotWidth / 2, foam.y - foamDotHeight / 2, foamDotWidth, foamDotHeight);
     }
 
-    // Clear button registry each frame (buttons are re-registered below)
-    clearButtons();
-
-    // Draw toggle buttons (bottom left) - clickable!
-    const buttonY = h - 70;
-    const buttonHeight = 22;
-    const buttonPadding = 8;
-    const buttonGap = 8;
-    let buttonX = 10;
-    ctx.font = '12px monospace';
-
-    // Helper to draw a button and register it for clicks
-    const drawButton = (text, isActive, activeColor, onClick) => {
-        const btnWidth = ctx.measureText(text).width + buttonPadding * 2;
-        ctx.fillStyle = isActive ? activeColor : 'rgba(80, 80, 80, 0.8)';
-        ctx.fillRect(buttonX, buttonY, btnWidth, buttonHeight);
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-        ctx.strokeRect(buttonX, buttonY, btnWidth, buttonHeight);
-        ctx.fillStyle = '#fff';
-        ctx.fillText(text, buttonX + buttonPadding, buttonY + 15);
-        registerButton(text, buttonX, buttonY, btnWidth, buttonHeight, onClick);
-        buttonX += btnWidth + buttonGap;
-        return btnWidth;
-    };
-
-    // Layer toggle buttons
-    drawButton(
-        `[B] Bathymetry ${showBathymetry ? 'ON' : 'OFF'}`,
-        showBathymetry,
-        'rgba(200, 160, 60, 0.8)',
-        () => { showBathymetry = !showBathymetry; saveToggleState(); }
-    );
-    drawButton(
-        `[S] Set Waves ${showSetWaves ? 'ON' : 'OFF'}`,
-        showSetWaves,
-        'rgba(70, 130, 180, 0.8)',
-        () => { showSetWaves = !showSetWaves; saveToggleState(); }
-    );
-    drawButton(
-        `[G] Background ${showBackgroundWaves ? 'ON' : 'OFF'}`,
-        showBackgroundWaves,
-        'rgba(100, 150, 180, 0.8)',
-        () => { showBackgroundWaves = !showBackgroundWaves; saveToggleState(); }
-    );
-    drawButton(
-        `[T] Speed ${timeScale}x`,
-        timeScale > 1,
-        'rgba(100, 180, 100, 0.8)',
-        () => {
-            const currentIndex = TIME_SCALES.indexOf(timeScale);
-            const nextIndex = (currentIndex + 1) % TIME_SCALES.length;
-            timeScale = TIME_SCALES[nextIndex];
-        }
-    );
-
-    // Bathymetry legend (when active)
-    if (showBathymetry) {
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-        ctx.fillRect(10, buttonY - 55, 150, 50);
-        ctx.fillStyle = '#fff';
-        ctx.font = '11px monospace';
-        ctx.fillText('Ocean Floor Depth:', 15, buttonY - 40);
-        // Color swatches
-        ctx.fillStyle = 'rgb(200, 160, 60)';
-        ctx.fillRect(15, buttonY - 30, 12, 12);
-        ctx.fillStyle = '#fff';
-        ctx.fillText('Shallow', 32, buttonY - 20);
-        ctx.fillStyle = 'rgb(60, 40, 20)';
-        ctx.fillRect(85, buttonY - 30, 12, 12);
-        ctx.fillStyle = '#fff';
-        ctx.fillText('Deep', 102, buttonY - 20);
-    }
-
-    // Debug UI: Set/Lull status (read from setLullState)
-    const sls = world.setLullState;
-    const stateLabel = sls.setState;
-    const nextWaveIn = Math.max(0, sls.nextWaveTime - sls.timeSinceLastWave).toFixed(1);
-    const waveTimerProgress = Math.min(sls.timeSinceLastWave / sls.nextWaveTime, 1);
-    const stateTimeLeft = Math.max(0, sls.setDuration - sls.setTimer).toFixed(1);
-    const stateTimerProgress = Math.min(sls.setTimer / sls.setDuration, 1);
-    const stateLabel2 = sls.setState === 'LULL' ? 'Until set' : 'Set ends';
-
-    // Filter waves for display (exclude at-shore)
+    // Prepare display data for Preact debug panel
     const displayWaves = world.waves
         .map(wave => ({
             wave,
-            progress: getWaveProgress(wave, world.gameTime, travelDuration)
+            progress: getWaveProgress(wave, world.gameTime, travelDuration),
+            travelDuration
         }))
         .filter(({ progress }) => progress < 1)
-        .sort((a, b) => a.progress - b.progress);  // ascending: horizon first
+        .sort((a, b) => a.progress - b.progress);
 
-    // Count by type
-    const setWaveCount = displayWaves.filter(({ wave }) => wave.type === WAVE_TYPE.SET).length;
-    const bgWaveCount = displayWaves.filter(({ wave }) => wave.type === WAVE_TYPE.BACKGROUND).length;
-
-    // Calculate panel height based on wave count (each wave needs space for text + progress bar)
-    const baseHeight = 170;  // Includes foam segments count
-    const waveItemHeight = 28;  // 16 for text + 12 for progress bar
-    // Only show set waves in detail list (background waves just get a count)
-    const displaySetWaves = displayWaves.filter(({ wave }) => wave.type === WAVE_TYPE.SET);
-    const waveListHeight = displaySetWaves.length * waveItemHeight;
-    const panelHeight = baseHeight + waveListHeight;
-
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-    ctx.fillRect(w - 220, 10, 210, panelHeight);
-
-    ctx.fillStyle = '#fff';
-    ctx.fillText(`State: ${stateLabel} (${sls.wavesSpawned}/${sls.currentSetWaves})`, w - 210, 30);
-
-    ctx.fillText(`Next wave: ${nextWaveIn}s`, w - 210, 50);
-    // Next wave progress bar (countdown - starts full, empties as time passes)
-    ctx.fillStyle = '#333';
-    ctx.fillRect(w - 210, 55, 190, 8);
-    ctx.fillStyle = '#4a90b8';
-    ctx.fillRect(w - 210, 55, 190 * (1 - waveTimerProgress), 8);
-
-    ctx.fillStyle = '#fff';
-    ctx.fillText(`${stateLabel2}: ${stateTimeLeft}s`, w - 210, 80);
-    // State duration progress bar (countdown - starts full, empties as time passes)
-    ctx.fillStyle = '#333';
-    ctx.fillRect(w - 210, 85, 190, 8);
-    ctx.fillStyle = sls.setState === 'LULL' ? '#e8a644' : '#44e8a6';
-    ctx.fillRect(w - 210, 85, 190 * (1 - stateTimerProgress), 8);
-
-    ctx.fillStyle = '#fff';
-    ctx.fillText(`Set waves: ${setWaveCount}`, w - 210, 115);
-
-    ctx.fillStyle = '#888';
-    ctx.fillText(`Background: ${bgWaveCount}`, w - 210, 135);
-    ctx.fillText(`Foam segments: ${world.foamSegments.length}`, w - 210, 155);
-
-    for (let i = 0; i < displaySetWaves.length; i++) {
-        const { wave, progress } = displaySetWaves[i];
-        // Time to shore = remaining progress * travel duration (convert to seconds)
-        const timeToShore = ((1 - progress) * travelDuration / 1000).toFixed(1);
-        const ampPercent = Math.round(wave.amplitude * 100);
-        const yOffset = 170 + i * waveItemHeight;
-
-        // Wave text
-        ctx.fillStyle = '#aaa';
-        ctx.fillText(`  • ${ampPercent}% amp, ${timeToShore}s`, w - 210, yOffset);
-
-        // Wave progress bar (countdown - starts full at horizon, empties as wave approaches shore)
-        ctx.fillStyle = '#333';
-        ctx.fillRect(w - 195, yOffset + 4, 175, 6);
-        ctx.fillStyle = '#6ab0d4';  // Lighter blue for wave progress
-        ctx.fillRect(w - 195, yOffset + 4, 175 * (1 - progress), 6);
-    }
+    // Render React debug panel (called every frame via requestAnimationFrame)
+    reactRoot.render(
+        <DebugPanel
+            setLullState={world.setLullState}
+            displayWaves={displayWaves}
+            foamCount={world.foamSegments.length}
+            timeScale={timeScale}
+            onTimeScaleChange={handleTimeScaleChange}
+            toggles={toggles}
+            onToggle={handleToggle}
+            fps={displayFps}
+        />
+    );
 }
 
 // Game loop
 const MAX_DELTA_TIME = 0.1;  // 100ms max - prevents huge jumps after tab restore
 let lastTime = 0;
+
+// FPS tracking with smoothing and "bad FPS hold" behavior
+let displayFps = 60;
+let smoothFps = 60;
+let badFpsHoldUntil = 0;  // Timestamp until which to display the bad FPS value
 
 function gameLoop(timestamp) {
     let deltaTime = (timestamp - lastTime) / 1000;
@@ -587,6 +459,21 @@ function gameLoop(timestamp) {
     // Clamp deltaTime to prevent huge jumps when returning from background
     if (deltaTime > MAX_DELTA_TIME) {
         deltaTime = MAX_DELTA_TIME;
+    }
+
+    // Calculate instantaneous FPS and smooth it
+    const instantFps = deltaTime > 0 ? 1 / deltaTime : 60;
+    smoothFps = smoothFps * 0.95 + instantFps * 0.05;  // Exponential moving average
+
+    // If FPS drops below 30, hold that value for 2 seconds
+    if (smoothFps < 30) {
+        displayFps = smoothFps;
+        badFpsHoldUntil = timestamp + 2000;
+    } else if (timestamp < badFpsHoldUntil) {
+        // Keep showing the bad FPS value during hold period
+        // (displayFps stays unchanged)
+    } else {
+        displayFps = smoothFps;
     }
 
     update(deltaTime);
