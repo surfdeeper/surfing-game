@@ -43,6 +43,13 @@ import {
     drawAIKeyIndicator,
     AI_MODE,
 } from './state/aiPlayerModel.js';
+import {
+    createEnergyField,
+    updateEnergyField,
+    injectWavePulse,
+    drainEnergyAt,
+} from './state/energyFieldModel.js';
+import { renderEnergyField } from './render/energyFieldRenderer.js';
 import { KeyboardInput } from './input/keyboard.js';
 import { createRoot } from 'react-dom/client';
 import { DebugPanel } from './ui/DebugPanel.jsx';
@@ -114,6 +121,9 @@ const world = {
     aiState: null,
     aiMode: AI_MODE.INTERMEDIATE,  // Current AI mode
     lastAIInput: { left: false, right: false, up: false, down: false },
+
+    // Energy field (Plan 140) - continuous wave model
+    energyField: createEnergyField(),
 };
 
 // Keyboard input for player movement (arrow keys / WASD)
@@ -194,6 +204,8 @@ const toggles = {
     showFoamOptionA: localStorage.getItem('showFoamOptionA') === 'true',  // Expand bounds
     showFoamOptionB: localStorage.getItem('showFoamOptionB') === 'true',  // Age-based blur
     showFoamOptionC: localStorage.getItem('showFoamOptionC') === 'true',  // Per-row dispersion
+    // Energy field (Plan 140) - continuous wave model
+    showEnergyField: localStorage.getItem('showEnergyField') === 'true',
 };
 
 // Helper to save toggle state
@@ -208,6 +220,7 @@ function saveToggleState() {
     localStorage.setItem('showFoamOptionA', toggles.showFoamOptionA);
     localStorage.setItem('showFoamOptionB', toggles.showFoamOptionB);
     localStorage.setItem('showFoamOptionC', toggles.showFoamOptionC);
+    localStorage.setItem('showEnergyField', toggles.showEnergyField);
 }
 
 // Toggle handler for Preact UI
@@ -360,11 +373,22 @@ document.addEventListener('keydown', (e) => {
     if (e.key === '3') {
         handleToggle('showFoamOptionC');
     }
+    // Energy field toggle (E key)
+    if (e.key === 'e' || e.key === 'E') {
+        handleToggle('showEnergyField');
+    }
 });
 
 // Spawn a wave at the horizon with the given amplitude and type
 function spawnWave(amplitude, type) {
     world.waves.push(createWave(world.gameTime, amplitude, type));
+
+    // Inject pulse into energy field to match discrete wave
+    // Set waves have more energy (2x) than background waves
+    if (toggles.showEnergyField) {
+        const energyMultiplier = type === WAVE_TYPE.SET ? 2.0 : 1.0;
+        injectWavePulse(world.energyField, amplitude * energyMultiplier);
+    }
 }
 
 function update(deltaTime) {
@@ -373,6 +397,15 @@ function update(deltaTime) {
 
     // Advance game time (in ms)
     world.gameTime += scaledDelta * 1000;
+
+    // Update energy field (Plan 140) - propagate existing energy toward shore
+    if (toggles.showEnergyField) {
+        const { oceanBottom } = getOceanBounds(canvas.height, world.shoreHeight);
+        const travelDuration = calculateTravelDuration(oceanBottom, world.swellSpeed) / 1000; // in seconds
+        const getDepthForField = (normalizedX, normalizedY) =>
+            getDepth(normalizedX, world.bathymetry, normalizedY);
+        updateEnergyField(world.energyField, getDepthForField, scaledDelta, travelDuration);
+    }
 
     // Update set/lull state machine (handles set waves only)
     // Pass absolute gameTime instead of deltaTime
@@ -460,6 +493,11 @@ function update(deltaTime) {
                     const foam = createFoam(world.gameTime, normalizedX, foamY, wave.id);
                     world.foamSegments.push(foam);
                     depositedAny = true;
+
+                    // Drain energy where foam is deposited
+                    if (toggles.showEnergyField) {
+                        drainEnergyAt(world.energyField, normalizedX, foamProgress, wave.amplitude * 0.5);
+                    }
                 }
             }
 
@@ -642,6 +680,12 @@ function draw() {
 
         // Blit cached image
         ctx.drawImage(bathymetryCache, 0, 0);
+    }
+
+    // Draw energy field (Plan 140) - toggle with 'E' key
+    // Renders as an alternative to discrete waves when enabled
+    if (toggles.showEnergyField) {
+        renderEnergyField(ctx, world.energyField, oceanTop, oceanBottom, w);
     }
 
     // Draw shore (bottom strip)

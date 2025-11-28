@@ -61,6 +61,12 @@ export function DebugPanel({ setLullState, gameTime, displayWaves, foamCount, ti
           hotkey="D"
         />
         <Toggle
+          label="Energy Field"
+          checked={toggles.showEnergyField}
+          onChange={() => onToggle('showEnergyField')}
+          hotkey="E"
+        />
+        <Toggle
           label="Player"
           checked={toggles.showPlayer}
           onChange={() => onToggle('showPlayer')}
