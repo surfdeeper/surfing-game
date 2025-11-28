@@ -85,21 +85,15 @@ function rgbToHex(r, g, b) {
 
 // Lerp between two colors based on amplitude
 // At low amplitude, trough color approaches peak color (less contrast)
-// Uses quadratic scaling so high-amplitude waves have more pronounced contrast
 function getTroughColor(amplitude) {
     const peak = hexToRgb(colors.swellPeak);
     const trough = hexToRgb(colors.swellTrough);
 
-    // Quadratic scaling: makes high amplitudes more distinct
-    // amplitude 0.1 → 0.01 (very subtle)
-    // amplitude 0.5 → 0.25 (moderate)
-    // amplitude 1.0 → 1.0  (full contrast)
-    const scaledAmplitude = amplitude * amplitude;
-
-    // Interpolate: at amplitude=1, use full trough color; at amplitude=0, use peak color
-    const r = peak.r + (trough.r - peak.r) * scaledAmplitude;
-    const g = peak.g + (trough.g - peak.g) * scaledAmplitude;
-    const b = peak.b + (trough.b - peak.b) * scaledAmplitude;
+    // Linear scaling - direct amplitude to contrast mapping
+    // Ensures all waves are clearly visible
+    const r = peak.r + (trough.r - peak.r) * amplitude;
+    const g = peak.g + (trough.g - peak.g) * amplitude;
+    const b = peak.b + (trough.b - peak.b) * amplitude;
 
     return rgbToHex(r, g, b);
 }
@@ -223,9 +217,9 @@ function draw() {
         ctx.globalAlpha = 1.0;
     };
 
-    // Draw background waves first (behind, with reduced opacity for subtle effect)
+    // Draw background waves first (behind)
     for (const wave of world.backgroundWaves) {
-        drawWave(wave, 0.4);  // 40% opacity for background waves
+        drawWave(wave, 0.8);  // 80% opacity for background waves
     }
 
     // Draw set waves on top (full opacity)

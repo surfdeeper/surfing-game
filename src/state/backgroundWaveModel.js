@@ -12,8 +12,8 @@
  * Default configuration for background waves
  */
 export const BACKGROUND_CONFIG = {
-    minAmplitude: 0.05,         // Minimum amplitude for background waves
-    maxAmplitude: 0.15,         // Maximum amplitude for background waves
+    minAmplitude: 0.15,         // Minimum amplitude for background waves
+    maxAmplitude: 0.35,         // Maximum amplitude for background waves
     baseInterval: 3,            // Base seconds between waves
     intervalVariation: 2,       // ±seconds (so 1-5 second gaps)
 };

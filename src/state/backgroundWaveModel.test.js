@@ -14,7 +14,7 @@ describe('backgroundWaveModel', () => {
     describe('BACKGROUND_CONFIG', () => {
         it('should have smaller amplitude range than set waves', () => {
             expect(BACKGROUND_CONFIG.minAmplitude).toBeLessThan(0.3); // Set waves start at 0.3
-            expect(BACKGROUND_CONFIG.maxAmplitude).toBeLessThan(0.35); // Lull waves were 0.35 max
+            expect(BACKGROUND_CONFIG.maxAmplitude).toBeLessThanOrEqual(0.35); // Background waves max at 0.35
         });
 
         it('should have shorter interval than set waves', () => {
@@ -63,10 +63,11 @@ describe('backgroundWaveModel', () => {
             expect(amp).toBe(BACKGROUND_CONFIG.maxAmplitude);
         });
 
-        it('should always be less than set wave minimum', () => {
-            // Set waves have minAmplitude of 0.3
+        it('should overlap slightly with set wave minimum for smooth transition', () => {
+            // Background waves can reach up to 0.35, set waves start at 0.3
+            // This creates a smooth visual transition
             const maxBackgroundAmp = calculateBackgroundAmplitude(BACKGROUND_CONFIG, fixedRandom(1));
-            expect(maxBackgroundAmp).toBeLessThan(0.3);
+            expect(maxBackgroundAmp).toBeLessThanOrEqual(0.35);
         });
     });
 
