@@ -8,6 +8,12 @@
 
 import { createWave, getWaveProgress, getActiveWaves } from './state/waveModel.js';
 import { progressToScreenY, getOceanBounds, calculateTravelDuration } from './render/coordinates.js';
+import {
+    DEFAULT_CONFIG,
+    createInitialState,
+    updateSetLullState,
+    calculateLullAmplitude,
+} from './state/setLullModel.js';
 
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
@@ -33,31 +39,11 @@ const world = {
     waves: [],             // Array of { id, spawnTime, amplitude }
     gameTime: 0,           // Current game time in ms (for time-based positions)
 
-    // Wave timing (in seconds) - based on real ocean physics
-    // Swell period: time between wave crests passing a fixed point
-    swellPeriod: 15,       // Base seconds between waves (typical long-period swell)
-    periodVariation: 5,    // +/- seconds of variation
+    // Set/lull configuration (used by setLullModel)
+    setConfig: DEFAULT_CONFIG,
 
-    // Set/lull timing
-    setConfig: {
-        wavesPerSet: [4, 8],      // waves per set
-        lullWavesPerSet: [2, 4],  // waves during lull (smaller waves)
-        lullDuration: 30,         // base seconds between sets
-        lullVariation: 5,         // +/- seconds
-        peakPosition: 0.4,        // biggest wave at 40% through set
-        minAmplitude: 0.3,        // smallest waves in set
-        lullMaxAmplitude: 0.35,   // max amplitude during lull
-        lullMinAmplitude: 0.15,   // min amplitude during lull
-    },
-
-    // State machine for sets/lulls
-    setState: 'LULL',             // LULL, SET
-    setTimer: 0,                  // Time in current state
-    setDuration: 0,               // Duration of current state
-    currentSetWaves: 0,           // Number of waves to spawn in current set
-    wavesSpawned: 0,              // Waves spawned so far in current set
-    timeSinceLastWave: 0,         // Time since last wave spawned
-    nextWaveTime: 0,              // When to spawn next wave
+    // Set/lull state machine (managed by setLullModel)
+    setLullState: createInitialState(DEFAULT_CONFIG),
 };
 
 // Colors
@@ -100,133 +86,44 @@ function getTroughColor(amplitude) {
     return rgbToHex(r, g, b);
 }
 
-// Random number in range [min, max]
-function randomInRange(min, max) {
-    return min + Math.random() * (max - min);
-}
+// Time scale for testing (1x, 2x, 4x, 8x)
+let timeScale = 1;
+const TIME_SCALES = [1, 2, 4, 8];
 
-// Calculate next wave spawn time
-function getNextWaveTime() {
-    return world.swellPeriod + randomInRange(-world.periodVariation, world.periodVariation);
-}
-
-// Initialize a new lull period
-function startLull() {
-    world.setState = 'LULL';
-    world.setTimer = 0;
-    world.setDuration = world.setConfig.lullDuration +
-        randomInRange(-world.setConfig.lullVariation, world.setConfig.lullVariation);
-    world.currentSetWaves = Math.floor(randomInRange(
-        world.setConfig.lullWavesPerSet[0],
-        world.setConfig.lullWavesPerSet[1] + 1
-    ));
-    world.wavesSpawned = 0;
-    world.timeSinceLastWave = 0;
-    world.nextWaveTime = getNextWaveTime();
-}
-
-// Initialize a new set
-function startSet() {
-    world.setState = 'SET';
-    world.setTimer = 0;
-    world.currentSetWaves = Math.floor(randomInRange(
-        world.setConfig.wavesPerSet[0],
-        world.setConfig.wavesPerSet[1] + 1
-    ));
-    // Estimate set duration based on waves * period (for UI display)
-    world.setDuration = (world.currentSetWaves - 1) * world.swellPeriod;
-    world.wavesSpawned = 0;
-    world.timeSinceLastWave = 0;
-    world.nextWaveTime = getNextWaveTime();
-}
+// Toggle time scale with 'T' key
+document.addEventListener('keydown', (e) => {
+    if (e.key === 't' || e.key === 'T') {
+        const currentIndex = TIME_SCALES.indexOf(timeScale);
+        const nextIndex = (currentIndex + 1) % TIME_SCALES.length;
+        timeScale = TIME_SCALES[nextIndex];
+        console.log(`Time scale: ${timeScale}x`);
+    }
+});
 
 // Spawn a wave at the horizon with the given amplitude
 function spawnWave(amplitude) {
     world.waves.push(createWave(world.gameTime, amplitude));
-    world.timeSinceLastWave = 0;
-    world.nextWaveTime = getNextWaveTime();
-}
-
-// Calculate amplitude based on progress through the set (0 to 1)
-function calculateSetAmplitude(progress) {
-    const peak = world.setConfig.peakPosition;
-    const min = world.setConfig.minAmplitude;
-
-    // Bell curve centered at peakPosition
-    // Use a smooth envelope: ramp up, peak, ramp down
-    let amplitude;
-    if (progress < peak) {
-        // Building phase: ease in from min to 1.0
-        const t = progress / peak;
-        amplitude = min + (1.0 - min) * (t * t); // quadratic ease in
-    } else {
-        // Fading phase: ease out from 1.0 to min
-        const t = (progress - peak) / (1.0 - peak);
-        amplitude = 1.0 - (1.0 - min) * (t * t); // quadratic ease out
-    }
-    return amplitude;
-}
-
-// Update set/lull state machine (time-based spawning)
-function updateSetState(deltaTime) {
-    world.setTimer += deltaTime;
-    world.timeSinceLastWave += deltaTime;
-
-    // Check if it's time to spawn a wave
-    const shouldSpawn = world.timeSinceLastWave >= world.nextWaveTime;
-
-    switch (world.setState) {
-        case 'LULL':
-            // Lulls have smaller waves at the same period
-            if (shouldSpawn && world.wavesSpawned < world.currentSetWaves) {
-                const amplitude = randomInRange(
-                    world.setConfig.lullMinAmplitude,
-                    world.setConfig.lullMaxAmplitude
-                );
-                spawnWave(amplitude);
-                world.wavesSpawned++;
-            }
-
-            // Finished lull set, start another mini-set
-            if (world.wavesSpawned >= world.currentSetWaves) {
-                world.currentSetWaves = Math.floor(randomInRange(
-                    world.setConfig.lullWavesPerSet[0],
-                    world.setConfig.lullWavesPerSet[1] + 1
-                ));
-                world.wavesSpawned = 0;
-            }
-
-            // Lull duration over, time for a real set
-            if (world.setTimer >= world.setDuration) {
-                startSet();
-            }
-            break;
-
-        case 'SET':
-            if (shouldSpawn && world.wavesSpawned < world.currentSetWaves) {
-                // Calculate amplitude based on progress through the set
-                const progress = world.currentSetWaves > 1
-                    ? world.wavesSpawned / (world.currentSetWaves - 1)
-                    : world.setConfig.peakPosition;
-                const amplitude = calculateSetAmplitude(progress);
-                spawnWave(amplitude);
-                world.wavesSpawned++;
-            }
-
-            // Set complete, start lull
-            if (world.wavesSpawned >= world.currentSetWaves) {
-                startLull();
-            }
-            break;
-    }
 }
 
 function update(deltaTime) {
-    // Advance game time (in ms)
-    world.gameTime += deltaTime * 1000;
+    // Apply time scale for testing
+    const scaledDelta = deltaTime * timeScale;
 
-    // Update set/lull state machine
-    updateSetState(deltaTime);
+    // Advance game time (in ms)
+    world.gameTime += scaledDelta * 1000;
+
+    // Update set/lull state machine using extracted module
+    const result = updateSetLullState(
+        world.setLullState,
+        scaledDelta,
+        world.setConfig
+    );
+    world.setLullState = result.state;
+
+    // Spawn wave if the state machine says to
+    if (result.shouldSpawn) {
+        spawnWave(result.amplitude);
+    }
 
     // Remove waves that have completed their journey (time-based)
     const { oceanBottom } = getOceanBounds(canvas.height, world.shoreHeight);
@@ -285,16 +182,18 @@ function draw() {
     // Labels
     ctx.fillStyle = '#fff';
     ctx.font = '14px monospace';
-    ctx.fillText('Wave sets and lulls (v2) ↓', 10, 30);
+    const timeLabel = timeScale > 1 ? ` [${timeScale}x speed - press T]` : ' [press T for speed]';
+    ctx.fillText('Wave sets and lulls (v2) ↓' + timeLabel, 10, 30);
     ctx.fillText('Shore', 10, h - 20);
 
-    // Debug UI: Set/Lull status
-    const stateLabel = world.setState;
-    const nextWaveIn = Math.max(0, world.nextWaveTime - world.timeSinceLastWave).toFixed(1);
-    const waveTimerProgress = Math.min(world.timeSinceLastWave / world.nextWaveTime, 1);
-    const stateTimeLeft = Math.max(0, world.setDuration - world.setTimer).toFixed(1);
-    const stateTimerProgress = Math.min(world.setTimer / world.setDuration, 1);
-    const stateLabel2 = world.setState === 'LULL' ? 'Until set' : 'Set ends';
+    // Debug UI: Set/Lull status (read from setLullState)
+    const sls = world.setLullState;
+    const stateLabel = sls.setState;
+    const nextWaveIn = Math.max(0, sls.nextWaveTime - sls.timeSinceLastWave).toFixed(1);
+    const waveTimerProgress = Math.min(sls.timeSinceLastWave / sls.nextWaveTime, 1);
+    const stateTimeLeft = Math.max(0, sls.setDuration - sls.setTimer).toFixed(1);
+    const stateTimerProgress = Math.min(sls.setTimer / sls.setDuration, 1);
+    const stateLabel2 = sls.setState === 'LULL' ? 'Until set' : 'Set ends';
 
     // Filter and sort waves for display (exclude at-shore, sort by progress)
     const displayWaves = world.waves
@@ -315,7 +214,7 @@ function draw() {
     ctx.fillRect(w - 220, 10, 210, panelHeight);
 
     ctx.fillStyle = '#fff';
-    ctx.fillText(`State: ${stateLabel} (${world.wavesSpawned}/${world.currentSetWaves})`, w - 210, 30);
+    ctx.fillText(`State: ${stateLabel} (${sls.wavesSpawned}/${sls.currentSetWaves})`, w - 210, 30);
 
     ctx.fillText(`Next wave: ${nextWaveIn}s`, w - 210, 50);
     // Next wave progress bar (countdown - starts full, empties as time passes)
@@ -329,7 +228,7 @@ function draw() {
     // State duration progress bar (countdown - starts full, empties as time passes)
     ctx.fillStyle = '#333';
     ctx.fillRect(w - 210, 85, 190, 8);
-    ctx.fillStyle = world.setState === 'LULL' ? '#e8a644' : '#44e8a6';
+    ctx.fillStyle = sls.setState === 'LULL' ? '#e8a644' : '#44e8a6';
     ctx.fillRect(w - 210, 85, 190 * (1 - stateTimerProgress), 8);
 
     ctx.fillStyle = '#fff';
@@ -380,11 +279,14 @@ document.addEventListener('visibilitychange', () => {
     }
 });
 
-// Initialize first lull and spawn first wave immediately
-startLull();
 // Spawn a lull wave right away so screen isn't empty
-spawnWave(randomInRange(world.setConfig.lullMinAmplitude, world.setConfig.lullMaxAmplitude));
-world.wavesSpawned++;
+// (setLullState is already initialized via createInitialState)
+const initialAmplitude = calculateLullAmplitude(world.setConfig);
+spawnWave(initialAmplitude);
+world.setLullState = {
+    ...world.setLullState,
+    wavesSpawned: world.setLullState.wavesSpawned + 1,
+};
 
 requestAnimationFrame(gameLoop);
 
