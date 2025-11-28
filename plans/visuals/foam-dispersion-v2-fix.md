@@ -6,57 +6,80 @@
 
 The outer contour contracts as foam fades. When older foam rows (at top) fade to 0 opacity, the contour moves downward to follow the remaining foam. Expected: contour should stay in place or expand, never contract.
 
-## Root Cause
+## How Option B Currently Works
 
-Option B (`buildIntensityGridOptionB`) writes `opacity * intensity` to the grid. When opacity fades to 0, grid cells become 0. Blur can't expand into areas with no intensity - it can only spread existing intensity thinner.
+**Pipeline:**
+1. `buildIntensityGridOptionB(foamRows, ...)` writes to intensity grid
+2. For each row: `if (row.opacity <= 0) continue;` ← **skips faded rows**
+3. Writes `opacity * intensity` to grid cells
+4. Calculates `avgAge` across all rows, returns `blurPasses = 2 + avgAge * 0.8`
+5. Caller applies `boxBlur(grid, blurPasses)`
+6. `extractLineSegments` finds contours at thresholds (0.15, 0.3, 0.5)
+
+**Why it contracts:**
+- Line 179: `if (row.opacity <= 0) continue;` - faded rows write nothing
+- Grid cells for faded rows stay at 0
+- Blur spreads existing intensity but can't create intensity from nothing
+- Contour follows wherever intensity > threshold
+- As top rows fade to 0, contour moves down
 
 ## Proposed Fix
 
-Track the **maximum extent** of foam separately from current intensity. The outer contour should be based on "where foam has ever been" not "where foam currently exists."
+Keep writing to grid for faded rows, but with a minimum "halo" intensity that decays slower than opacity.
 
-### Approach A: Track Historical Bounds
+**Key change in `buildIntensityGridOptionB`:**
 
-Store `minY` (top-most row that ever had foam) on each foam segment or globally. Use this to set a minimum outer bound regardless of current opacity.
+```javascript
+for (const row of foamRows) {
+    // OLD: if (row.opacity <= 0) continue;
 
-**Pros:** Simple, minimal change
-**Cons:** Doesn't give smooth dispersion visually
+    // NEW: Calculate halo intensity that persists after opacity fades
+    const age = (gameTime - row.spawnTime) / 1000;
+    const haloIntensity = Math.max(0, 0.2 * (1 - age / 10)); // Fades over 10s
+    const coreIntensity = row.opacity * (seg.intensity || 0.5);
+    const intensity = Math.max(coreIntensity, haloIntensity);
 
-### Approach B: Expand Bounds Over Time (like Option A/C)
+    if (intensity <= 0) continue; // Only skip if truly gone
 
-Instead of pure blur, explicitly expand segment bounds based on age:
-- Fresh foam: use original bounds
-- Aged foam: expand bounds outward (even as core fades)
+    grid[idx] = Math.max(grid[idx], intensity);
+}
+```
 
-This is what Options A and C already do. Consider migrating Option B to use this approach.
+This way:
+- Core fades with opacity (4s)
+- Halo persists longer (10s) at low intensity (0.2)
+- Outer contour (threshold 0.15) stays in place because halo > 0.15
+- Inner contours (0.3, 0.5) contract as expected
 
-**Pros:** Smooth visual dispersion
-**Cons:** More complex, may need to merge with Option A/C logic
+## Alternative: Expand Bounds Over Time
 
-### Approach C: Two-Pass Rendering
+Instead of halo intensity, expand the X bounds of segments as they age:
 
-1. First pass: render outer "halo" at historical max bounds with low intensity
-2. Second pass: render current foam with fading intensity
+```javascript
+const age = (gameTime - row.spawnTime) / 1000;
+const expansion = age * 0.02; // 2% per second
+const expandedStartX = seg.startX - expansion;
+const expandedEndX = seg.endX + expansion;
+```
 
-**Pros:** Clean separation of concerns
-**Cons:** More rendering overhead
+**Pros:** Matches physical dispersion better
+**Cons:** Options A/C already tried this and had worse contraction issues
 
 ## Recommended Approach
 
-**Approach B** - Modify `buildIntensityGridOptionB` to expand segment bounds based on age, similar to Option A. The blur then smooths the expanded bounds rather than trying to create expansion from nothing.
-
-Key changes to `buildIntensityGridOptionB`:
-1. Calculate age-based expansion factor per row
-2. Expand segment `startX`/`endX` bounds outward
-3. Write expanded bounds to grid (even with reduced opacity)
-4. Blur smooths the result
+Start with the **halo intensity** approach since:
+- Minimal code change
+- Doesn't change segment bounds (which A/C struggled with)
+- Halo provides a "floor" for outer contour
+- Easy to tune decay rate
 
 ## Test
 
 Remove `.skip` from test in `src/render/foamDispersionV2.test.js` and verify:
-- Top edge stays at row 0 (or moves up) as foam ages
-- Foam eventually disappears entirely (acceptable)
+- Top edge stays at row 0 as foam ages
+- Eventually disappears (when halo fades)
 - No contraction before disappearance
 
 ## Files to Modify
 
-- `src/render/marchingSquares.js`: `buildIntensityGridOptionB()`
+- `src/render/marchingSquares.js`: `buildIntensityGridOptionB()` (~10 lines)
