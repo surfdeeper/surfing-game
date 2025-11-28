@@ -276,20 +276,6 @@ function draw() {
         }
     }
 
-    // Draw grid lines for reference (faint)
-    ctx.strokeStyle = colors.grid;
-    ctx.lineWidth = 1;
-    ctx.globalAlpha = 0.3;
-
-    // Vertical grid lines
-    for (let x = 0; x < w; x += 100) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, shoreY);
-        ctx.stroke();
-    }
-
-    ctx.globalAlpha = 1.0;
 
     // Labels
     ctx.fillStyle = '#fff';
@@ -331,18 +317,29 @@ function draw() {
     ctx.fillStyle = world.setState === 'LULL' ? '#e8a644' : '#44e8a6';
     ctx.fillRect(w - 210, 85, 190 * stateTimerProgress, 8);
 
-    // Waves on screen section
+    // Active waves section
     ctx.fillStyle = '#fff';
-    ctx.fillText(`Waves on screen: ${world.waves.length}`, w - 210, 115);
+    ctx.fillText(`Active waves: ${world.waves.length}`, w - 210, 115);
 
-    // List each wave with amplitude and time to shore
+    // List each wave with amplitude, state, and time to shore
     for (let i = 0; i < world.waves.length; i++) {
         const wave = world.waves[i];
         const distanceToShore = shoreY - wave.y;
-        const timeToShore = (distanceToShore / world.swellSpeed).toFixed(1);
+        const timeToShore = Math.max(0, distanceToShore / world.swellSpeed).toFixed(1);
         const ampPercent = Math.round(wave.amplitude * 100);
+
+        // Determine wave state based on position
+        let waveState;
+        if (wave.y < 50) {
+            waveState = 'approaching';
+        } else if (wave.y >= shoreY) {
+            waveState = 'at shore';
+        } else {
+            waveState = 'visible';
+        }
+
         ctx.fillStyle = '#aaa';
-        ctx.fillText(`  • ${ampPercent}% amp, ${timeToShore}s to shore`, w - 210, 130 + i * 16);
+        ctx.fillText(`  • ${ampPercent}% amp, ${timeToShore}s [${waveState}]`, w - 210, 130 + i * 16);
     }
 }
 
