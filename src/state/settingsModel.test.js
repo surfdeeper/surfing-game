@@ -49,7 +49,7 @@ describe('settingsModel', () => {
         });
 
         it('each setting has a type and default', () => {
-            for (const [key, schema] of Object.entries(SETTINGS_SCHEMA)) {
+            for (const [_key, schema] of Object.entries(SETTINGS_SCHEMA)) {
                 expect(schema.type).toBeDefined();
                 expect(schema.default).toBeDefined();
             }

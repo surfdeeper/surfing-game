@@ -332,13 +332,6 @@ export function boxBlur(grid, w, h, passes = 1) {
 }
 
 /**
- * Linear interpolation between two values
- */
-function lerp(a, b, t) {
-    return a + (b - a) * t;
-}
-
-/**
  * Find the interpolated crossing point on an edge
  */
 function interpolateEdge(v1, v2, threshold) {

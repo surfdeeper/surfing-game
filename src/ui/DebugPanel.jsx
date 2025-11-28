@@ -266,17 +266,6 @@ function ReadOnly({ label, value }) {
   );
 }
 
-function ProgressBar({ label, progress, color }) {
-  return (
-    <div className="progress-item">
-      <span className="progress-label">{label}</span>
-      <div className="progress-bar">
-        <div className="progress-fill" style={{ width: `${progress * 100}%`, backgroundColor: color }} />
-      </div>
-    </div>
-  );
-}
-
 function FPSCounter({ fps }) {
   // Color coding: green >= 55, yellow >= 30, red < 30
   let color = '#44e8a6';  // green
@@ -298,7 +287,6 @@ function FPSCounter({ fps }) {
 }
 
 function Slider({ label, value, min, max, onChange, suffix = '', tooltip }) {
-  const tooltipId = tooltip ? `tooltip-${label.replace(/\s+/g, '-').toLowerCase()}` : null;
   return (
     <div className="slider-control">
       <div className="slider-header">

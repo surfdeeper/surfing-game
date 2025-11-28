@@ -209,7 +209,7 @@ describe('Tab visibility handling', () => {
 
         // Normal operation
         simulateFrameUpdate(world, 1/60);
-        const posAfterNormal = world.waves[0].y;
+        const _posAfterNormal = world.waves[0].y;
 
         // Visibility restore with large gap should not cause huge jump
         const posBeforeGap = world.waves[0].y;
@@ -230,17 +230,17 @@ describe('Tab visibility handling', () => {
         for (let i = 0; i < 10; i++) {
             simulateFrameUpdate(world, 1/60);
         }
-        const posBeforeHidden = world.waves[0].y;
+        const _posBeforeHidden = world.waves[0].y;
 
         // Large gap (visibility restore)
         simulateFrameUpdate(world, 5.0);  // Capped to 0.1s
-        const posAfterRestore = world.waves[0].y;
+        const _posAfterRestore = world.waves[0].y;
 
         // Continue normal operation (10 more frames)
         for (let i = 0; i < 10; i++) {
             simulateFrameUpdate(world, 1/60);
         }
-        const posAfterResume = world.waves[0].y;
+        const _posAfterResume = world.waves[0].y;
 
         // Verify movement rates are correct
         // 10 frames at 60fps = 10/60 seconds = ~8.33 pixels

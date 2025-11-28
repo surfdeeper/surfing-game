@@ -10,7 +10,6 @@ import {
     calculateSetAmplitude,
     calculateLullAmplitude,
     shouldSpawnWave,
-    getNextWaveAmplitude,
     recordWaveSpawned,
     updateSetLullState,
     computeDerivedTimers,

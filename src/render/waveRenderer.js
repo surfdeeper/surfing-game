@@ -10,6 +10,7 @@
 
 import { getWaveProgress, WAVE_TYPE, WAVE_X_SAMPLES } from '../state/waveModel.js';
 import { getHeightAt } from '../state/energyFieldModel.js';
+import { progressToScreenY } from './coordinates.js';
 
 /**
  * Wave color palettes by type
@@ -51,13 +52,6 @@ export function getWaveColors(wave) {
         peak: `rgb(${peakR}, ${peakG}, ${peakB})`,
         trough: `rgb(${troughR}, ${troughG}, ${troughB})`,
     };
-}
-
-/**
- * Convert progress (0-1) to screen Y position
- */
-export function progressToScreenY(progress, oceanTop, oceanBottom) {
-    return oceanTop + progress * (oceanBottom - oceanTop);
 }
 
 /**

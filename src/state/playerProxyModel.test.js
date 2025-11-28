@@ -88,7 +88,7 @@ describe('playerProxyModel', () => {
     describe('updatePlayerProxy', () => {
         const noInput = { left: false, right: false, up: false, down: false };
         const upInput = { left: false, right: false, up: true, down: false };
-        const downInput = { left: false, right: false, up: false, down: true };
+        const _downInput = { left: false, right: false, up: false, down: true };
 
         it('player stays still with no input and no foam', () => {
             const player = { x: 400, y: 300, vx: 0, vy: 0 };

@@ -14,17 +14,15 @@ import {
     isWaveBreaking,
     isWaveBreakingWithEnergy,
     updateWaveRefraction,
-    getProgressAtX,
     WAVE_X_SAMPLES,
 } from './state/waveModel.js';
 import { createFoam, updateFoam, getActiveFoam } from './state/foamModel.js';
-import { DEFAULT_BATHYMETRY, getDepth, getPeakX } from './state/bathymetryModel.js';
+import { DEFAULT_BATHYMETRY, getDepth } from './state/bathymetryModel.js';
 import { progressToScreenY, screenYToProgress, getOceanBounds, calculateTravelDuration } from './render/coordinates.js';
 import {
     DEFAULT_CONFIG,
     createInitialState,
     updateSetLullState,
-    computeDerivedTimers,
 } from './state/setLullModel.js';
 import {
     BACKGROUND_CONFIG,
@@ -442,7 +440,7 @@ function update(deltaTime) {
     }
 
     // Remove waves that have completed their journey (time-based)
-    const { oceanTop, oceanBottom, shoreY } = getOceanBounds(canvas.height, world.shoreHeight);
+    const { oceanTop, oceanBottom } = getOceanBounds(canvas.height, world.shoreHeight);
     const travelDuration = calculateTravelDuration(oceanBottom, world.swellSpeed);
     // Add buffer for visual spacing past shore
     const bufferDuration = (world.swellSpacing / world.swellSpeed) * 1000;
@@ -834,26 +832,6 @@ function draw() {
                 const y2 = seg.y2 * oceanBottom;
                 ctx.moveTo(x1, y1);
                 ctx.lineTo(x2, y2);
-            }
-            ctx.stroke();
-        }
-    }
-
-    // Helper function to draw contours from a grid
-    function drawContours(grid, gridW, gridH, thresholds, colorPrefix) {
-        const blurred = boxBlur(grid, gridW, gridH, 2);
-        for (const { value, baseColor, lineWidth } of thresholds) {
-            const segments = extractLineSegments(blurred, gridW, gridH, value);
-
-            ctx.strokeStyle = colorPrefix ? `${colorPrefix}` : baseColor;
-            ctx.lineWidth = lineWidth;
-            ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
-
-            ctx.beginPath();
-            for (const seg of segments) {
-                ctx.moveTo(seg.x1 * w, seg.y1 * oceanBottom);
-                ctx.lineTo(seg.x2 * w, seg.y2 * oceanBottom);
             }
             ctx.stroke();
         }

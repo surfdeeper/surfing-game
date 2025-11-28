@@ -28,9 +28,13 @@ export default [
       },
     },
     rules: {
+      // React JSX detection
+      'react/jsx-uses-react': 'error',
+      'react/jsx-uses-vars': 'error',
+
       // Catch common errors
       'no-undef': 'error',
-      'no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
+      'no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
       'no-const-assign': 'error',
       'no-dupe-keys': 'error',
       'no-duplicate-case': 'error',

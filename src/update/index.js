@@ -14,43 +14,21 @@ import { updatePlayerProxy, createPlayerProxy, PLAYER_PROXY_CONFIG } from '../st
 import { updateAIPlayer, createAIState } from '../state/aiPlayerModel.js';
 import { getDepth } from '../state/bathymetryModel.js';
 import { EventType } from '../state/eventStore.js';
+import {
+    getOceanBounds,
+    calculateTravelDuration,
+    progressToScreenY,
+    screenYToProgress,
+} from '../render/coordinates.js';
 
-/**
- * Calculate ocean bounds from canvas dimensions
- */
-export function getOceanBounds(canvasHeight, shoreHeight) {
-    const shoreY = canvasHeight - shoreHeight;
-    const oceanTop = 0;
-    const oceanBottom = shoreY;
-    return { oceanTop, oceanBottom, shoreY };
-}
-
-/**
- * Calculate how long a wave takes to travel from horizon to shore
- */
-export function calculateTravelDuration(oceanHeight, swellSpeed) {
-    return (oceanHeight / swellSpeed) * 1000; // in ms
-}
-
-/**
- * Convert progress (0-1) to screen Y position
- */
-export function progressToScreenY(progress, oceanTop, oceanBottom) {
-    return oceanTop + progress * (oceanBottom - oceanTop);
-}
-
-/**
- * Convert screen Y to progress (0-1)
- */
-export function screenYToProgress(y, oceanTop, oceanBottom) {
-    return (y - oceanTop) / (oceanBottom - oceanTop);
-}
+// Re-export coordinate utilities for consumers who import from update/index.js
+export { getOceanBounds, calculateTravelDuration, progressToScreenY, screenYToProgress };
 
 /**
  * Update wave spawning state machines
  * @returns {object} { events, setLullState, backgroundState }
  */
-export function updateWaveSpawning(state, deltaTime, gameTime, config) {
+export function updateWaveSpawning(state, deltaTime, gameTime, _config) {
     const events = [];
 
     // Update set/lull state machine

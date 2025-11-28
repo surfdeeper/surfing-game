@@ -2,8 +2,6 @@ import { useRef, useEffect } from 'react';
 import { DEFAULT_BATHYMETRY, getDepth } from '../state/bathymetryModel.js';
 import { createWave, getWaveProgress, isWaveBreaking, WAVE_TYPE } from '../state/waveModel.js';
 import {
-    buildIntensityGrid,
-    boxBlur,
     renderMultiContour,
     renderMultiContourOptionA,
     renderMultiContourOptionB,

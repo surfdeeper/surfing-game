@@ -101,7 +101,7 @@ describe('backgroundWaveModel', () => {
 
         it('should set new nextWaveTime after spawning', () => {
             let state = createInitialBackgroundState(BACKGROUND_CONFIG, fixedRandom(0.5));
-            const initialNextTime = state.nextWaveTime;
+            const _initialNextTime = state.nextWaveTime;
             const result = updateBackgroundWaveState(state, 4.0, BACKGROUND_CONFIG, fixedRandom(0.5));
             // New nextWaveTime should be set (may be same value with fixed random, but state should be fresh)
             expect(result.state.nextWaveTime).toBeDefined();

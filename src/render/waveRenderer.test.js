@@ -2,10 +2,10 @@ import { describe, it, expect, vi } from 'vitest';
 import {
     WAVE_COLORS,
     getWaveColors,
-    progressToScreenY,
     renderWave,
     renderWaves,
 } from './waveRenderer.js';
+import { progressToScreenY } from './coordinates.js';
 import { createWave, WAVE_TYPE } from '../state/waveModel.js';
 
 // Mock canvas context

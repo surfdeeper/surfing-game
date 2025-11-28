@@ -15,7 +15,6 @@ export {
 export {
     WAVE_COLORS,
     getWaveColors,
-    progressToScreenY,
     renderWave,
     renderWaves,
 } from './waveRenderer.js';
@@ -37,8 +36,8 @@ export {
 
 // Coordinate utilities
 export {
-    screenToNormalized,
-    normalizedToScreen,
-    progressToY,
-    yToProgress,
+    progressToScreenY,
+    screenYToProgress,
+    getOceanBounds,
+    calculateTravelDuration,
 } from './coordinates.js';

@@ -8,7 +8,7 @@
  * - Deterministic state from event replay
  */
 
-import { createWave, WAVE_X_SAMPLES, WAVE_TYPE } from './waveModel.js';
+import { createWave } from './waveModel.js';
 import { createInitialState as createSetLullState, DEFAULT_CONFIG } from './setLullModel.js';
 import { createInitialBackgroundState, DEFAULT_CONFIG as BACKGROUND_CONFIG } from './backgroundWaveModel.js';
 import { createEnergyField } from './energyFieldModel.js';
