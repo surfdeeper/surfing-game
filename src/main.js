@@ -6,7 +6,17 @@
 // - Position is calculated: progress = (currentTime - spawnTime) / travelDuration
 // - Coordinates mapped: progress (0-1) → screen pixels at render time
 
-import { createWave, getWaveProgress, getActiveWaves, WAVE_TYPE } from './state/waveModel.js';
+import {
+    createWave,
+    getWaveProgress,
+    getActiveWaves,
+    WAVE_TYPE,
+    shouldWaveBreakAtDepth,
+    markBreakTriggered,
+    hasBreakTriggeredAt,
+} from './state/waveModel.js';
+import { createFoam, updateFoam, getActiveFoam } from './state/foamModel.js';
+import { DEFAULT_BATHYMETRY, getDepth, getPeakX } from './state/bathymetryModel.js';
 import { progressToScreenY, getOceanBounds, calculateTravelDuration } from './render/coordinates.js';
 import {
     DEFAULT_CONFIG,
@@ -44,6 +54,10 @@ const world = {
     waves: [],             // Array of { id, spawnTime, amplitude, type }
     gameTime: 0,           // Current game time in ms (for time-based positions)
 
+    // Foam segments - independent whitewater entities (NOT attached to waves)
+    // Spawned at break points, persist and fade independently
+    foamSegments: [],      // Array of { id, spawnTime, x, y, width, opacity }
+
     // Set/lull configuration (used by setLullModel)
     setConfig: DEFAULT_CONFIG,
 
@@ -53,6 +67,9 @@ const world = {
     // Background wave configuration and state
     backgroundConfig: BACKGROUND_CONFIG,
     backgroundState: createInitialBackgroundState(BACKGROUND_CONFIG),
+
+    // Bathymetry (ocean floor depth map)
+    bathymetry: DEFAULT_BATHYMETRY,
 };
 
 // Colors
@@ -100,13 +117,106 @@ function getTroughColor(amplitude) {
 let timeScale = 1;
 const TIME_SCALES = [1, 2, 4, 8];
 
-// Toggle time scale with 'T' key
+// Debug view modes (toggles affect visibility only, not simulation)
+// Load from localStorage or use defaults
+let showBathymetry = localStorage.getItem('showBathymetry') === 'true';
+let showSetWaves = localStorage.getItem('showSetWaves') !== 'false';  // default true
+let showBackgroundWaves = localStorage.getItem('showBackgroundWaves') !== 'false';  // default true
+
+// Helper to save toggle state
+function saveToggleState() {
+    localStorage.setItem('showBathymetry', showBathymetry);
+    localStorage.setItem('showSetWaves', showSetWaves);
+    localStorage.setItem('showBackgroundWaves', showBackgroundWaves);
+}
+
+// Game state persistence - save waves, time, set/lull state
+function saveGameState() {
+    const state = {
+        gameTime: world.gameTime,
+        timeScale,
+        // Convert wave Sets to Arrays for JSON serialization
+        waves: world.waves.map(w => ({
+            ...w,
+            hasTriggeredBreakAt: Array.from(w.hasTriggeredBreakAt)
+        })),
+        foamSegments: world.foamSegments,
+        setLullState: world.setLullState,
+        backgroundState: world.backgroundState,
+    };
+    localStorage.setItem('gameState', JSON.stringify(state));
+}
+
+function loadGameState() {
+    const saved = localStorage.getItem('gameState');
+    if (!saved) return false;
+
+    try {
+        const state = JSON.parse(saved);
+        world.gameTime = state.gameTime || 0;
+        timeScale = state.timeScale || 1;
+        // Convert wave Arrays back to Sets
+        world.waves = (state.waves || []).map(w => ({
+            ...w,
+            hasTriggeredBreakAt: new Set(w.hasTriggeredBreakAt || [])
+        }));
+        world.foamSegments = state.foamSegments || [];
+        if (state.setLullState) world.setLullState = state.setLullState;
+        if (state.backgroundState) world.backgroundState = state.backgroundState;
+        return true;
+    } catch (e) {
+        console.warn('Failed to load game state:', e);
+        return false;
+    }
+}
+
+// Load saved state on startup
+loadGameState();
+
+// Keyboard controls
 document.addEventListener('keydown', (e) => {
     if (e.key === 't' || e.key === 'T') {
         const currentIndex = TIME_SCALES.indexOf(timeScale);
         const nextIndex = (currentIndex + 1) % TIME_SCALES.length;
         timeScale = TIME_SCALES[nextIndex];
-        console.log(`Time scale: ${timeScale}x`);
+    }
+    if (e.key === 'b' || e.key === 'B') {
+        showBathymetry = !showBathymetry;
+        saveToggleState();
+    }
+    if (e.key === 's' || e.key === 'S') {
+        showSetWaves = !showSetWaves;
+        saveToggleState();
+    }
+    if (e.key === 'g' || e.key === 'G') {
+        showBackgroundWaves = !showBackgroundWaves;
+        saveToggleState();
+    }
+});
+
+// Button definitions for click handling
+const buttons = [];
+
+function registerButton(id, x, y, width, height, onClick) {
+    buttons.push({ id, x, y, width, height, onClick });
+}
+
+function clearButtons() {
+    buttons.length = 0;
+}
+
+// Mouse click handling
+canvas.addEventListener('click', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+
+    for (const btn of buttons) {
+        if (mouseX >= btn.x && mouseX <= btn.x + btn.width &&
+            mouseY >= btn.y && mouseY <= btn.y + btn.height) {
+            btn.onClick();
+            break;
+        }
     }
 });
 
@@ -149,11 +259,49 @@ function update(deltaTime) {
     }
 
     // Remove waves that have completed their journey (time-based)
-    const { oceanBottom } = getOceanBounds(canvas.height, world.shoreHeight);
+    const { oceanTop, oceanBottom, shoreY } = getOceanBounds(canvas.height, world.shoreHeight);
     const travelDuration = calculateTravelDuration(oceanBottom, world.swellSpeed);
     // Add buffer for visual spacing past shore
     const bufferDuration = (world.swellSpacing / world.swellSpeed) * 1000;
     world.waves = getActiveWaves(world.waves, world.gameTime - bufferDuration, travelDuration);
+
+    // Check for breaking and spawn foam (depth-based)
+    // We check multiple x-zones across the screen
+    const numZones = 10;  // Number of x-positions to check
+    for (const wave of world.waves) {
+        const progress = getWaveProgress(wave, world.gameTime, travelDuration);
+        const waveY = progressToScreenY(progress, oceanTop, oceanBottom);
+
+        for (let zone = 0; zone < numZones; zone++) {
+            // Skip if we already spawned foam at this zone for this wave
+            if (hasBreakTriggeredAt(wave, zone)) {
+                continue;
+            }
+
+            const normalizedX = (zone + 0.5) / numZones;  // Center of zone
+            const depth = getDepth(normalizedX, world.bathymetry, progress);
+
+            if (shouldWaveBreakAtDepth(wave, progress, depth)) {
+                // Spawn independent foam entity at this location
+                const foam = createFoam(world.gameTime, normalizedX, waveY, wave.id);
+                world.foamSegments.push(foam);
+                markBreakTriggered(wave, zone);
+            }
+        }
+    }
+
+    // Update existing foam segments (they move and fade independently)
+    for (const foam of world.foamSegments) {
+        updateFoam(foam, scaledDelta, world.gameTime);
+    }
+
+    // Remove dead foam (faded or past shore)
+    world.foamSegments = getActiveFoam(world.foamSegments, shoreY);
+
+    // Save game state periodically (every ~1 second)
+    if (Math.floor(world.gameTime / 1000) !== Math.floor((world.gameTime - scaledDelta * 1000) / 1000)) {
+        saveGameState();
+    }
 }
 
 function draw() {
@@ -165,6 +313,32 @@ function draw() {
     // Clear with ocean color
     ctx.fillStyle = colors.ocean;
     ctx.fillRect(0, 0, w, h);
+
+    // Draw bathymetry depth heat map UNDER waves (toggle with 'B' key)
+    // NOTE: This is STATIC - the ocean floor doesn't move. The blue waves
+    // animate on top of this, which can be visually confusing at first.
+    if (showBathymetry) {
+        const stepX = 4;
+        const stepY = 4;
+        // Use a reference depth for color scaling (not deepDepth which is very deep)
+        const colorScaleDepth = 15; // meters - depths beyond this are all "deep" colored
+        for (let y = oceanTop; y < oceanBottom; y += stepY) {
+            // progress: 0 at horizon (top), 1 at shore (bottom)
+            const progress = (y - oceanTop) / (oceanBottom - oceanTop);
+            for (let x = 0; x < w; x += stepX) {
+                const normalizedX = x / w;
+                const depth = getDepth(normalizedX, world.bathymetry, progress);
+                // Use sqrt for non-linear scaling - shows shallow areas more distinctly
+                const depthRatio = Math.min(1, Math.sqrt(depth / colorScaleDepth));
+                // Sand/tan for shallow (depthRatio near 0), dark brown for deep (depthRatio near 1)
+                const r = Math.floor(220 - 160 * depthRatio);  // 220 -> 60
+                const g = Math.floor(180 - 140 * depthRatio);  // 180 -> 40
+                const b = Math.floor(100 - 80 * depthRatio);   // 100 -> 20
+                ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+                ctx.fillRect(x, y, stepX, stepY);
+            }
+        }
+    }
 
     // Draw shore (bottom strip)
     ctx.fillStyle = colors.shore;
@@ -186,8 +360,8 @@ function draw() {
         const nextPeakY = peakY + waveSpacing;
         const currentTroughColor = getTroughColor(wave.amplitude);
 
-        // All waves render at full opacity - visual difference comes from amplitude
-        ctx.globalAlpha = 1.0;
+        // When bathymetry is showing, make waves semi-transparent so you can see both
+        ctx.globalAlpha = showBathymetry ? 0.7 : 1.0;
 
         // First half: peak (dark) to trough (light)
         if (troughY > 0 && peakY < shoreY) {
@@ -216,16 +390,125 @@ function draw() {
         return progressA - progressB;
     });
 
+    // Draw waves based on visibility toggles
+    // Note: waves still exist and simulate even when hidden
     for (const wave of sortedWaves) {
-        drawWave(wave);
+        const isSetWave = wave.type === WAVE_TYPE.SET;
+        const isVisible = isSetWave ? showSetWaves : showBackgroundWaves;
+        if (isVisible) {
+            drawWave(wave);
+        }
+    }
+    ctx.globalAlpha = 1.0; // Reset alpha after waves
+
+    // Draw foam segments (independent entities, NOT attached to waves)
+    // Foam persists after waves pass, creating whitewater trails
+    for (const foam of world.foamSegments) {
+        if (foam.opacity <= 0) continue;
+
+        const centerX = foam.x * w;
+        const halfWidth = (foam.width * w) / 2;
+
+        // Draw foam as horizontal band (whitewater), not triangle
+        // This is the main foam body
+        ctx.fillStyle = `rgba(255, 255, 255, ${foam.opacity * 0.8})`;
+        ctx.fillRect(centerX - halfWidth, foam.y, halfWidth * 2, 12);
+
+        // Add some texture/bubbles
+        ctx.fillStyle = `rgba(255, 255, 255, ${foam.opacity * 0.5})`;
+        const numBubbles = 3;
+        for (let i = 0; i < numBubbles; i++) {
+            const bubbleX = centerX - halfWidth + (halfWidth * 2) * (i + 0.5) / numBubbles;
+            const bubbleY = foam.y + 6 + Math.sin(foam.spawnTime / 100 + i) * 3;
+            const bubbleR = 3 + Math.cos(foam.spawnTime / 80 + i * 2) * 1.5;
+            ctx.beginPath();
+            ctx.arc(bubbleX, bubbleY, bubbleR, 0, Math.PI * 2);
+            ctx.fill();
+        }
     }
 
+    // Debug: show foam count
+    ctx.fillStyle = '#fff';
+    ctx.font = '12px monospace';
+    ctx.fillText(`Foam segments: ${world.foamSegments.length}`, 10, h - 40);
+
+    // Clear button registry each frame (buttons are re-registered below)
+    clearButtons();
+
+    // Draw toggle buttons (bottom left) - clickable!
+    const buttonY = h - 70;
+    const buttonHeight = 22;
+    const buttonPadding = 8;
+    const buttonGap = 8;
+    let buttonX = 10;
+    ctx.font = '12px monospace';
+
+    // Helper to draw a button and register it for clicks
+    const drawButton = (text, isActive, activeColor, onClick) => {
+        const btnWidth = ctx.measureText(text).width + buttonPadding * 2;
+        ctx.fillStyle = isActive ? activeColor : 'rgba(80, 80, 80, 0.8)';
+        ctx.fillRect(buttonX, buttonY, btnWidth, buttonHeight);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+        ctx.strokeRect(buttonX, buttonY, btnWidth, buttonHeight);
+        ctx.fillStyle = '#fff';
+        ctx.fillText(text, buttonX + buttonPadding, buttonY + 15);
+        registerButton(text, buttonX, buttonY, btnWidth, buttonHeight, onClick);
+        buttonX += btnWidth + buttonGap;
+        return btnWidth;
+    };
+
+    // Layer toggle buttons
+    drawButton(
+        `[B] Bathymetry ${showBathymetry ? 'ON' : 'OFF'}`,
+        showBathymetry,
+        'rgba(200, 160, 60, 0.8)',
+        () => { showBathymetry = !showBathymetry; saveToggleState(); }
+    );
+    drawButton(
+        `[S] Set Waves ${showSetWaves ? 'ON' : 'OFF'}`,
+        showSetWaves,
+        'rgba(70, 130, 180, 0.8)',
+        () => { showSetWaves = !showSetWaves; saveToggleState(); }
+    );
+    drawButton(
+        `[G] Background ${showBackgroundWaves ? 'ON' : 'OFF'}`,
+        showBackgroundWaves,
+        'rgba(100, 150, 180, 0.8)',
+        () => { showBackgroundWaves = !showBackgroundWaves; saveToggleState(); }
+    );
+    drawButton(
+        `[T] Speed ${timeScale}x`,
+        timeScale > 1,
+        'rgba(100, 180, 100, 0.8)',
+        () => {
+            const currentIndex = TIME_SCALES.indexOf(timeScale);
+            const nextIndex = (currentIndex + 1) % TIME_SCALES.length;
+            timeScale = TIME_SCALES[nextIndex];
+        }
+    );
+
+    // Bathymetry legend (when active)
+    if (showBathymetry) {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+        ctx.fillRect(10, buttonY - 55, 150, 50);
+        ctx.fillStyle = '#fff';
+        ctx.font = '11px monospace';
+        ctx.fillText('Ocean Floor Depth:', 15, buttonY - 40);
+        // Color swatches
+        ctx.fillStyle = 'rgb(200, 160, 60)';
+        ctx.fillRect(15, buttonY - 30, 12, 12);
+        ctx.fillStyle = '#fff';
+        ctx.fillText('Shallow', 32, buttonY - 20);
+        ctx.fillStyle = 'rgb(60, 40, 20)';
+        ctx.fillRect(85, buttonY - 30, 12, 12);
+        ctx.fillStyle = '#fff';
+        ctx.fillText('Deep', 102, buttonY - 20);
+    }
 
     // Labels
     ctx.fillStyle = '#fff';
     ctx.font = '14px monospace';
-    const timeLabel = timeScale > 1 ? ` [${timeScale}x speed - press T]` : ' [press T for speed]';
-    ctx.fillText('Wave sets and lulls (v2) ↓' + timeLabel, 10, 30);
+    ctx.fillText('Wave sets and lulls (v2)', 10, 30);
     ctx.fillText('Shore', 10, h - 20);
 
     // Debug UI: Set/Lull status (read from setLullState)
