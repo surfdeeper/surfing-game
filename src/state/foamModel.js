@@ -20,10 +20,11 @@ export function createFoam(gameTime, x, y, sourceWaveId) {
     return {
         id: `foam-${nextFoamId++}`,
         spawnTime: gameTime,
-        x,                      // Fixed x position
-        y,                      // Fixed y position - foam stays where deposited!
+        x,                      // X position (drifts over time)
+        y,                      // Y position (drifts toward shore over time)
         opacity: 1.0,          // Starts fully opaque
         sourceWaveId,          // For debugging
+        fadeJitter: (Math.random() - 0.5) * 10000, // ±5 seconds jitter to break scan line
     };
 }
 
@@ -43,11 +44,16 @@ export function resetFoamIdCounter() {
  * @param {number} gameTime - Current game time in ms
  */
 export function updateFoam(foam, deltaTime, gameTime) {
-    // Foam stays in place - no movement!
-    // Just fade over time
-    const age = (gameTime - foam.spawnTime) / 1000; // seconds
-    const fadeTime = 4; // seconds to fully fade
-    foam.opacity = Math.max(0, 1 - age / fadeTime);
+    // Apply jitter to age so foam fades at random times (breaks scan line artifact)
+    const jitteredAge = (gameTime - foam.spawnTime + (foam.fadeJitter || 0)) / 1000; // seconds
+    const fadeTime = 15; // seconds to fully fade
+    foam.opacity = Math.max(0, 1 - jitteredAge / fadeTime);
+
+    // Drift foam toward shore and disperse horizontally
+    const driftSpeed = 0.005; // normalized units per second toward shore
+    const disperseSpeed = 0.001; // horizontal drift per second
+    foam.y += driftSpeed * deltaTime * 100; // Convert to pixels (rough)
+    foam.x += (Math.random() - 0.5) * disperseSpeed * deltaTime;
 }
 
 /**
