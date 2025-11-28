@@ -2,43 +2,20 @@
 
 Guidelines for AI agents working on this codebase.
 
-## Plans Directory Structure
+## Plans Directory
 
-Plans are organized in `/plans/`:
+Plans are organized by category in `/plans/`. See [plans/README.md](plans/README.md) for full documentation.
 
-```
-plans/
-├── 00-principles.md          # Foundational concepts (never archive)
-├── 10-debugger.md            # Feature plans (numbered)
-├── 20-still-water.md
-├── ...
-├── reference-*.md            # Reference docs (never archive)
-└── archive/                  # Completed plans
-    ├── 01-wave-visuals.md
-    └── ...
-```
-
-### Numbering Convention
-- Plans are numbered in increments of 10 (10, 20, 30...) to allow inserting related plans
-- Use the next available number for new plans (e.g., after 120, use 121, 122, or 130)
-
-### Archiving Completed Plans
-
-**When a plan is fully implemented and verified:**
-1. Move the plan file to `plans/archive/`
-2. Keep the original filename
-3. Do NOT archive:
-   - `00-principles.md` - foundational reference
-   - `reference-*.md` files - ongoing reference material
-   - Plans that are only partially complete
-
-### Creating New Plans
-
-When creating future/placeholder plans:
-1. Use the next logical number
-2. Include clear sections: Problem, Proposed Solution, Implementation Steps
-3. Mark dependencies on other plans if any
-4. Plans can reference each other by filename
+| Folder | Purpose |
+|--------|---------|
+| `model/` | Wave physics, simulation, timing |
+| `visuals/` | Rendering, gradients, effects |
+| `gameplay/` | Surfer, controls, multiplayer |
+| `tooling/` | Debug panel, dev tools |
+| `testing/` | Test strategy |
+| `bugfixes/` | Bug fixes |
+| `reference/` | Research docs |
+| `archive/` | Superseded plans |
 
 ## Code Style
 
