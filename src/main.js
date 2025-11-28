@@ -129,6 +129,8 @@ function startSet() {
         world.setConfig.wavesPerSet[0],
         world.setConfig.wavesPerSet[1] + 1
     ));
+    // Estimate set duration based on waves * period (for UI display)
+    world.setDuration = (world.currentSetWaves - 1) * world.swellPeriod;
     world.wavesSpawned = 0;
     world.timeSinceLastWave = 0;
     world.nextWaveTime = getNextWaveTime();
@@ -297,25 +299,51 @@ function draw() {
 
     // Debug UI: Set/Lull status
     const stateLabel = world.setState;
-    const wavesInfo = world.setState === 'SET'
-        ? `${world.wavesSpawned}/${world.currentSetWaves}`
-        : `${world.waves.length} on screen`;
-    const timeRemaining = Math.max(0, world.setDuration - world.setTimer).toFixed(1);
+    const nextWaveIn = Math.max(0, world.nextWaveTime - world.timeSinceLastWave).toFixed(1);
+    const waveTimerProgress = Math.min(world.timeSinceLastWave / world.nextWaveTime, 1);
+    const stateTimeLeft = Math.max(0, world.setDuration - world.setTimer).toFixed(1);
+    const stateTimerProgress = Math.min(world.setTimer / world.setDuration, 1);
+    const stateLabel2 = world.setState === 'LULL' ? 'Until set' : 'Set ends';
+
+    // Calculate panel height based on wave count
+    const baseHeight = 130;
+    const waveListHeight = world.waves.length * 16;
+    const panelHeight = baseHeight + waveListHeight;
 
     ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-    ctx.fillRect(w - 220, 10, 210, 80);
+    ctx.fillRect(w - 220, 10, 210, panelHeight);
 
     ctx.fillStyle = '#fff';
-    ctx.fillText(`State: ${stateLabel}`, w - 210, 30);
-    ctx.fillText(`Waves: ${wavesInfo}`, w - 210, 50);
-    ctx.fillText(`Time left: ${timeRemaining}s`, w - 210, 70);
+    ctx.fillText(`State: ${stateLabel} (${world.wavesSpawned}/${world.currentSetWaves})`, w - 210, 30);
 
-    // Wave count bar (shows waves on screen)
+    ctx.fillText(`Next wave: ${nextWaveIn}s`, w - 210, 50);
+    // Next wave progress bar
     ctx.fillStyle = '#333';
-    ctx.fillRect(w - 210, 75, 190, 10);
+    ctx.fillRect(w - 210, 55, 190, 8);
     ctx.fillStyle = '#4a90b8';
-    const maxWaves = 10;
-    ctx.fillRect(w - 210, 75, 190 * Math.min(world.waves.length / maxWaves, 1), 10);
+    ctx.fillRect(w - 210, 55, 190 * waveTimerProgress, 8);
+
+    ctx.fillStyle = '#fff';
+    ctx.fillText(`${stateLabel2}: ${stateTimeLeft}s`, w - 210, 80);
+    // State duration progress bar
+    ctx.fillStyle = '#333';
+    ctx.fillRect(w - 210, 85, 190, 8);
+    ctx.fillStyle = world.setState === 'LULL' ? '#e8a644' : '#44e8a6';
+    ctx.fillRect(w - 210, 85, 190 * stateTimerProgress, 8);
+
+    // Waves on screen section
+    ctx.fillStyle = '#fff';
+    ctx.fillText(`Waves on screen: ${world.waves.length}`, w - 210, 115);
+
+    // List each wave with amplitude and time to shore
+    for (let i = 0; i < world.waves.length; i++) {
+        const wave = world.waves[i];
+        const distanceToShore = shoreY - wave.y;
+        const timeToShore = (distanceToShore / world.swellSpeed).toFixed(1);
+        const ampPercent = Math.round(wave.amplitude * 100);
+        ctx.fillStyle = '#aaa';
+        ctx.fillText(`  • ${ampPercent}% amp, ${timeToShore}s to shore`, w - 210, 130 + i * 16);
+    }
 }
 
 // Game loop
