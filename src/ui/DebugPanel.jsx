@@ -1,4 +1,5 @@
 import './DebugPanel.css';
+import { Tooltip } from 'react-tooltip';
 
 // Pure component - receives all data as props, rendered from game loop via requestAnimationFrame
 export function DebugPanel({ setLullState, displayWaves, foamCount, timeScale, onTimeScaleChange, toggles, onToggle, fps, playerConfig, onPlayerConfigChange }) {
@@ -6,9 +7,14 @@ export function DebugPanel({ setLullState, displayWaves, foamCount, timeScale, o
   const setWaves = displayWaves.filter(w => w.wave.type === 'SET');
   const bgWaves = displayWaves.filter(w => w.wave.type === 'BACKGROUND');
 
+  // Calculate progress values for circular indicators
+  const waveTimerProgress = Math.min(sls.timeSinceLastWave / sls.nextWaveTime, 1);
+  const setTimerProgress = Math.min(sls.setTimer / sls.setDuration, 1);
+
   return (
     <div className="debug-panel">
       <FPSCounter fps={fps} />
+      <Tooltip id="debug-tooltip" place="left" />
       <Section title="View Layers">
         <Toggle
           label="Bathymetry"
@@ -46,6 +52,30 @@ export function DebugPanel({ setLullState, displayWaves, foamCount, timeScale, o
           onChange={() => onToggle('showPlayer')}
           hotkey="P"
         />
+      </Section>
+
+      <Section title="Foam Dispersion">
+        <Toggle
+          label="Option A (expand)"
+          checked={toggles.showFoamOptionA}
+          onChange={() => onToggle('showFoamOptionA')}
+          hotkey="1"
+        />
+        <Toggle
+          label="Option B (blur)"
+          checked={toggles.showFoamOptionB}
+          onChange={() => onToggle('showFoamOptionB')}
+          hotkey="2"
+        />
+        <Toggle
+          label="Option C (radius)"
+          checked={toggles.showFoamOptionC}
+          onChange={() => onToggle('showFoamOptionC')}
+          hotkey="3"
+        />
+      </Section>
+
+      <Section title="Playback">
         <Select
           label="Speed"
           value={timeScale}
@@ -58,8 +88,20 @@ export function DebugPanel({ setLullState, displayWaves, foamCount, timeScale, o
       <Section title="Set/Lull State">
         <ReadOnly label="State" value={sls.setState} />
         <ReadOnly label="Waves" value={`${sls.wavesSpawned}/${sls.currentSetWaves}`} />
-        <ReadOnly label="Set Timer" value={`${sls.setTimer.toFixed(1)}s / ${sls.setDuration.toFixed(1)}s`} />
-        <ReadOnly label="Wave Timer" value={`${sls.timeSinceLastWave.toFixed(1)}s / ${sls.nextWaveTime.toFixed(1)}s`} />
+        <TimerReadOnly
+          label="Set Timer"
+          current={sls.setTimer}
+          total={sls.setDuration}
+          progress={setTimerProgress}
+          color={sls.setState === 'LULL' ? '#e8a644' : '#44e8a6'}
+        />
+        <TimerReadOnly
+          label="Wave Timer"
+          current={sls.timeSinceLastWave}
+          total={sls.nextWaveTime}
+          progress={waveTimerProgress}
+          color="#4a90b8"
+        />
       </Section>
 
       <Section title="Wave Status">
@@ -215,12 +257,21 @@ function FPSCounter({ fps }) {
 }
 
 function Slider({ label, value, min, max, onChange, suffix = '', tooltip }) {
+  const tooltipId = tooltip ? `tooltip-${label.replace(/\s+/g, '-').toLowerCase()}` : null;
   return (
     <div className="slider-control">
       <div className="slider-header">
         <span className="label">
           {label}
-          {tooltip && <span className="tooltip-trigger" title={tooltip}>?</span>}
+          {tooltip && (
+            <span
+              className="tooltip-trigger"
+              data-tooltip-id="debug-tooltip"
+              data-tooltip-content={tooltip}
+            >
+              ?
+            </span>
+          )}
         </span>
         <span className="slider-value">{Math.round(value)}{suffix}</span>
       </div>
@@ -232,6 +283,47 @@ function Slider({ label, value, min, max, onChange, suffix = '', tooltip }) {
         onChange={(e) => onChange(Number(e.target.value))}
         className="slider"
       />
+    </div>
+  );
+}
+
+function CircularProgress({ progress, size = 20, strokeWidth = 3, color }) {
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference * (1 - progress);
+
+  return (
+    <svg width={size} height={size} className="circular-progress">
+      <circle
+        className="circular-progress-bg"
+        cx={size / 2}
+        cy={size / 2}
+        r={radius}
+        strokeWidth={strokeWidth}
+      />
+      <circle
+        className="circular-progress-fill"
+        cx={size / 2}
+        cy={size / 2}
+        r={radius}
+        strokeWidth={strokeWidth}
+        stroke={color}
+        strokeDasharray={circumference}
+        strokeDashoffset={offset}
+        transform={`rotate(-90 ${size / 2} ${size / 2})`}
+      />
+    </svg>
+  );
+}
+
+function TimerReadOnly({ label, current, total, progress, color }) {
+  return (
+    <div className="control read-only timer-control">
+      <span className="label">{label}</span>
+      <span className="timer-value">
+        <CircularProgress progress={progress} color={color} />
+        <span className="value">{current.toFixed(1)}s / {total.toFixed(1)}s</span>
+      </span>
     </div>
   );
 }

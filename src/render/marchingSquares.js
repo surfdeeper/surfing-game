@@ -68,6 +68,225 @@ export function buildIntensityGrid(foamRows, gridW, gridH, canvasW, canvasH) {
 }
 
 /**
+ * Option A: Build intensity grid with expanding segment bounds over time
+ * As foam ages, the segment bounds expand outward while core intensity fades
+ * This creates the effect of foam dispersing - outer contours expand, inner collapse
+ *
+ * @param {Array} foamRows - Array of {y, opacity, spawnTime, segments: [{startX, endX, intensity}]}
+ * @param {number} gridW - Grid width
+ * @param {number} gridH - Grid height
+ * @param {number} canvasW - Canvas width in pixels
+ * @param {number} canvasH - Canvas height in pixels (ocean area only)
+ * @param {number} gameTime - Current game time in ms
+ * @returns {Float32Array} Intensity grid (0-1 values)
+ */
+export function buildIntensityGridOptionA(foamRows, gridW, gridH, canvasW, canvasH, gameTime) {
+    const grid = new Float32Array(gridW * gridH);
+
+    for (const row of foamRows) {
+        if (row.opacity <= 0) continue;
+
+        // Calculate age of this foam row
+        const age = row.spawnTime ? (gameTime - row.spawnTime) / 1000 : 0;
+
+        // Dispersion factor: foam expands 15% per second
+        const dispersionFactor = 1 + age * 0.15;
+
+        // Core intensity fades faster than opacity (concentrated core dissipates)
+        const coreFade = Math.max(0, 1 - age / 6); // Core fades over 6 seconds
+
+        // Map Y position to grid row
+        const gridY = Math.floor((row.y / canvasH) * (gridH - 1));
+        if (gridY < 0 || gridY >= gridH) continue;
+
+        for (const seg of row.segments) {
+            // Original segment width and center
+            const segWidth = seg.endX - seg.startX;
+            const segCenter = (seg.startX + seg.endX) / 2;
+
+            // Expanded segment bounds
+            const expandedWidth = segWidth * dispersionFactor;
+            const expandedStartX = segCenter - expandedWidth / 2;
+            const expandedEndX = segCenter + expandedWidth / 2;
+
+            // Map X positions to grid columns
+            const startGridX = Math.floor(Math.max(0, expandedStartX) * (gridW - 1));
+            const endGridX = Math.ceil(Math.min(1, expandedEndX) * (gridW - 1));
+
+            for (let gx = startGridX; gx <= endGridX && gx < gridW; gx++) {
+                if (gx < 0) continue;
+
+                // Calculate normalized position within expanded segment
+                const normalizedX = gx / (gridW - 1);
+                const distFromCenter = Math.abs(normalizedX - segCenter);
+                const originalHalfWidth = segWidth / 2;
+
+                // Intensity falls off from center
+                // Inside original bounds: full intensity * coreFade
+                // Outside original bounds: reduced intensity (halo effect)
+                let intensity;
+                if (distFromCenter <= originalHalfWidth) {
+                    // Core region - fades with coreFade
+                    intensity = row.opacity * (seg.intensity || 0.5) * coreFade;
+                } else {
+                    // Halo region - gaussian-like falloff
+                    const haloProgress = (distFromCenter - originalHalfWidth) / (expandedWidth / 2 - originalHalfWidth);
+                    const haloIntensity = Math.max(0, 0.4 * (1 - haloProgress * haloProgress));
+                    intensity = row.opacity * haloIntensity;
+                }
+
+                const idx = gridY * gridW + gx;
+                grid[idx] = Math.max(grid[idx], intensity);
+            }
+        }
+    }
+
+    return grid;
+}
+
+/**
+ * Option B: Build intensity grid with age-based blur
+ * Uses more blur passes for older foam, causing natural expansion
+ * Simpler than Option A but affects all foam uniformly
+ *
+ * @param {Array} foamRows - Array of {y, opacity, spawnTime, segments: [{startX, endX, intensity}]}
+ * @param {number} gridW - Grid width
+ * @param {number} gridH - Grid height
+ * @param {number} canvasW - Canvas width in pixels
+ * @param {number} canvasH - Canvas height in pixels (ocean area only)
+ * @param {number} gameTime - Current game time in ms
+ * @returns {{grid: Float32Array, blurPasses: number}} Grid and recommended blur passes
+ */
+export function buildIntensityGridOptionB(foamRows, gridW, gridH, canvasW, canvasH, gameTime) {
+    const grid = new Float32Array(gridW * gridH);
+
+    // Calculate average age of all foam rows
+    let totalAge = 0;
+    let count = 0;
+
+    for (const row of foamRows) {
+        if (row.opacity <= 0 || !row.spawnTime) continue;
+        totalAge += (gameTime - row.spawnTime) / 1000;
+        count++;
+    }
+
+    const avgAge = count > 0 ? totalAge / count : 0;
+
+    // More blur passes as foam ages (base 2 + up to 6 more)
+    const dynamicBlurPasses = Math.min(8, 2 + Math.floor(avgAge * 0.8));
+
+    for (const row of foamRows) {
+        if (row.opacity <= 0) continue;
+
+        // Map Y position to grid row
+        const gridY = Math.floor((row.y / canvasH) * (gridH - 1));
+        if (gridY < 0 || gridY >= gridH) continue;
+
+        for (const seg of row.segments) {
+            // Map X positions to grid columns
+            const startGridX = Math.floor(seg.startX * (gridW - 1));
+            const endGridX = Math.ceil(seg.endX * (gridW - 1));
+
+            for (let gx = startGridX; gx <= endGridX && gx < gridW; gx++) {
+                if (gx < 0) continue;
+                const idx = gridY * gridW + gx;
+                // Accumulate intensity (opacity * segment intensity)
+                const intensity = row.opacity * (seg.intensity || 0.5);
+                grid[idx] = Math.max(grid[idx], intensity);
+            }
+        }
+    }
+
+    return { grid, blurPasses: dynamicBlurPasses };
+}
+
+/**
+ * Option C: Build intensity grid with per-row dispersion radius
+ * Each foam row tracks its own expansion based on age
+ * Most physically accurate - foam spreads and core/halo fade at different rates
+ *
+ * @param {Array} foamRows - Array of {y, opacity, spawnTime, segments: [{startX, endX, intensity}]}
+ * @param {number} gridW - Grid width
+ * @param {number} gridH - Grid height
+ * @param {number} canvasW - Canvas width in pixels
+ * @param {number} canvasH - Canvas height in pixels (ocean area only)
+ * @param {number} gameTime - Current game time in ms
+ * @returns {Float32Array} Intensity grid (0-1 values)
+ */
+export function buildIntensityGridOptionC(foamRows, gridW, gridH, canvasW, canvasH, gameTime) {
+    const grid = new Float32Array(gridW * gridH);
+
+    for (const row of foamRows) {
+        if (row.opacity <= 0) continue;
+
+        // Calculate age-based dispersion properties
+        const age = row.spawnTime ? (gameTime - row.spawnTime) / 1000 : 0;
+
+        // Dispersion radius grows over time (starts at 1.0, grows 25% per second)
+        const dispersionRadius = 1.0 + age * 0.25;
+
+        // Core intensity fades faster (3 seconds)
+        const coreIntensity = Math.max(0, 1 - age / 3);
+
+        // Halo intensity fades slower (6 seconds) but starts weaker
+        const haloIntensity = Math.max(0, 0.35 * (1 - age / 6));
+
+        // Map Y position to grid row - also expand in Y direction
+        const yExpansion = Math.floor(age * 0.5); // Spread to adjacent Y rows over time
+        const baseGridY = Math.floor((row.y / canvasH) * (gridH - 1));
+
+        for (let yOffset = -yExpansion; yOffset <= yExpansion; yOffset++) {
+            const gridY = baseGridY + yOffset;
+            if (gridY < 0 || gridY >= gridH) continue;
+
+            // Y distance falloff
+            const yFalloff = yOffset === 0 ? 1.0 : 0.5 / (Math.abs(yOffset) + 1);
+
+            for (const seg of row.segments) {
+                // Original segment dimensions
+                const segWidth = seg.endX - seg.startX;
+                const segCenter = (seg.startX + seg.endX) / 2;
+
+                // Expanded segment bounds
+                const expandedWidth = segWidth * dispersionRadius;
+                const expandedStartX = segCenter - expandedWidth / 2;
+                const expandedEndX = segCenter + expandedWidth / 2;
+
+                // Map X positions to grid columns
+                const startGridX = Math.floor(Math.max(0, expandedStartX) * (gridW - 1));
+                const endGridX = Math.ceil(Math.min(1, expandedEndX) * (gridW - 1));
+
+                for (let gx = startGridX; gx <= endGridX && gx < gridW; gx++) {
+                    if (gx < 0) continue;
+
+                    // Calculate position within segment
+                    const normalizedX = gx / (gridW - 1);
+                    const distFromCenter = Math.abs(normalizedX - segCenter);
+                    const originalHalfWidth = segWidth / 2;
+
+                    let intensity;
+                    if (distFromCenter <= originalHalfWidth) {
+                        // Core region
+                        intensity = row.opacity * (seg.intensity || 0.5) * coreIntensity * yFalloff;
+                    } else {
+                        // Halo region - smooth falloff
+                        const expandedHalfWidth = expandedWidth / 2;
+                        const haloProgress = (distFromCenter - originalHalfWidth) / (expandedHalfWidth - originalHalfWidth);
+                        const falloff = Math.max(0, 1 - haloProgress);
+                        intensity = row.opacity * haloIntensity * falloff * yFalloff;
+                    }
+
+                    const idx = gridY * gridW + gx;
+                    grid[idx] = Math.max(grid[idx], intensity);
+                }
+            }
+        }
+    }
+
+    return grid;
+}
+
+/**
  * Apply box blur to a grid (3x3 kernel)
  * @param {Float32Array} grid - Input grid
  * @param {number} w - Grid width
@@ -555,6 +774,146 @@ export function renderMultiContour(ctx, foamRows, canvasW, canvasH, options = {}
             const y2 = seg.y2 * oceanH;
             ctx.moveTo(x1, y1);
             ctx.lineTo(x2, y2);
+        }
+        ctx.stroke();
+
+        results.push({ threshold: value, segmentCount: segments.length });
+    }
+
+    return results;
+}
+
+/**
+ * Render multi-contour using Option A: Expanding segment bounds
+ * Outer contours expand as foam ages, inner contours collapse
+ */
+export function renderMultiContourOptionA(ctx, foamRows, canvasW, canvasH, gameTime, options = {}) {
+    const {
+        thresholds = [
+            { value: 0.5, color: '#ffffff', lineWidth: 3 },
+            { value: 0.3, color: '#aaddff', lineWidth: 2 },
+            { value: 0.15, color: '#6699cc', lineWidth: 1 },
+        ],
+        gridW = 80,
+        gridH = 60,
+        blurPasses = 2,
+    } = options;
+
+    const shoreHeight = 80;
+    const oceanH = canvasH - shoreHeight;
+
+    // Use Option A grid builder
+    const grid = buildIntensityGridOptionA(foamRows, gridW, gridH, canvasW, oceanH, gameTime);
+    const blurred = blurPasses > 0 ? boxBlur(grid, gridW, gridH, blurPasses) : grid;
+
+    const results = [];
+    const sortedThresholds = [...thresholds].sort((a, b) => a.value - b.value);
+
+    for (const { value, color, lineWidth } of sortedThresholds) {
+        const segments = extractLineSegments(blurred, gridW, gridH, value);
+
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lineWidth;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+
+        ctx.beginPath();
+        for (const seg of segments) {
+            ctx.moveTo(seg.x1 * canvasW, seg.y1 * oceanH);
+            ctx.lineTo(seg.x2 * canvasW, seg.y2 * oceanH);
+        }
+        ctx.stroke();
+
+        results.push({ threshold: value, segmentCount: segments.length });
+    }
+
+    return results;
+}
+
+/**
+ * Render multi-contour using Option B: Age-based blur
+ * More blur passes as foam ages, causing natural expansion
+ */
+export function renderMultiContourOptionB(ctx, foamRows, canvasW, canvasH, gameTime, options = {}) {
+    const {
+        thresholds = [
+            { value: 0.5, color: '#ffffff', lineWidth: 3 },
+            { value: 0.3, color: '#aaddff', lineWidth: 2 },
+            { value: 0.15, color: '#6699cc', lineWidth: 1 },
+        ],
+        gridW = 80,
+        gridH = 60,
+    } = options;
+
+    const shoreHeight = 80;
+    const oceanH = canvasH - shoreHeight;
+
+    // Use Option B grid builder - returns grid and dynamic blur passes
+    const { grid, blurPasses } = buildIntensityGridOptionB(foamRows, gridW, gridH, canvasW, oceanH, gameTime);
+    const blurred = blurPasses > 0 ? boxBlur(grid, gridW, gridH, blurPasses) : grid;
+
+    const results = [];
+    const sortedThresholds = [...thresholds].sort((a, b) => a.value - b.value);
+
+    for (const { value, color, lineWidth } of sortedThresholds) {
+        const segments = extractLineSegments(blurred, gridW, gridH, value);
+
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lineWidth;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+
+        ctx.beginPath();
+        for (const seg of segments) {
+            ctx.moveTo(seg.x1 * canvasW, seg.y1 * oceanH);
+            ctx.lineTo(seg.x2 * canvasW, seg.y2 * oceanH);
+        }
+        ctx.stroke();
+
+        results.push({ threshold: value, segmentCount: segments.length, blurPasses });
+    }
+
+    return results;
+}
+
+/**
+ * Render multi-contour using Option C: Per-row dispersion radius
+ * Most physically accurate - foam spreads in X and Y, core/halo fade separately
+ */
+export function renderMultiContourOptionC(ctx, foamRows, canvasW, canvasH, gameTime, options = {}) {
+    const {
+        thresholds = [
+            { value: 0.5, color: '#ffffff', lineWidth: 3 },
+            { value: 0.3, color: '#aaddff', lineWidth: 2 },
+            { value: 0.15, color: '#6699cc', lineWidth: 1 },
+        ],
+        gridW = 80,
+        gridH = 60,
+        blurPasses = 2,
+    } = options;
+
+    const shoreHeight = 80;
+    const oceanH = canvasH - shoreHeight;
+
+    // Use Option C grid builder
+    const grid = buildIntensityGridOptionC(foamRows, gridW, gridH, canvasW, oceanH, gameTime);
+    const blurred = blurPasses > 0 ? boxBlur(grid, gridW, gridH, blurPasses) : grid;
+
+    const results = [];
+    const sortedThresholds = [...thresholds].sort((a, b) => a.value - b.value);
+
+    for (const { value, color, lineWidth } of sortedThresholds) {
+        const segments = extractLineSegments(blurred, gridW, gridH, value);
+
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lineWidth;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+
+        ctx.beginPath();
+        for (const seg of segments) {
+            ctx.moveTo(seg.x1 * canvasW, seg.y1 * oceanH);
+            ctx.lineTo(seg.x2 * canvasW, seg.y2 * oceanH);
         }
         ctx.stroke();
 

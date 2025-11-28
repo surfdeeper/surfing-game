@@ -1,0 +1,146 @@
+---
+name: testing
+description: Apply testing best practices when writing or modifying tests. Use when creating unit tests (Vitest), visual tests (Playwright), or discussing test strategy. Auto-apply when editing files in tests/ or *.test.js files.
+---
+
+# Testing Skill
+
+This project has a comprehensive testing strategy with multiple test types.
+
+## Test Framework Stack
+
+| Type | Framework | Location | Command |
+|------|-----------|----------|---------|
+| Unit | Vitest | `src/**/*.test.js` | `npm test` |
+| Visual | Playwright | `tests/visual/*.spec.js` | `npm run test:visual:headless` |
+| E2E | Playwright | `tests/*.spec.js` | `npm run test:e2e` |
+| Performance | Vitest | `src/**/*.perf.test.js` | `npm test` |
+
+## Test Commands Reference
+
+```bash
+# Linting (run first for fast feedback)
+npm run lint                          # ESLint - catch syntax/import errors
+
+# Unit tests
+npm test                              # Run all unit tests
+npx vitest run src/path/file.test.js  # Run specific test
+
+# Visual tests
+npm run test:visual:headless          # Headless (CI/agents)
+npm run test:visual:headed            # With browser UI (debugging)
+npm run test:visual:update:headless   # Update baseline snapshots
+npm run reset:visual                  # Clear results/reports
+npm run reset:visual:all              # Clear results + baselines
+```
+
+**Always run `npm run lint` before running tests** - it's much faster and catches common errors like undefined variables, missing imports, and syntax issues.
+
+## Unit Test Patterns (Vitest)
+
+### File Naming
+- Place tests next to source: `src/state/waveModel.js` → `src/state/waveModel.test.js`
+- Performance tests: `*.perf.test.js`
+
+### Test Structure
+```javascript
+import { describe, it, expect, beforeEach } from 'vitest';
+
+describe('ModuleName', () => {
+  describe('functionName', () => {
+    it('should handle specific case', () => {
+      // Arrange
+      const input = createTestData();
+
+      // Act
+      const result = functionUnderTest(input);
+
+      // Assert
+      expect(result).toMatchObject({ expected: 'shape' });
+    });
+  });
+});
+```
+
+### Testing Physics/Math Code
+- Test boundary conditions (zero, negative, maximum values)
+- Test physical invariants (energy conservation, valid ranges)
+- Use `toBeCloseTo()` for floating point comparisons
+- Document expected physics behavior in test names
+
+Example from `waveModel.test.js`:
+```javascript
+it('should increase wave height during shoaling', () => {
+  const deepWater = calculateWaveHeight(depth: 100);
+  const shallowWater = calculateWaveHeight(depth: 10);
+  expect(shallowWater).toBeGreaterThan(deepWater);
+});
+```
+
+## Visual Test Patterns (Playwright)
+
+### Story-Based Visual Tests
+Visual tests use Ladle stories as test fixtures:
+
+```javascript
+// tests/visual/foam-rendering.spec.js
+const stories = [
+  { id: 'foam-rendering--current-behavior', name: 'Current Behavior' },
+  { id: 'foam-rendering--option-a-expand-bounds', name: 'Option A Expand Bounds' },
+  { id: 'foam-rendering--compare-all-options', name: 'Compare All Options' },
+];
+
+test(`${story.name} matches snapshot`, async ({ page }) => {
+  await page.goto(`/?story=${story.id}`);
+  await page.waitForSelector('canvas');
+  await page.waitForTimeout(500); // Ensure render complete
+
+  const canvas = page.locator('canvas').first();
+  await expect(canvas).toHaveScreenshot(`${story.id}.png`);
+});
+```
+
+**Important**: Story IDs must match exports from `src/stories/*.stories.jsx`. Check Ladle's `/meta.json` endpoint to see available story IDs.
+
+### Visual Test Best Practices
+1. Wait for canvas to be fully rendered before screenshot
+2. Use consistent viewport sizes
+3. Capture canvas element only, not full page
+4. Name snapshots descriptively: `{feature}--{scenario}.png`
+
+## Performance Tests
+
+Located in `*.perf.test.js` files. Test rendering and simulation performance:
+
+```javascript
+// src/render/foamRendering.perf.test.js
+describe('performance', () => {
+  it('should render 1000 foam rows under 16ms', () => {
+    const start = performance.now();
+    renderFoam(largeDataSet);
+    const duration = performance.now() - start;
+    expect(duration).toBeLessThan(16); // 60fps budget
+  });
+});
+```
+
+## When Writing Tests
+
+1. **Before implementation**: Write failing test first (TDD encouraged)
+2. **After implementation**: Ensure edge cases covered
+3. **Bug fixes**: Add regression test that fails without fix
+4. **Visual changes**: Update baselines after review
+
+## Test Data Fixtures
+
+Create realistic test data that exercises the physics:
+- Wave scenarios: early wave (offshore), mid wave (breaking), late wave (shore)
+- Size variations: small, medium, large waves
+- Time progressions: t=0 through full wave lifecycle
+
+## Integration with Plans
+
+Reference relevant plans when writing tests:
+- `plans/testing/110-testing-strategy.md` - Overall strategy
+- `plans/testing/130-testing-expansion.md` - Expansion plans
+- Feature plans contain acceptance criteria for tests

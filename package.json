@@ -3,29 +3,45 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "test": "vitest run",
+    "lint": "eslint src/",
     "test:e2e": "playwright test",
     "ladle": "ladle serve",
     "ladle:build": "ladle build",
-    "test:visual": "playwright test --config=playwright.visual.config.js",
-    "test:visual:update": "playwright test --config=playwright.visual.config.js --update-snapshots"
+    "test:visual:headless": "playwright test --config=playwright.visual.config.js",
+    "test:visual:headed": "playwright test --config=playwright.visual.config.js --headed",
+    "test:visual:update:headless": "playwright test --config=playwright.visual.config.js --update-snapshots",
+    "test:visual:update:headed": "playwright test --config=playwright.visual.config.js --update-snapshots --headed",
+    "reset:visual": "bash -c 'rm -rf tests/visual/results tests/visual/report test-results/.last-run.json && mkdir -p tests/visual/results tests/visual/report'",
+    "reset:visual:all": "bash -c 'rm -rf tests/visual/results tests/visual/report tests/visual/snapshots test-results/.last-run.json && mkdir -p tests/visual/results tests/visual/report tests/visual/snapshots'"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@eslint/js": "^9.39.1",
     "@ladle/react": "^5.1.1",
     "@playwright/test": "^1.57.0",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react": "^7.37.5",
+    "gifenc": "^1.0.3",
+    "globals": "^16.5.0",
+    "jsdom": "^27.2.0",
     "playwright": "^1.57.0",
+    "pngjs": "^7.0.0",
     "vite": "^7.2.4",
     "vitest": "^4.0.14"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^5.1.1",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "react-tooltip": "^5.30.0"
   }
 }

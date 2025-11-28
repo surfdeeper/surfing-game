@@ -36,7 +36,14 @@ import {
 import { KeyboardInput } from './input/keyboard.js';
 import { createRoot } from 'react-dom/client';
 import { DebugPanel } from './ui/DebugPanel.jsx';
-import { buildIntensityGrid, boxBlur, extractLineSegments } from './render/marchingSquares.js';
+import {
+    buildIntensityGrid,
+    boxBlur,
+    extractLineSegments,
+    buildIntensityGridOptionA,
+    buildIntensityGridOptionB,
+    buildIntensityGridOptionC,
+} from './render/marchingSquares.js';
 
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
@@ -145,6 +152,10 @@ const toggles = {
     showFoamZones: localStorage.getItem('showFoamZones') !== 'false',  // default true - smooth foam polygons
     showFoamSamples: localStorage.getItem('showFoamSamples') === 'true',  // default false - debug rectangles
     showPlayer: localStorage.getItem('showPlayer') === 'true',  // default false - player proxy
+    // Foam dispersion experimental options (compare different algorithms)
+    showFoamOptionA: localStorage.getItem('showFoamOptionA') === 'true',  // Expand bounds
+    showFoamOptionB: localStorage.getItem('showFoamOptionB') === 'true',  // Age-based blur
+    showFoamOptionC: localStorage.getItem('showFoamOptionC') === 'true',  // Per-row dispersion
 };
 
 // Helper to save toggle state
@@ -155,6 +166,9 @@ function saveToggleState() {
     localStorage.setItem('showFoamZones', toggles.showFoamZones);
     localStorage.setItem('showFoamSamples', toggles.showFoamSamples);
     localStorage.setItem('showPlayer', toggles.showPlayer);
+    localStorage.setItem('showFoamOptionA', toggles.showFoamOptionA);
+    localStorage.setItem('showFoamOptionB', toggles.showFoamOptionB);
+    localStorage.setItem('showFoamOptionC', toggles.showFoamOptionC);
 }
 
 // Toggle handler for Preact UI
@@ -257,6 +271,16 @@ document.addEventListener('keydown', (e) => {
             const { shoreY } = getOceanBounds(canvas.height, world.shoreHeight);
             world.playerProxy = createPlayerProxy(canvas.width, shoreY);
         }
+    }
+    // Foam dispersion option toggles (1, 2, 3 keys)
+    if (e.key === '1') {
+        handleToggle('showFoamOptionA');
+    }
+    if (e.key === '2') {
+        handleToggle('showFoamOptionB');
+    }
+    if (e.key === '3') {
+        handleToggle('showFoamOptionC');
     }
 });
 
@@ -587,6 +611,113 @@ function draw() {
                 const y2 = seg.y2 * oceanBottom;
                 ctx.moveTo(x1, y1);
                 ctx.lineTo(x2, y2);
+            }
+            ctx.stroke();
+        }
+    }
+
+    // Helper function to draw contours from a grid
+    function drawContours(grid, gridW, gridH, thresholds, colorPrefix) {
+        const blurred = boxBlur(grid, gridW, gridH, 2);
+        for (const { value, baseColor, lineWidth } of thresholds) {
+            const segments = extractLineSegments(blurred, gridW, gridH, value);
+
+            ctx.strokeStyle = colorPrefix ? `${colorPrefix}` : baseColor;
+            ctx.lineWidth = lineWidth;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            ctx.beginPath();
+            for (const seg of segments) {
+                ctx.moveTo(seg.x1 * w, seg.y1 * oceanBottom);
+                ctx.lineTo(seg.x2 * w, seg.y2 * oceanBottom);
+            }
+            ctx.stroke();
+        }
+    }
+
+    // LAYER: Option A - Expanding segment bounds (red/orange contours)
+    // Outer contours expand as foam ages, inner contours collapse
+    if (toggles.showFoamOptionA) {
+        const GRID_W = 80;
+        const GRID_H = 60;
+        const grid = buildIntensityGridOptionA(world.foamRows, GRID_W, GRID_H, w, oceanBottom, world.gameTime);
+        const blurred = boxBlur(grid, GRID_W, GRID_H, 2);
+
+        const thresholds = [
+            { value: 0.15, color: 'rgba(255, 100, 100, 0.4)', lineWidth: 1 },
+            { value: 0.3, color: 'rgba(255, 150, 100, 0.7)', lineWidth: 2 },
+            { value: 0.5, color: 'rgba(255, 200, 150, 0.9)', lineWidth: 3 },
+        ];
+
+        for (const { value, color, lineWidth } of thresholds) {
+            const segments = extractLineSegments(blurred, GRID_W, GRID_H, value);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = lineWidth;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.beginPath();
+            for (const seg of segments) {
+                ctx.moveTo(seg.x1 * w, seg.y1 * oceanBottom);
+                ctx.lineTo(seg.x2 * w, seg.y2 * oceanBottom);
+            }
+            ctx.stroke();
+        }
+    }
+
+    // LAYER: Option B - Age-based blur (green contours)
+    // More blur passes as foam ages, causing natural expansion
+    if (toggles.showFoamOptionB) {
+        const GRID_W = 80;
+        const GRID_H = 60;
+        const { grid, blurPasses } = buildIntensityGridOptionB(world.foamRows, GRID_W, GRID_H, w, oceanBottom, world.gameTime);
+        const blurred = boxBlur(grid, GRID_W, GRID_H, blurPasses);
+
+        const thresholds = [
+            { value: 0.15, color: 'rgba(100, 255, 100, 0.4)', lineWidth: 1 },
+            { value: 0.3, color: 'rgba(150, 255, 150, 0.7)', lineWidth: 2 },
+            { value: 0.5, color: 'rgba(200, 255, 200, 0.9)', lineWidth: 3 },
+        ];
+
+        for (const { value, color, lineWidth } of thresholds) {
+            const segments = extractLineSegments(blurred, GRID_W, GRID_H, value);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = lineWidth;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.beginPath();
+            for (const seg of segments) {
+                ctx.moveTo(seg.x1 * w, seg.y1 * oceanBottom);
+                ctx.lineTo(seg.x2 * w, seg.y2 * oceanBottom);
+            }
+            ctx.stroke();
+        }
+    }
+
+    // LAYER: Option C - Per-row dispersion radius (blue/purple contours)
+    // Most physically accurate - foam spreads in X and Y, core/halo fade separately
+    if (toggles.showFoamOptionC) {
+        const GRID_W = 80;
+        const GRID_H = 60;
+        const grid = buildIntensityGridOptionC(world.foamRows, GRID_W, GRID_H, w, oceanBottom, world.gameTime);
+        const blurred = boxBlur(grid, GRID_W, GRID_H, 2);
+
+        const thresholds = [
+            { value: 0.15, color: 'rgba(150, 100, 255, 0.4)', lineWidth: 1 },
+            { value: 0.3, color: 'rgba(180, 150, 255, 0.7)', lineWidth: 2 },
+            { value: 0.5, color: 'rgba(220, 200, 255, 0.9)', lineWidth: 3 },
+        ];
+
+        for (const { value, color, lineWidth } of thresholds) {
+            const segments = extractLineSegments(blurred, GRID_W, GRID_H, value);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = lineWidth;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.beginPath();
+            for (const seg of segments) {
+                ctx.moveTo(seg.x1 * w, seg.y1 * oceanBottom);
+                ctx.lineTo(seg.x2 * w, seg.y2 * oceanBottom);
             }
             ctx.stroke();
         }

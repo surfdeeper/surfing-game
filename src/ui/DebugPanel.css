@@ -210,3 +210,34 @@
 .tooltip-trigger:hover {
   background: rgba(74, 144, 184, 0.7);
 }
+
+/* Circular progress indicator */
+.circular-progress {
+  flex-shrink: 0;
+}
+
+.circular-progress-bg {
+  fill: none;
+  stroke: #333;
+}
+
+.circular-progress-fill {
+  fill: none;
+  transition: stroke-dashoffset 0.1s ease-out;
+}
+
+/* Timer control with circular progress */
+.timer-control .timer-value {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* React-tooltip customization */
+.react-tooltip {
+  max-width: 200px !important;
+  font-size: 11px !important;
+  line-height: 1.4 !important;
+  padding: 8px 10px !important;
+  z-index: 1001 !important;
+}

@@ -1,17 +1,16 @@
 import { test, expect } from '@playwright/test';
 
 // Ladle uses hash-based routing: /?story=story-id
-// Story IDs are kebab-case: "foam-rendering--zones-early-wave"
+// Story IDs match exports from FoamRendering.stories.jsx
 
 const stories = [
-  { id: 'foam-rendering--zones-early-wave', name: 'Zones Early Wave' },
-  { id: 'foam-rendering--zones-mid-wave', name: 'Zones Mid Wave' },
-  { id: 'foam-rendering--zones-late-wave', name: 'Zones Late Wave' },
-  { id: 'foam-rendering--samples-early-wave', name: 'Samples Early Wave' },
-  { id: 'foam-rendering--samples-mid-wave', name: 'Samples Mid Wave' },
-  { id: 'foam-rendering--comparison-mid-wave', name: 'Comparison Mid Wave' },
-  { id: 'foam-rendering--small-wave', name: 'Small Wave' },
-  { id: 'foam-rendering--large-wave', name: 'Large Wave' },
+  { id: 'foam-rendering--current-behavior', name: 'Current Behavior' },
+  { id: 'foam-rendering--option-a-expand-bounds', name: 'Option A Expand Bounds' },
+  { id: 'foam-rendering--option-b-age-blur', name: 'Option B Age Blur' },
+  { id: 'foam-rendering--option-c-dispersion-radius', name: 'Option C Dispersion Radius' },
+  { id: 'foam-rendering--compare-all-options', name: 'Compare All Options' },
+  { id: 'foam-rendering--full-comparison-matrix', name: 'Full Comparison Matrix' },
+  { id: 'foam-rendering--wave-size-comparison', name: 'Wave Size Comparison' },
 ];
 
 test.describe('Foam Rendering Visual Tests', () => {
@@ -31,21 +30,4 @@ test.describe('Foam Rendering Visual Tests', () => {
       await expect(canvas).toHaveScreenshot(`${story.id}.png`);
     });
   }
-});
-
-test.describe('Foam Rendering Animation Capture', () => {
-  test('capture foam zones animation', async ({ page }) => {
-    // This test records a video of the mid-wave story
-    // The video can be converted to GIF later
-    await page.goto('/?story=foam-rendering--zones-mid-wave');
-    await page.waitForSelector('canvas');
-
-    // Take multiple screenshots at "different times" by reloading
-    // (In a real animation, we'd interact with the component)
-    for (let i = 0; i < 5; i++) {
-      await page.waitForTimeout(200);
-      const canvas = page.locator('canvas').first();
-      await canvas.screenshot({ path: `tests/visual/results/animation-frame-${i}.png` });
-    }
-  });
 });
