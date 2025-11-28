@@ -6,6 +6,8 @@ import {
     isWaveComplete,
     getActiveWaves,
     WAVE_TYPE,
+    amplitudeToHeight,
+    isWaveBreaking,
 } from './waveModel.js';
 
 describe('waveModel', () => {
@@ -193,6 +195,56 @@ describe('waveModel', () => {
                 // Not strictly valid, but shouldn't crash
                 const wave = createWave(1000, 1.5);
                 expect(wave.amplitude).toBe(1.5);
+            });
+        });
+
+        describe('Wave Breaking (Depth-Based)', () => {
+            it('wave starts with lastFoamY = -1', () => {
+                const wave = createWave(1000, 0.8);
+                expect(wave.lastFoamY).toBe(-1);
+            });
+
+            it('amplitudeToHeight maps amplitude to wave height', () => {
+                // Min amplitude (0) → 0.5m
+                expect(amplitudeToHeight(0)).toBe(0.5);
+                // Max amplitude (1) → 3m
+                expect(amplitudeToHeight(1)).toBe(3.0);
+                // Mid amplitude (0.5) → 1.75m
+                expect(amplitudeToHeight(0.5)).toBe(1.75);
+            });
+
+            it('high amplitude wave breaks in shallow water', () => {
+                const wave = createWave(1000, 1.0); // max amplitude → 3m height
+                const depth = 2; // 2m depth
+                // 3m > 0.78 * 2m (1.56m) → should break
+                expect(isWaveBreaking(wave, depth)).toBe(true);
+            });
+
+            it('wave does not break in deep water', () => {
+                const wave = createWave(1000, 1.0); // max amplitude → 3m height
+                const depth = 20; // 20m depth
+                // 3m < 0.78 * 20m (15.6m) → should not break
+                expect(isWaveBreaking(wave, depth)).toBe(false);
+            });
+
+            it('low amplitude wave does not break even in shallow water', () => {
+                const wave = createWave(1000, 0.2); // low amplitude → ~1m height
+                const depth = 2; // 2m depth
+                // 1m < 0.78 * 2m (1.56m) → should not break
+                expect(isWaveBreaking(wave, depth)).toBe(false);
+            });
+
+            it('wave can break and reform multiple times', () => {
+                // Wave breaks based purely on depth, no state tracking
+                // Can break over sandbar, reform in deep water, break again at point
+                const wave = createWave(1000, 1.0); // 3m height
+
+                // Over sandbar (shallow) - breaking
+                expect(isWaveBreaking(wave, 2)).toBe(true);
+                // In deep water - not breaking (reformed)
+                expect(isWaveBreaking(wave, 20)).toBe(false);
+                // Over point (shallow again) - breaking again
+                expect(isWaveBreaking(wave, 2)).toBe(true);
             });
         });
 

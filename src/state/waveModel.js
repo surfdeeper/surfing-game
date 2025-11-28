@@ -24,6 +24,8 @@ export function createWave(spawnTime, amplitude, type = WAVE_TYPE.SET) {
         spawnTime,
         amplitude,
         type,
+        // Track the last Y position where we deposited foam, to avoid duplicates
+        lastFoamY: -1,
     };
 }
 
@@ -66,4 +68,37 @@ export function isWaveComplete(wave, currentTime, travelDuration) {
  */
 export function getActiveWaves(waves, currentTime, travelDuration) {
     return waves.filter(wave => !isWaveComplete(wave, currentTime, travelDuration));
+}
+
+/**
+ * Convert wave amplitude to physical wave height in meters
+ * @param {number} amplitude - Wave amplitude (0-1)
+ * @returns {number} Wave height in meters
+ */
+export function amplitudeToHeight(amplitude) {
+    // Map 0-1 amplitude to 0.5-3m wave height
+    const minHeight = 0.5;  // meters
+    const maxHeight = 3.0;  // meters
+    return minHeight + (maxHeight - minHeight) * amplitude;
+}
+
+/**
+ * Check if wave is currently breaking at a given depth
+ * Uses the 0.78 breaker index rule: wave breaks when H > 0.78 * d
+ *
+ * No state tracking - just checks current conditions.
+ * Wave breaks whenever it's over shallow enough water.
+ * Can break, reform (deeper water), and break again multiple times.
+ *
+ * @param {object} wave - Wave object
+ * @param {number} depth - Water depth at this position (meters)
+ * @returns {boolean} True if wave is breaking at this depth
+ */
+export function isWaveBreaking(wave, depth) {
+    // Get physical wave height
+    const waveHeight = amplitudeToHeight(wave.amplitude);
+
+    // Apply breaker index rule: H > 0.78 * d
+    const breakerIndex = 0.78;
+    return waveHeight > breakerIndex * depth;
 }

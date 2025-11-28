@@ -1,0 +1,41 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`bathymetryModel > depth matrix snapshot > matches expected depth matrix 1`] = `
+[
+  [
+    30,
+    30,
+    30,
+    30,
+    30,
+  ],
+  [
+    20.6,
+    20.6,
+    20.6,
+    20.6,
+    20.6,
+  ],
+  [
+    15.3,
+    15.3,
+    15.3,
+    15.3,
+    15.3,
+  ],
+  [
+    7.9,
+    7.3,
+    7.7,
+    7.9,
+    7.9,
+  ],
+  [
+    0.5,
+    0.1,
+    0.1,
+    0.5,
+    0.5,
+  ],
+]
+`;

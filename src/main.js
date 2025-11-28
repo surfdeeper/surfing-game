@@ -11,9 +11,7 @@ import {
     getWaveProgress,
     getActiveWaves,
     WAVE_TYPE,
-    shouldWaveBreakAtDepth,
-    markBreakTriggered,
-    hasBreakTriggeredAt,
+    isWaveBreaking,
 } from './state/waveModel.js';
 import { createFoam, updateFoam, getActiveFoam } from './state/foamModel.js';
 import { DEFAULT_BATHYMETRY, getDepth, getPeakX } from './state/bathymetryModel.js';
@@ -135,11 +133,7 @@ function saveGameState() {
     const state = {
         gameTime: world.gameTime,
         timeScale,
-        // Convert wave Sets to Arrays for JSON serialization
-        waves: world.waves.map(w => ({
-            ...w,
-            hasTriggeredBreakAt: Array.from(w.hasTriggeredBreakAt)
-        })),
+        waves: world.waves,
         foamSegments: world.foamSegments,
         setLullState: world.setLullState,
         backgroundState: world.backgroundState,
@@ -155,11 +149,7 @@ function loadGameState() {
         const state = JSON.parse(saved);
         world.gameTime = state.gameTime || 0;
         timeScale = state.timeScale || 1;
-        // Convert wave Arrays back to Sets
-        world.waves = (state.waves || []).map(w => ({
-            ...w,
-            hasTriggeredBreakAt: new Set(w.hasTriggeredBreakAt || [])
-        }));
+        world.waves = state.waves || [];
         world.foamSegments = state.foamSegments || [];
         if (state.setLullState) world.setLullState = state.setLullState;
         if (state.backgroundState) world.backgroundState = state.backgroundState;
@@ -265,38 +255,46 @@ function update(deltaTime) {
     const bufferDuration = (world.swellSpacing / world.swellSpeed) * 1000;
     world.waves = getActiveWaves(world.waves, world.gameTime - bufferDuration, travelDuration);
 
-    // Check for breaking and spawn foam (depth-based)
-    // We check multiple x-zones across the screen
-    const numZones = 10;  // Number of x-positions to check
+    // Deposit foam where waves are breaking
+    // Foam is deposited at the wave's current position and stays there (doesn't move)
+    // Shape of foam naturally follows bathymetry because it's deposited wherever depth triggers breaking
+    const numXSamples = 20;  // Sample X positions across screen
+    const foamYSpacing = 4;  // Minimum Y spacing between foam deposits (pixels)
+
     for (const wave of world.waves) {
         const progress = getWaveProgress(wave, world.gameTime, travelDuration);
         const waveY = progressToScreenY(progress, oceanTop, oceanBottom);
 
-        for (let zone = 0; zone < numZones; zone++) {
-            // Skip if we already spawned foam at this zone for this wave
-            if (hasBreakTriggeredAt(wave, zone)) {
-                continue;
-            }
+        // Only deposit foam if wave has moved enough since last deposit
+        if (wave.lastFoamY >= 0 && Math.abs(waveY - wave.lastFoamY) < foamYSpacing) {
+            continue;
+        }
 
-            const normalizedX = (zone + 0.5) / numZones;  // Center of zone
+        let depositedAny = false;
+        for (let i = 0; i < numXSamples; i++) {
+            const normalizedX = (i + 0.5) / numXSamples;
             const depth = getDepth(normalizedX, world.bathymetry, progress);
 
-            if (shouldWaveBreakAtDepth(wave, progress, depth)) {
-                // Spawn independent foam entity at this location
+            if (isWaveBreaking(wave, depth)) {
+                // Deposit foam at this location - it stays here!
                 const foam = createFoam(world.gameTime, normalizedX, waveY, wave.id);
                 world.foamSegments.push(foam);
-                markBreakTriggered(wave, zone);
+                depositedAny = true;
             }
+        }
+
+        if (depositedAny) {
+            wave.lastFoamY = waveY;
         }
     }
 
-    // Update existing foam segments (they move and fade independently)
+    // Update existing foam (just fades, doesn't move)
     for (const foam of world.foamSegments) {
         updateFoam(foam, scaledDelta, world.gameTime);
     }
 
-    // Remove dead foam (faded or past shore)
-    world.foamSegments = getActiveFoam(world.foamSegments, shoreY);
+    // Remove faded foam
+    world.foamSegments = getActiveFoam(world.foamSegments);
 
     // Save game state periodically (every ~1 second)
     if (Math.floor(world.gameTime / 1000) !== Math.floor((world.gameTime - scaledDelta * 1000) / 1000)) {
@@ -401,30 +399,17 @@ function draw() {
     }
     ctx.globalAlpha = 1.0; // Reset alpha after waves
 
-    // Draw foam segments (independent entities, NOT attached to waves)
-    // Foam persists after waves pass, creating whitewater trails
+    // Draw foam deposits (stay where deposited, form trails matching bathymetry shape)
+    // Each foam segment is a small dot - together they form the breaking pattern
+    const foamDotSize = w / 20;  // Width of each foam sample
     for (const foam of world.foamSegments) {
         if (foam.opacity <= 0) continue;
 
-        const centerX = foam.x * w;
-        const halfWidth = (foam.width * w) / 2;
+        const foamX = foam.x * w;
 
-        // Draw foam as horizontal band (whitewater), not triangle
-        // This is the main foam body
-        ctx.fillStyle = `rgba(255, 255, 255, ${foam.opacity * 0.8})`;
-        ctx.fillRect(centerX - halfWidth, foam.y, halfWidth * 2, 12);
-
-        // Add some texture/bubbles
-        ctx.fillStyle = `rgba(255, 255, 255, ${foam.opacity * 0.5})`;
-        const numBubbles = 3;
-        for (let i = 0; i < numBubbles; i++) {
-            const bubbleX = centerX - halfWidth + (halfWidth * 2) * (i + 0.5) / numBubbles;
-            const bubbleY = foam.y + 6 + Math.sin(foam.spawnTime / 100 + i) * 3;
-            const bubbleR = 3 + Math.cos(foam.spawnTime / 80 + i * 2) * 1.5;
-            ctx.beginPath();
-            ctx.arc(bubbleX, bubbleY, bubbleR, 0, Math.PI * 2);
-            ctx.fill();
-        }
+        // Draw foam as small rectangle at its fixed position
+        ctx.fillStyle = `rgba(255, 255, 255, ${foam.opacity * 0.85})`;
+        ctx.fillRect(foamX - foamDotSize / 2, foam.y, foamDotSize, 6);
     }
 
     // Debug: show foam count
