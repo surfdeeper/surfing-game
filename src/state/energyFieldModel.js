@@ -102,14 +102,14 @@ export function updateEnergyField(field, getDepthFn, dt, travelDuration = 12) {
         }
     }
 
-    // Slowly fade horizon so pulses eventually move down fully
+    // Fade horizon so pulses move down
     for (let x = 0; x < width; x++) {
-        height[x] *= (1 - blend * 0.5); // Slower fade at horizon
+        height[x] *= (1 - blend * 0.5);
     }
 
     // Lateral diffusion - spread energy sideways to fill vertical gaps
-    // Use a small amount to prevent too much dilution
-    const lateralSpread = 0.03;
+    // Higher spread rate to quickly fill gaps from breaking
+    const lateralSpread = 0.15;
     for (let y = 1; y < gridHeight; y++) {
         for (let x = 1; x < width - 1; x++) {
             const idx = y * width + x;
@@ -120,11 +120,31 @@ export function updateEnergyField(field, getDepthFn, dt, travelDuration = 12) {
             // Only spread if neighbors have less energy (fills gaps, doesn't dilute peaks)
             const maxNeighbor = Math.max(left, right);
             if (current > maxNeighbor) {
-                // Share some energy with lower neighbors
+                // Share energy with lower neighbors
                 const share = (current - maxNeighbor) * lateralSpread;
                 height[idx] -= share;
                 height[idx - 1] += share * 0.5;
                 height[idx + 1] += share * 0.5;
+            }
+        }
+    }
+
+    // Horizontal band coherence - cells in the same row tend toward row average
+    // This keeps energy in horizontal bands like the actual waves
+    const bandCoherence = 0.05;
+    for (let y = 1; y < gridHeight; y++) {
+        // Calculate row average
+        let rowSum = 0;
+        for (let x = 0; x < width; x++) {
+            rowSum += height[y * width + x];
+        }
+        const rowAvg = rowSum / width;
+
+        // Blend each cell toward row average (but only if it has energy)
+        for (let x = 0; x < width; x++) {
+            const idx = y * width + x;
+            if (height[idx] > 0.05) {
+                height[idx] = height[idx] * (1 - bandCoherence) + rowAvg * bandCoherence;
             }
         }
     }

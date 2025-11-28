@@ -494,9 +494,9 @@ function update(deltaTime) {
                     world.foamSegments.push(foam);
                     depositedAny = true;
 
-                    // Drain energy where foam is deposited
+                    // Drain energy where foam is deposited (wave breaks = energy loss)
                     if (toggles.showEnergyField) {
-                        drainEnergyAt(world.energyField, normalizedX, foamProgress, wave.amplitude * 0.5);
+                        drainEnergyAt(world.energyField, normalizedX, foamProgress, wave.amplitude * 1.5);
                     }
                 }
             }
