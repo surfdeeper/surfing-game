@@ -291,9 +291,14 @@ function draw() {
     const stateTimerProgress = Math.min(world.setTimer / world.setDuration, 1);
     const stateLabel2 = world.setState === 'LULL' ? 'Until set' : 'Set ends';
 
+    // Filter and sort waves for display (exclude at-shore, sort by distance from horizon)
+    const displayWaves = world.waves
+        .filter(wave => wave.y < shoreY)
+        .sort((a, b) => a.y - b.y);  // ascending: horizon first
+
     // Calculate panel height based on wave count
     const baseHeight = 130;
-    const waveListHeight = world.waves.length * 16;
+    const waveListHeight = displayWaves.length * 16;
     const panelHeight = baseHeight + waveListHeight;
 
     ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
@@ -317,44 +322,44 @@ function draw() {
     ctx.fillStyle = world.setState === 'LULL' ? '#e8a644' : '#44e8a6';
     ctx.fillRect(w - 210, 85, 190 * stateTimerProgress, 8);
 
-    // Active waves section
     ctx.fillStyle = '#fff';
-    ctx.fillText(`Active waves: ${world.waves.length}`, w - 210, 115);
+    ctx.fillText(`Active waves: ${displayWaves.length}`, w - 210, 115);
 
-    // List each wave with amplitude, state, and time to shore
-    for (let i = 0; i < world.waves.length; i++) {
-        const wave = world.waves[i];
+    for (let i = 0; i < displayWaves.length; i++) {
+        const wave = displayWaves[i];
         const distanceToShore = shoreY - wave.y;
-        const timeToShore = Math.max(0, distanceToShore / world.swellSpeed).toFixed(1);
+        const timeToShore = (distanceToShore / world.swellSpeed).toFixed(1);
         const ampPercent = Math.round(wave.amplitude * 100);
-
-        // Determine wave state based on position
-        let waveState;
-        if (wave.y < 50) {
-            waveState = 'approaching';
-        } else if (wave.y >= shoreY) {
-            waveState = 'at shore';
-        } else {
-            waveState = 'visible';
-        }
-
         ctx.fillStyle = '#aaa';
-        ctx.fillText(`  • ${ampPercent}% amp, ${timeToShore}s [${waveState}]`, w - 210, 130 + i * 16);
+        ctx.fillText(`  • ${ampPercent}% amp, ${timeToShore}s`, w - 210, 130 + i * 16);
     }
 }
 
 // Game loop
+const MAX_DELTA_TIME = 0.1;  // 100ms max - prevents huge jumps after tab restore
 let lastTime = 0;
 
 function gameLoop(timestamp) {
-    const deltaTime = (timestamp - lastTime) / 1000;
+    let deltaTime = (timestamp - lastTime) / 1000;
     lastTime = timestamp;
+
+    // Clamp deltaTime to prevent huge jumps when returning from background
+    if (deltaTime > MAX_DELTA_TIME) {
+        deltaTime = MAX_DELTA_TIME;
+    }
 
     update(deltaTime);
     draw();
 
     requestAnimationFrame(gameLoop);
 }
+
+// Reset timing when tab becomes visible again
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+        lastTime = performance.now();
+    }
+});
 
 // Initialize first lull and spawn first wave immediately
 startLull();
