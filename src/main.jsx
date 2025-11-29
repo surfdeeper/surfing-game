@@ -9,15 +9,11 @@
 import {
     getWaveProgress,
     WAVE_TYPE,
-    WAVE_X_SAMPLES,
 } from './state/waveModel.js';
 import { getDepth } from './state/bathymetryModel.js';
 import { createBathymetryCacheManager } from './render/bathymetryRenderer.js';
 import { getOceanBounds, calculateTravelDuration } from './render/coordinates.js';
-import {
-    DEFAULT_CONFIG,
-    createInitialState,
-} from './state/setLullModel.js';
+import { saveGameState, loadGameState, shouldAutoSave } from './state/gamePersistence.js';
 import './state/backgroundWaveModel.js';  // Needed by eventStore
 import {
     updateWaveSpawning,
@@ -31,9 +27,7 @@ import {
 import { EventType, getStore } from './state/eventStore.js';
 import {
     loadSettings,
-    toggleSetting,
-    updateSetting,
-    cycleSetting,
+    saveSettings,
     getSettingForHotkey,
     SETTINGS_SCHEMA,
 } from './state/settingsModel.js';
@@ -63,6 +57,7 @@ import {
     renderMultiContourOptionB,
     renderMultiContourOptionC,
 } from './render/marchingSquares.js';
+import { renderFoamContours } from './render/foamConfig.js';
 
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
@@ -96,20 +91,38 @@ const colors = {
     shore: '#c2a86e',
 };
 
-// Settings loaded from settingsModel (schema-validated, versioned)
-// This replaces the old inline localStorage reading
-let settings = loadSettings();
+// Load settings from localStorage and apply to store
+const savedSettings = loadSettings();
 
-// Alias for backwards compatibility - kept in sync with settings
-let toggles = settings;
+// Apply saved toggles to store
+for (const [key, value] of Object.entries(savedSettings)) {
+    if (key === 'timeScale') {
+        store.dispatch({ type: EventType.TIME_SCALE_CHANGE, timeScale: value });
+    } else if (typeof value === 'boolean') {
+        store.dispatch({ type: EventType.TOGGLE_CHANGE, key, value });
+    }
+}
+world = store.getState();
 
-// Toggle handler for React UI - uses settingsModel for persistence
+// Helper to get current toggles from store (replaces separate settings object)
+const getToggles = () => store.getState().toggles;
+const getTimeScale = () => store.getState().timeScale;
+
+// Alias for backwards compatibility with E2E tests
+let toggles = { ...world.toggles, timeScale: world.timeScale };
+
+// Toggle handler for React UI - uses store dispatch + localStorage persistence
 function handleToggle(key) {
-    settings = toggleSetting(settings, key);
-    toggles = settings;  // Keep alias in sync
+    const currentValue = getToggles()[key];
+    store.dispatch({ type: EventType.TOGGLE_CHANGE, key, value: !currentValue });
+    world = store.getState();
+    toggles = { ...world.toggles, timeScale: world.timeScale };  // Keep alias in sync
+
+    // Persist to localStorage
+    saveSettings({ ...world.toggles, timeScale: world.timeScale });
 
     // Initialize player proxy when first enabled via UI
-    if (key === 'showPlayer' && settings.showPlayer && !world.playerProxy) {
+    if (key === 'showPlayer' && world.toggles.showPlayer && !world.playerProxy) {
         const { shoreY } = getOceanBounds(canvas.height, world.shoreHeight);
         store.dispatch({ type: EventType.PLAYER_INIT, playerProxy: createPlayerProxy(canvas.width, shoreY) });
         world = store.getState();
@@ -118,8 +131,12 @@ function handleToggle(key) {
 
 // Time scale handler for React UI
 function handleTimeScaleChange(newScale) {
-    settings = updateSetting(settings, 'timeScale', newScale);
-    toggles = settings;
+    store.dispatch({ type: EventType.TIME_SCALE_CHANGE, timeScale: newScale });
+    world = store.getState();
+    toggles = { ...world.toggles, timeScale: world.timeScale };
+
+    // Persist to localStorage
+    saveSettings({ ...world.toggles, timeScale: world.timeScale });
 }
 
 // Player config handler for React UI
@@ -143,68 +160,15 @@ uiContainer.id = 'ui-root';
 document.body.appendChild(uiContainer);
 const reactRoot = createRoot(uiContainer);
 
-// Game state persistence - save waves, time, set/lull state
-function saveGameState() {
-    const state = {
-        gameTime: world.gameTime,
-        timeScale: settings.timeScale,
-        waves: world.waves,
-        foamSegments: world.foamSegments,
-        setLullState: world.setLullState,
-        backgroundState: world.backgroundState,
-        playerProxy: world.playerProxy,
-    };
-    localStorage.setItem('gameState', JSON.stringify(state));
-}
-
-function loadGameState() {
-    const saved = localStorage.getItem('gameState');
-    if (!saved) return false;
-
-    try {
-        const state = JSON.parse(saved);
-        world.gameTime = state.gameTime || 0;
-        // Restore timeScale via settings model
-        if (state.timeScale) {
-            settings = updateSetting(settings, 'timeScale', state.timeScale);
-            toggles = settings;
-        }
-        // Migrate waves to ensure they have progressPerX (added in wave refraction feature)
-        world.waves = (state.waves || []).map(wave => ({
-            ...wave,
-            progressPerX: wave.progressPerX || new Array(WAVE_X_SAMPLES).fill(0),
-            lastUpdateTime: wave.lastUpdateTime ?? wave.spawnTime,
-        }));
-        world.foamSegments = state.foamSegments || [];
-        if (state.setLullState) {
-            // Validate timestamps aren't corrupted (stale data from previous session)
-            const sls = state.setLullState;
-            const timeSinceLastWave = (world.gameTime - sls.lastWaveSpawnTime) / 1000;
-            const elapsedInState = (world.gameTime - sls.stateStartTime) / 1000;
-
-            // If timers are negative or absurdly large, reset state
-            if (timeSinceLastWave < 0 || timeSinceLastWave > 300 ||
-                elapsedInState < 0 || elapsedInState > 300) {
-                console.warn('Stale setLullState detected, reinitializing');
-                world.setLullState = createInitialState(DEFAULT_CONFIG, Math.random, world.gameTime);
-            } else {
-                world.setLullState = sls;
-            }
-        }
-        if (state.backgroundState) world.backgroundState = state.backgroundState;
-        if (state.playerProxy) world.playerProxy = state.playerProxy;
-        return true;
-    } catch (e) {
-        console.warn('Failed to load game state:', e);
-        return false;
-    }
-}
-
 // Load saved state on startup
-loadGameState();
+loadGameState(world, (timeScale) => {
+    store.dispatch({ type: EventType.TIME_SCALE_CHANGE, timeScale });
+    world = store.getState();
+    toggles = { ...world.toggles, timeScale: world.timeScale };
+});
 
 // Initialize player proxy if it was enabled in a previous session
-if (toggles.showPlayer && !world.playerProxy) {
+if (getToggles().showPlayer && !world.playerProxy) {
     const { shoreY } = getOceanBounds(canvas.height, world.shoreHeight);
     store.dispatch({ type: EventType.PLAYER_INIT, playerProxy: createPlayerProxy(canvas.width, shoreY) });
     world = store.getState();
@@ -216,14 +180,17 @@ document.addEventListener('keydown', (e) => {
 
     // Special case: 't' cycles timeScale
     if (key === 't') {
-        settings = cycleSetting(settings, 'timeScale');
-        toggles = settings;
+        const scales = [0.25, 0.5, 1, 2, 4];
+        const currentScale = getTimeScale();
+        const currentIdx = scales.indexOf(currentScale);
+        const nextScale = scales[(currentIdx + 1) % scales.length];
+        handleTimeScaleChange(nextScale);
         return;
     }
 
     // Special case: 'm' cycles AI mode (not in settings)
     if (key === 'm') {
-        if (settings.showPlayer && settings.showAIPlayer) {
+        if (getToggles().showPlayer && getToggles().showAIPlayer) {
             handleAIModeChange();
         }
         return;
@@ -231,7 +198,7 @@ document.addEventListener('keydown', (e) => {
 
     // Special case: 'a' only toggles AI if player is enabled
     if (key === 'a') {
-        if (settings.showPlayer) {
+        if (getToggles().showPlayer) {
             handleToggle('showAIPlayer');
         }
         return;
@@ -259,7 +226,7 @@ function spawnWave(amplitude, type) {
 
 function update(deltaTime) {
     // Apply time scale for testing
-    const scaledDelta = deltaTime * settings.timeScale;
+    const scaledDelta = deltaTime * getTimeScale();
 
     // Advance game time via dispatch (Plan 150 event sourcing)
     store.dispatch({ type: EventType.GAME_TICK, deltaTime: scaledDelta * 1000 });
@@ -370,8 +337,8 @@ function update(deltaTime) {
     }
 
     // Save game state periodically (every ~1 second)
-    if (Math.floor(world.gameTime / 1000) !== Math.floor((world.gameTime - scaledDelta * 1000) / 1000)) {
-        saveGameState();
+    if (shouldAutoSave(world.gameTime, world.gameTime - scaledDelta * 1000)) {
+        saveGameState(world, { timeScale: getTimeScale() });
     }
 }
 
@@ -418,41 +385,13 @@ function draw() {
         showBackgroundWaves: toggles.showBackgroundWaves,
     });
 
-    // Foam contour rendering using extracted helpers (Plan 170)
-    // Each option uses a different grid-building algorithm with distinct colors
-    const foamThresholdsBase = [
-        { value: 0.15, color: 'rgba(255, 255, 255, 0.3)', lineWidth: 1 },
-        { value: 0.3, color: 'rgba(255, 255, 255, 0.6)', lineWidth: 2 },
-        { value: 0.5, color: 'rgba(255, 255, 255, 0.9)', lineWidth: 3 },
-    ];
-    const foamThresholdsA = [
-        { value: 0.15, color: 'rgba(255, 100, 100, 0.4)', lineWidth: 1 },
-        { value: 0.3, color: 'rgba(255, 150, 100, 0.7)', lineWidth: 2 },
-        { value: 0.5, color: 'rgba(255, 200, 150, 0.9)', lineWidth: 3 },
-    ];
-    const foamThresholdsB = [
-        { value: 0.15, color: 'rgba(100, 255, 100, 0.4)', lineWidth: 1 },
-        { value: 0.3, color: 'rgba(150, 255, 150, 0.7)', lineWidth: 2 },
-        { value: 0.5, color: 'rgba(200, 255, 200, 0.9)', lineWidth: 3 },
-    ];
-    const foamThresholdsC = [
-        { value: 0.15, color: 'rgba(150, 100, 255, 0.4)', lineWidth: 1 },
-        { value: 0.3, color: 'rgba(180, 150, 255, 0.7)', lineWidth: 2 },
-        { value: 0.5, color: 'rgba(220, 200, 255, 0.9)', lineWidth: 3 },
-    ];
-
-    if (toggles.showFoamZones) {
-        renderMultiContour(ctx, world.foamRows, w, h, { thresholds: foamThresholdsBase, oceanBottom });
-    }
-    if (toggles.showFoamOptionA) {
-        renderMultiContourOptionA(ctx, world.foamRows, w, h, world.gameTime, { thresholds: foamThresholdsA, oceanBottom });
-    }
-    if (toggles.showFoamOptionB) {
-        renderMultiContourOptionB(ctx, world.foamRows, w, h, world.gameTime, { thresholds: foamThresholdsB, oceanBottom });
-    }
-    if (toggles.showFoamOptionC) {
-        renderMultiContourOptionC(ctx, world.foamRows, w, h, world.gameTime, { thresholds: foamThresholdsC, oceanBottom });
-    }
+    // Foam contour rendering using extracted config (Plan 170)
+    renderFoamContours(ctx, world.foamRows, w, h, world.gameTime, oceanBottom, getToggles(), {
+        base: renderMultiContour,
+        optionA: renderMultiContourOptionA,
+        optionB: renderMultiContourOptionB,
+        optionC: renderMultiContourOptionC,
+    });
 
     // LAYER: Foam samples (debug view - original rectangle-based rendering)
     // Draw foam deposits as individual rectangles for debugging
@@ -503,7 +442,7 @@ function draw() {
             gameTime={world.gameTime}
             displayWaves={displayWaves}
             foamCount={world.foamSegments.length}
-            timeScale={settings.timeScale}
+            timeScale={getTimeScale()}
             onTimeScaleChange={handleTimeScaleChange}
             toggles={toggles}
             onToggle={handleToggle}
