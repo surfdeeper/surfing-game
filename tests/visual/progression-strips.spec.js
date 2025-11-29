@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 // Progression strip visual regression tests
 // Each strip is a film strip showing all frames of a progression side-by-side
 
-const STRIPS = ['strip-no-damping', 'strip-with-damping', 'strip-high-damping', 'strip-with-drain'];
+const STRIPS = ['strip-no-damping', 'strip-low-damping', 'strip-high-damping', 'strip-with-drain'];
 
 test.describe('Progression Strips', () => {
   test.beforeEach(async ({ page }) => {

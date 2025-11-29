@@ -11,9 +11,8 @@ const pages: Record<
     label: 'Energy Field',
     sections: [
       { id: 'no-damping', label: 'No Damping' },
-      { id: 'depth-damping', label: 'Depth Damping' },
+      { id: 'low-damping', label: 'Low Damping' },
       { id: 'high-damping', label: 'High Damping' },
-      { id: 'damping-comparison', label: 'Comparison' },
       { id: 'energy-drain', label: 'Energy Drain' },
     ],
   },

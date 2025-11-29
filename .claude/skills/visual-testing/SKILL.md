@@ -101,6 +101,25 @@ for (const story of stories) {
 3. **Descriptive names** - `{feature}--{scenario}.png`
 4. **Check story IDs** - Use Ladle's `/meta.json` to find valid IDs
 
+## Workflow: Unit Tests Before Visual Tests
+
+**CRITICAL**: When modifying progression data, follow this order:
+
+1. **Design with ASCII** - Sketch the expected matrix values as ASCII art
+2. **Update unit test** - Modify the progression definition and verify matrix output
+3. **Run unit tests** - `npx vitest run <test-file>` to confirm data is correct
+4. **Then update visuals** - Only after unit tests pass, update visual snapshots
+
+```
+Wrong workflow:
+  Change coefficient → Update visual snapshot → "Looks the same, try higher"
+
+Correct workflow:
+  Change coefficient → Check matrix values in unit test → Verify difference → Update visual
+```
+
+The matrix data is the source of truth. If the numbers don't show meaningful difference, adjusting coefficients and re-rendering visuals won't help.
+
 ## Integration with Plan 200
 
 Plan 200 (MDX Visual Docs) is building a progression-based visual testing system:

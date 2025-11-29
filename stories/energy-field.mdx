@@ -7,7 +7,7 @@ row above them at a rate determined by `travelDuration`.
 import { ProgressionPlayer, ProgressionStrip } from './components/ProgressionPlayer';
 import {
   PROGRESSION_NO_DAMPING,
-  PROGRESSION_WITH_DAMPING,
+  PROGRESSION_LOW_DAMPING,
   PROGRESSION_HIGH_DAMPING,
   PROGRESSION_WITH_DRAIN,
 } from '../src/state/energyFieldPropagation.test';
@@ -30,28 +30,15 @@ The pulse moves as a sharp horizontal line from horizon toward shore.
 
 </section>
 
-<section id="depth-damping">
+<section id="low-damping">
 
-## With Depth-Based Damping
+## Low Damping
 
-Setting `depthDampingCoefficient=0.1` causes energy to decay faster in
-shallow water. The formula is:
+Coefficient `0.05` — subtle fade near shore, prevents energy buildup at shoreline.
 
-```
-energy *= exp(-coefficient * dt / depth^exponent)
-```
+<ProgressionPlayer snapshots={PROGRESSION_LOW_DAMPING.snapshots} />
 
-Where:
-- `coefficient` controls overall decay rate (0.1 = moderate)
-- `exponent` controls how sharply decay ramps near shore (2.0 = quadratic)
-- `depth` decreases from 10m at horizon to 0.5m at shore
-
-<ProgressionPlayer snapshots={PROGRESSION_WITH_DAMPING.snapshots} />
-
-<ProgressionStrip snapshots={PROGRESSION_WITH_DAMPING.snapshots} testId="strip-with-damping" />
-
-Notice how energy fades as it approaches shore (bottom rows). This
-prevents energy from "piling up" at the shoreline.
+<ProgressionStrip snapshots={PROGRESSION_LOW_DAMPING.snapshots} testId="strip-low-damping" />
 
 </section>
 
@@ -59,26 +46,11 @@ prevents energy from "piling up" at the shoreline.
 
 ## High Damping
 
-Doubling the coefficient to `0.2` causes more aggressive decay:
+Coefficient `2.0` — energy mostly gone before reaching shore. Too much damping makes waves feel weak.
 
 <ProgressionPlayer snapshots={PROGRESSION_HIGH_DAMPING.snapshots} />
 
 <ProgressionStrip snapshots={PROGRESSION_HIGH_DAMPING.snapshots} testId="strip-high-damping" />
-
-</section>
-
-<section id="damping-comparison">
-
-## Damping Coefficient Comparison
-
-| Coefficient | Effect |
-|-------------|--------|
-| 0.0 | No decay - energy reaches shore at full strength |
-| 0.1 | Moderate decay - energy reduced but visible near shore |
-| 0.2 | Aggressive decay - energy mostly gone before reaching shore |
-
-**Tradeoff:** Too much damping makes waves feel weak; too little causes
-visual artifacts at the shoreline.
 
 </section>
 
