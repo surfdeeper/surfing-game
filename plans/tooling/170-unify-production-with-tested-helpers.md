@@ -1,6 +1,6 @@
 # 170 - Unify Production with Tested Helpers
 
-**Status**: Phase 3 Complete
+**Status**: Phase 4 Complete (Event Store Migration)
 **Category**: tooling
 **Depends On**: 160 (coordinate consolidation) - ✅ DONE
 
@@ -20,9 +20,10 @@ Helpers were extracted and tested (`render/waveRenderer`, `update/index`, `state
   - `updatePlayer()` handles player/AI updates
 - **Unused imports cleaned up**: Removed `getActiveWaves`, `updateWaveRefraction`, `isWaveBreaking`, `isWaveBreakingWithEnergy`, `createFoam`, `updateFoam`, `getActiveFoam`, `screenYToProgress`, `drainEnergyAt`, `updatePlayerProxy`, `updateAIPlayer`
 
-### 🔮 Remaining Steps
-1. **Settings migration** (Phase 1): Replace inline localStorage with `settingsModel`
-2. **Rendering consolidation** (Phase 2): Replace `drawWave` with `renderWaves()` from waveRenderer
+### 🔮 Remaining Steps (Optional)
+1. **Settings to store**: Migrate settings from `settingsModel` to `eventStore` for unified state
+2. **Further extraction**: Extract FPS tracking, game state persistence to separate modules
+3. **Goal**: main.jsx target is <300 lines (currently 577)
 
 ## Original Proposed Solution
 Incrementally migrate `main.jsx` to import and use the extracted, tested helpers. Delete duplicated logic once wired. Keep visual parity via existing tests and minimal behavioral changes per step.
@@ -50,9 +51,12 @@ Incrementally migrate `main.jsx` to import and use the extracted, tested helpers
 - Migrated player to `updatePlayer()`
 - Cleaned up unused imports
 
-### Phase 4: Event Store (Optional - Future)
-- Introduce `eventStore` for deterministic state updates in `main.jsx`.
-- Dispatch typed events; derive next state via `reducer()`.
+### Phase 4: Event Store ✅ DONE
+- Replaced direct world mutations with `store.dispatch()` calls
+- Added event types: `GAME_TICK`, `WAVE_SPAWN`, `WAVES_UPDATE`, `SET_LULL_UPDATE`, `BACKGROUND_UPDATE`, `FOAM_SEGMENTS_UPDATE`, `FOAM_ROWS_UPDATE`, `PLAYER_UPDATE`, `AI_UPDATE`
+- All state changes now go through the reducer for deterministic updates
+- Removed `createWave` import from main.jsx (handled by reducer)
+- main.jsx reduced from 609 → 577 lines (-32 lines)
 
 ### Phase 5: Cleanup (Partial)
 - ✅ Deleted duplicated inline update code
@@ -70,4 +74,5 @@ Incrementally migrate `main.jsx` to import and use the extracted, tested helpers
 
 ## Follow-ups
 - Add CI check/workflow to flag exported-but-unused helpers.
-- Consider adopting `eventStore` fully for replayable game sessions.
+- ✅ Event store adopted - game state now flows through `store.dispatch()` and reducer
+- Future: Enable event replay for debugging/testing deterministic game sessions

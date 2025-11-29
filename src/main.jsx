@@ -7,22 +7,18 @@
 // - Coordinates mapped: progress (0-1) → screen pixels at render time
 
 import {
-    createWave,
     getWaveProgress,
     WAVE_TYPE,
     WAVE_X_SAMPLES,
 } from './state/waveModel.js';
-import { DEFAULT_BATHYMETRY, getDepth } from './state/bathymetryModel.js';
+import { getDepth } from './state/bathymetryModel.js';
 import { createBathymetryCacheManager } from './render/bathymetryRenderer.js';
 import { getOceanBounds, calculateTravelDuration } from './render/coordinates.js';
 import {
     DEFAULT_CONFIG,
     createInitialState,
 } from './state/setLullModel.js';
-import {
-    BACKGROUND_CONFIG,
-    createInitialBackgroundState,
-} from './state/backgroundWaveModel.js';
+import './state/backgroundWaveModel.js';  // Needed by eventStore
 import {
     updateWaveSpawning,
     updateWaves,
@@ -32,7 +28,7 @@ import {
     updateFoamRowLifecycle,
     updatePlayer,
 } from './update/index.js';
-import { EventType } from './state/eventStore.js';
+import { EventType, getStore } from './state/eventStore.js';
 import {
     loadSettings,
     toggleSetting,
@@ -53,7 +49,6 @@ import {
     AI_MODE,
 } from './state/aiPlayerModel.js';
 import {
-    createEnergyField,
     updateEnergyField,
     injectWavePulse,
 } from './state/energyFieldModel.js';
@@ -84,52 +79,13 @@ function resize() {
 resize();
 window.addEventListener('resize', resize);
 
-// World settings
-const world = {
-    // Shore is at the bottom of the screen
-    shoreHeight: 100,      // Height of shore strip at bottom
+// Event store for game state (Plan 150)
+// All state lives in the store, accessed via getState()
+const store = getStore();
 
-    // Swell parameters
-    swellSpacing: 80,      // Visual spacing of wave gradient (pixels)
-    swellSpeed: 50,        // Pixels per second toward shore (downward)
-
-    // Unified wave array - all waves in one array with type property
-    // Waves are rendered in spawn order (natural interleaving)
-    waves: [],             // Array of { id, spawnTime, amplitude, type }
-    gameTime: 0,           // Current game time in ms (for time-based positions)
-
-    // Foam segments - independent whitewater entities (NOT attached to waves)
-    // Spawned at break points, persist and fade independently
-    foamSegments: [],      // Array of { id, spawnTime, x, y, width, opacity }
-
-    // Foam rows - span-based representation for smooth rendering (Layer 1)
-    // Each row represents contiguous breaking regions at a Y position
-    foamRows: [],          // Array of { y, spawnTime, segments: [{startX, endX, intensity}, ...] }
-
-    // Set/lull configuration (used by setLullModel)
-    setConfig: DEFAULT_CONFIG,
-
-    // Set/lull state machine (managed by setLullModel)
-    setLullState: createInitialState(DEFAULT_CONFIG),
-
-    // Background wave configuration and state
-    backgroundConfig: BACKGROUND_CONFIG,
-    backgroundState: createInitialBackgroundState(BACKGROUND_CONFIG),
-
-    // Bathymetry (ocean floor depth map)
-    bathymetry: DEFAULT_BATHYMETRY,
-
-    // Player proxy (Plan 71) - initialized lazily after first resize
-    playerProxy: null,
-
-    // AI player state (Plan 16) - initialized lazily when AI toggle enabled
-    aiState: null,
-    aiMode: AI_MODE.INTERMEDIATE,  // Current AI mode
-    lastAIInput: { left: false, right: false, up: false, down: false },
-
-    // Energy field (Plan 140) - continuous wave model
-    energyField: createEnergyField(),
-};
+// World reference - points to store state for backwards compatibility
+// Eventually this can be removed once all code uses store directly
+let world = store.getState();
 
 // Keyboard input for player movement (arrow keys / WASD)
 const keyboard = new KeyboardInput();
@@ -155,7 +111,8 @@ function handleToggle(key) {
     // Initialize player proxy when first enabled via UI
     if (key === 'showPlayer' && settings.showPlayer && !world.playerProxy) {
         const { shoreY } = getOceanBounds(canvas.height, world.shoreHeight);
-        world.playerProxy = createPlayerProxy(canvas.width, shoreY);
+        store.dispatch({ type: EventType.PLAYER_INIT, playerProxy: createPlayerProxy(canvas.width, shoreY) });
+        world = store.getState();
     }
 }
 
@@ -174,8 +131,9 @@ function handlePlayerConfigChange(key, value) {
 function handleAIModeChange() {
     const modes = [AI_MODE.BEGINNER, AI_MODE.INTERMEDIATE, AI_MODE.EXPERT];
     const currentIdx = modes.indexOf(world.aiMode);
-    world.aiMode = modes[(currentIdx + 1) % modes.length];
-    world.aiState = createAIState(world.aiMode);
+    const newMode = modes[(currentIdx + 1) % modes.length];
+    store.dispatch({ type: EventType.AI_UPDATE, aiMode: newMode, aiState: createAIState(newMode) });
+    world = store.getState();
     console.log(`[AI] Switched to ${world.aiMode} mode`);
 }
 
@@ -248,7 +206,8 @@ loadGameState();
 // Initialize player proxy if it was enabled in a previous session
 if (toggles.showPlayer && !world.playerProxy) {
     const { shoreY } = getOceanBounds(canvas.height, world.shoreHeight);
-    world.playerProxy = createPlayerProxy(canvas.width, shoreY);
+    store.dispatch({ type: EventType.PLAYER_INIT, playerProxy: createPlayerProxy(canvas.width, shoreY) });
+    world = store.getState();
 }
 
 // Keyboard controls - uses settingsModel for hotkey mapping
@@ -265,11 +224,7 @@ document.addEventListener('keydown', (e) => {
     // Special case: 'm' cycles AI mode (not in settings)
     if (key === 'm') {
         if (settings.showPlayer && settings.showAIPlayer) {
-            const modes = [AI_MODE.BEGINNER, AI_MODE.INTERMEDIATE, AI_MODE.EXPERT];
-            const currentIdx = modes.indexOf(world.aiMode);
-            world.aiMode = modes[(currentIdx + 1) % modes.length];
-            world.aiState = createAIState(world.aiMode);
-            console.log(`[AI] Switched to ${world.aiMode} mode`);
+            handleAIModeChange();
         }
         return;
     }
@@ -291,7 +246,8 @@ document.addEventListener('keydown', (e) => {
 
 // Spawn a wave at the horizon with the given amplitude and type
 function spawnWave(amplitude, type) {
-    world.waves.push(createWave(world.gameTime, amplitude, type));
+    store.dispatch({ type: EventType.WAVE_SPAWN, amplitude, waveType: type });
+    world = store.getState();
 
     // Inject pulse into energy field to match discrete wave
     // Set waves have more energy (2x) than background waves
@@ -305,8 +261,9 @@ function update(deltaTime) {
     // Apply time scale for testing
     const scaledDelta = deltaTime * settings.timeScale;
 
-    // Advance game time (in ms)
-    world.gameTime += scaledDelta * 1000;
+    // Advance game time via dispatch (Plan 150 event sourcing)
+    store.dispatch({ type: EventType.GAME_TICK, deltaTime: scaledDelta * 1000 });
+    world = store.getState();
 
     // Update energy field (Plan 140) - propagate existing energy toward shore
     if (toggles.showEnergyField) {
@@ -329,9 +286,10 @@ function update(deltaTime) {
         world.gameTime
     );
 
-    // Apply state updates
-    world.setLullState = spawnResult.setLullState;
-    world.backgroundState = spawnResult.backgroundState;
+    // Apply state updates via dispatch
+    store.dispatch({ type: EventType.SET_LULL_UPDATE, setLullState: spawnResult.setLullState });
+    store.dispatch({ type: EventType.BACKGROUND_UPDATE, backgroundState: spawnResult.backgroundState });
+    world = store.getState();
 
     // Process spawn events
     for (const event of spawnResult.events) {
@@ -344,13 +302,15 @@ function update(deltaTime) {
     const { oceanBottom } = getOceanBounds(canvas.height, world.shoreHeight);
     const travelDuration = calculateTravelDuration(oceanBottom, world.swellSpeed);
     const bufferDuration = (world.swellSpacing / world.swellSpeed) * 1000;
-    world.waves = updateWaves(
+    const updatedWaves = updateWaves(
         world.waves,
         world.gameTime,
         travelDuration,
         bufferDuration,
         world.bathymetry
     );
+    store.dispatch({ type: EventType.WAVES_UPDATE, waves: updatedWaves });
+    world = store.getState();
 
     // Foam state for orchestrator functions
     const foamState = {
@@ -364,16 +324,20 @@ function update(deltaTime) {
     };
 
     // Deposit foam segments (point-based) via orchestrator
-    world.foamSegments = depositFoam(world.waves, world.foamSegments, foamState);
+    let updatedFoamSegments = depositFoam(world.waves, world.foamSegments, foamState);
 
     // Update foam lifecycle (fade and remove)
-    world.foamSegments = updateFoamLifecycle(world.foamSegments, scaledDelta, world.gameTime);
+    updatedFoamSegments = updateFoamLifecycle(updatedFoamSegments, scaledDelta, world.gameTime);
+    store.dispatch({ type: EventType.FOAM_SEGMENTS_UPDATE, foamSegments: updatedFoamSegments });
+    world = store.getState();
 
     // Deposit foam rows (span-based) via orchestrator
-    world.foamRows = depositFoamRows(world.waves, world.foamRows, foamState);
+    let updatedFoamRows = depositFoamRows(world.waves, world.foamRows, foamState);
 
     // Update foam row lifecycle (fade and remove)
-    world.foamRows = updateFoamRowLifecycle(world.foamRows, world.gameTime);
+    updatedFoamRows = updateFoamRowLifecycle(updatedFoamRows, world.gameTime);
+    store.dispatch({ type: EventType.FOAM_ROWS_UPDATE, foamRows: updatedFoamRows });
+    world = store.getState();
 
     // Update player proxy if enabled via orchestrator
     if (toggles.showPlayer && world.playerProxy) {
@@ -396,9 +360,13 @@ function update(deltaTime) {
             playerState
         );
 
-        world.playerProxy = playerResult.playerProxy;
-        world.aiState = playerResult.aiState;
-        world.lastAIInput = playerResult.lastAIInput;
+        store.dispatch({
+            type: EventType.PLAYER_UPDATE,
+            playerProxy: playerResult.playerProxy,
+            aiState: playerResult.aiState,
+            lastAIInput: playerResult.lastAIInput,
+        });
+        world = store.getState();
     }
 
     // Save game state periodically (every ~1 second)

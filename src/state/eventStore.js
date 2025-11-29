@@ -28,6 +28,7 @@ export const EventType = {
     // Foam
     FOAM_ROW_ADD: 'FOAM_ROW_ADD',
     FOAM_ROWS_UPDATE: 'FOAM_ROWS_UPDATE',
+    FOAM_SEGMENTS_UPDATE: 'FOAM_SEGMENTS_UPDATE',
 
     // Settings/toggles
     TOGGLE_CHANGE: 'TOGGLE_CHANGE',
@@ -36,6 +37,8 @@ export const EventType = {
     // Player
     PLAYER_MOVE: 'PLAYER_MOVE',
     PLAYER_INIT: 'PLAYER_INIT',
+    PLAYER_UPDATE: 'PLAYER_UPDATE',
+    AI_UPDATE: 'AI_UPDATE',
 
     // State machines
     SET_LULL_UPDATE: 'SET_LULL_UPDATE',
@@ -146,6 +149,12 @@ export function reducer(state, event) {
                 foamRows: event.foamRows,
             };
 
+        case EventType.FOAM_SEGMENTS_UPDATE:
+            return {
+                ...state,
+                foamSegments: event.foamSegments,
+            };
+
         case EventType.TOGGLE_CHANGE:
             return {
                 ...state,
@@ -175,6 +184,21 @@ export function reducer(state, event) {
                     x: event.x,
                     y: event.y,
                 },
+            };
+
+        case EventType.PLAYER_UPDATE:
+            return {
+                ...state,
+                playerProxy: event.playerProxy,
+                aiState: event.aiState,
+                lastAIInput: event.lastAIInput,
+            };
+
+        case EventType.AI_UPDATE:
+            return {
+                ...state,
+                aiMode: event.aiMode,
+                aiState: event.aiState,
             };
 
         case EventType.SET_LULL_UPDATE:
