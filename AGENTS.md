@@ -25,6 +25,27 @@ These commands are pre-approved and won't prompt for confirmation:
 
 Prefer these simple commands over complex chained commands that require permission.
 
+### Scripts Folder Pattern
+When you need to run complex bash logic (timeouts, retries, multi-step operations), **create a script in `scripts/`** instead of writing inline bash. This enables:
+
+1. **Pre-approval** - Scripts can be added to the allow-list, avoiding permission prompts
+2. **Reusability** - Same script works across sessions
+3. **Readability** - Complex logic is documented and version-controlled
+
+**Example**: Instead of `timeout 10 npm run dev & sleep 3 && npm test`, create:
+```bash
+# scripts/dev-with-test.sh
+#!/bin/bash
+timeout 10 npm run dev &
+sleep 3
+npm test
+```
+
+Then run: `./scripts/dev-with-test.sh` (can be pre-approved)
+
+**Existing scripts**:
+- `scripts/check-no-js.sh` - Verify no JS files remain after TS migration
+
 ## Plans Directory
 
 Plans are organized by category in `/plans/`. See [plans/README.md](plans/README.md) for full documentation.

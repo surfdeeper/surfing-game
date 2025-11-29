@@ -6,3 +6,5 @@ test-results/
 
 # cypress videos webm:
 tests/visual
+
+ladle-build/
