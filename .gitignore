@@ -4,7 +4,11 @@ dist/
 test-results/
 .venv/
 
-# cypress videos webm:
-tests/visual
+# Ignore visual test artifacts (results, reports, videos)
+tests/visual/results/
+tests/visual/report/
+
+# But track progression strip snapshots (baseline images for visual regression)
+# These are committed to ensure consistent test baselines across environments
 
 ladle-build/

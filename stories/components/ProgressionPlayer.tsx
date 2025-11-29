@@ -167,12 +167,15 @@ export function ProgressionPlayer({
 export function ProgressionStrip({
   snapshots,
   cellSize = 16,
+  testId,
 }: {
   snapshots: Snapshot[];
   cellSize?: number;
+  testId: string;
 }) {
   return (
     <div
+      data-testid={testId}
       style={{
         display: 'flex',
         gap: 8,

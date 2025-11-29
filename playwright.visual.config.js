@@ -13,7 +13,7 @@ export default defineConfig({
   reporter: [['html', { outputFolder: 'tests/visual/report' }]],
 
   use: {
-    baseURL: 'http://localhost:61000',
+    baseURL: 'http://localhost:3001',
     trace: 'on-first-retry',
     video: 'on', // Record videos for all tests
   },
@@ -26,8 +26,8 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: 'npm run ladle',
-    url: 'http://localhost:61000',
+    command: 'npm run stories',
+    url: 'http://localhost:3001',
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
   },

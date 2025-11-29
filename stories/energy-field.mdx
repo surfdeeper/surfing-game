@@ -20,7 +20,7 @@ but total energy is conserved.
 
 <ProgressionPlayer snapshots={PROGRESSION_NO_DAMPING.snapshots} />
 
-<ProgressionStrip snapshots={PROGRESSION_NO_DAMPING.snapshots} />
+<ProgressionStrip snapshots={PROGRESSION_NO_DAMPING.snapshots} testId="strip-no-damping" />
 
 **Key observations:**
 - Row 0 starts at 1.0 (white), fades as energy moves down
@@ -45,7 +45,7 @@ Where:
 
 <ProgressionPlayer snapshots={PROGRESSION_WITH_DAMPING.snapshots} />
 
-<ProgressionStrip snapshots={PROGRESSION_WITH_DAMPING.snapshots} />
+<ProgressionStrip snapshots={PROGRESSION_WITH_DAMPING.snapshots} testId="strip-with-damping" />
 
 Notice how energy fades as it approaches shore (bottom rows). This
 prevents energy from "piling up" at the shoreline.
@@ -58,7 +58,7 @@ Doubling the coefficient to `0.2` causes more aggressive decay:
 
 <ProgressionPlayer snapshots={PROGRESSION_HIGH_DAMPING.snapshots} />
 
-<ProgressionStrip snapshots={PROGRESSION_HIGH_DAMPING.snapshots} />
+<ProgressionStrip snapshots={PROGRESSION_HIGH_DAMPING.snapshots} testId="strip-high-damping" />
 
 ---
 
@@ -92,7 +92,7 @@ center column is completely drained (simulating wave breaking):
 
 <ProgressionPlayer snapshots={PROGRESSION_WITH_DRAIN.snapshots} />
 
-<ProgressionStrip snapshots={PROGRESSION_WITH_DRAIN.snapshots} />
+<ProgressionStrip snapshots={PROGRESSION_WITH_DRAIN.snapshots} testId="strip-with-drain" />
 
 **What to look for:**
 - t=0s: Full energy pulse at horizon

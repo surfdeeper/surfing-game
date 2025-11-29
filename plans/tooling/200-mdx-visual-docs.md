@@ -1,6 +1,6 @@
 # Plan 200: MDX-Based Visual Documentation System
 
-Status: ✅ COMPLETE (Phase 3 done, Ladle removed)
+Status: ✅ COMPLETE (All phases done)
 Owner: agents
 Depends on: none
 Supersedes: Ladle/Storybook for component visualization
@@ -542,26 +542,42 @@ FFFFF  BBBBB  44444  22222  11111  11111
 - `progressionToAscii()` - multi-frame side-by-side format
 - `matricesMatchAscii()` - compare within ASCII precision
 
-### Phase 2: Visual Regression Infrastructure ⏳ READY
+### Phase 2: Visual Regression Infrastructure ✅ COMPLETE
 
 **Prerequisite:** Phase 1.5 ✅ complete - matrix data is now verified by snapshots.
 
+**Approach:** Use Playwright to screenshot film strips (one PNG per progression).
+GIF encoding deferred to future plan (203).
+
 | Step | Task | Status |
 |------|------|--------|
-| 6 | Create visual test runner script (discovers defineProgression exports) | ⏸️ On hold |
-| 7 | Add unit test gate (run vitest first, short-circuit on failure) | ⏸️ On hold |
-| 8 | Implement GIF encoding for progression frames | ⏸️ On hold |
-| 9 | Implement GIF decoding + frame-by-frame comparison | ⏸️ On hold |
-| 10 | Terminal output with file paths to baseline/current/diff | ⏸️ On hold |
-| 11 | Add baseline update commands (full and selective) | ⏸️ On hold |
+| 6 | Create Playwright test that visits stories page | ✅ Done |
+| 7 | Screenshot each ProgressionStrip as a single PNG | ✅ Done |
+| 8 | Store baselines in `tests/visual/snapshots/` | ✅ Done |
+| 9 | Compare against baselines with pixel diff | ✅ Done |
+| 10 | Add `npm run test:visual` command | ✅ Already existed |
+| 11 | Add `npm run test:visual:update` to accept new baselines | ✅ Already existed |
 
-**Reason paused:** Initial GIF implementation produced corrupt output. Need to revisit
-with a different approach - possibly browser-based rendering with Playwright
-screenshots instead of Node.js GIF encoding.
+**Files created/modified:**
+- `tests/visual/progression-strips.spec.js` - Playwright test for 4 progression strips
+- `stories/components/ProgressionPlayer.tsx` - Added required `testId` prop to ProgressionStrip
+- `stories/energy-field.mdx` - Added testId to each ProgressionStrip
+- `playwright.visual.config.js` - Updated to use stories server (port 3001)
 
-**Root cause analysis:** We jumped to GIF encoding without first verifying the
-matrix data was correct. Phase 1.5 addresses this gap - once matrix snapshots
-are in place, we can isolate whether corruption is in data, rendering, or encoding.
+**Baselines:**
+```
+tests/visual/snapshots/progression-strips.spec.js-snapshots/
+├── strip-no-damping-chromium-darwin.png
+├── strip-with-damping-chromium-darwin.png
+├── strip-high-damping-chromium-darwin.png
+└── strip-with-drain-chromium-darwin.png
+```
+
+**Why Playwright over Node.js GIF encoding:**
+- Browser renders the actual React components (tests what users see)
+- No encoding bugs - just PNG screenshots
+- Playwright's built-in screenshot comparison
+- Film strips show all frames at once (no animation needed for regression)
 
 **Related work completed:** Performance test separation (perf-test-separation.md)
 - Created `vitest.perf.config.ts` for isolated perf tests
