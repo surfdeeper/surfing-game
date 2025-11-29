@@ -1,6 +1,6 @@
 # Plan 200: MDX-Based Visual Documentation System
 
-Status: proposed
+Status: in-progress (Phase 1 complete)
 Owner: agents
 Depends on: none
 Supersedes: Ladle/Storybook for component visualization
@@ -412,14 +412,41 @@ export function Layout({ children }) {
 
 ## Implementation Steps
 
-### Phase 1: Core Testing Framework
+### Phase 1: Core Testing Framework ✅ COMPLETE
 
-| Step | Task | Complexity |
-|------|------|------------|
-| 1 | Create `src/test-utils/progression.js` with defineProgression() | Medium |
-| 2 | Create `src/test-utils/matrixField.js` for matrix↔field conversion | Low |
-| 3 | Refactor energyFieldPropagation.test.js to use defineProgression() | Medium |
-| 4 | Unit tests assert on snapshot matrix values | Low |
+| Step | Task | Status |
+|------|------|--------|
+| 1 | Create `src/test-utils/progression.js` with defineProgression() | ✅ Done |
+| 2 | Create `src/test-utils/matrixField.js` for matrix↔field conversion | ✅ Done |
+| 3 | Refactor energyFieldPropagation.test.js to use defineProgression() | ✅ Done |
+| 4 | Unit tests assert on snapshot matrix values | ✅ Done |
+| 5 | **Tests for test utilities** (matrixField.test.js, progression.test.js) | ✅ Done |
+
+**Phase 1 Deliverables:**
+
+```
+src/test-utils/
+├── index.js                # Main exports
+├── matrixField.js          # Matrix↔field conversion (29 tests)
+├── matrixField.test.js     # Tests for conversion utilities
+├── progression.js          # defineProgression() framework (24 tests)
+└── progression.test.js     # Tests for progression framework
+```
+
+**Why test utilities need tests:**
+
+Test utilities are foundational - if they're broken, the entire test suite becomes
+untrustworthy. A bug in `matrixToField()` could silently corrupt all snapshot data.
+A bug in `captureSnapshots()` could skip time points. Tests for test utilities are
+not optional overhead - they're the foundation of test trustworthiness.
+
+See `.claude/skills/testing/SKILL.md` for the full testing policy.
+
+**Verification:**
+```bash
+npx vitest run src/test-utils/   # 53 tests pass
+npx vitest run src/state/energyFieldPropagation.test.js  # 9 tests pass
+```
 
 ### Phase 2: Visual Regression Infrastructure
 

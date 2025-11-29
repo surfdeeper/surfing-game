@@ -5,7 +5,9 @@ description: Apply testing best practices when writing or modifying tests. Use w
 
 # Testing Skill
 
-## Fundamental Principle
+## Fundamental Principles
+
+### 1. Tests must exercise the same code that runs in production
 
 **Tests must exercise the same code that runs in production.**
 
@@ -23,6 +25,33 @@ If tests pass but the app is broken, you're testing the wrong code.
 ```
 
 When writing tests, always verify you're testing code that production actually uses. If Storybook uses a helper function, main.jsx should use that same function.
+
+### 2. Test utilities must be tested
+
+**The test framework itself must be tested.**
+
+Test utilities in `src/test-utils/` are foundational - if they're broken, the entire test suite becomes untrustworthy. A bug in `matrixToField()` or `defineProgression()` could cause tests to pass when they should fail, or vice versa.
+
+```
+src/test-utils/
+├── matrixField.js          # Matrix↔field conversion
+├── matrixField.test.js     # REQUIRED: Tests for conversion
+├── progression.js          # defineProgression() framework
+├── progression.test.js     # REQUIRED: Tests for framework
+└── index.js                # Exports
+```
+
+**When modifying test utilities:**
+1. Write tests for the utility FIRST
+2. Verify utility tests pass before using the utility
+3. Run `npx vitest run src/test-utils/` to validate the framework
+
+**Why this matters:**
+- A broken `fieldToMatrix()` could silently corrupt all snapshot data
+- A broken `captureSnapshots()` could skip time points
+- A broken registry could fail to register progressions for visual tests
+
+Tests for test utilities are not optional overhead - they're the foundation of test trustworthiness.
 
 ---
 
@@ -45,6 +74,9 @@ npm run lint                          # ESLint - catch syntax/import errors
 
 # Smoke test (MUST run after any changes to verify app loads)
 npx playwright test tests/smoke.spec.js:3  # Quick smoke test - app loads without JS errors
+
+# Test utilities (run if modifying test framework)
+npx vitest run src/test-utils/        # Validate test framework integrity
 
 # Unit tests (run specific file first, not entire suite)
 npx vitest run src/path/file.test.js  # Run specific test file

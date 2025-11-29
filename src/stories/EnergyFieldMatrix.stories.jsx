@@ -141,7 +141,7 @@ export const NoDamping = () => (
             Green = low energy, purple = high energy. Values show exact energy at each cell.
         </p>
         <ProgressionStrip
-            snapshots={PROGRESSION_NO_DAMPING}
+            snapshots={PROGRESSION_NO_DAMPING.snapshots}
             title="t=0s to t=5s, travelDuration=6s"
         />
     </div>
@@ -163,7 +163,7 @@ export const WithDamping = () => (
             This prevents energy from "piling up" at the shoreline.
         </p>
         <ProgressionStrip
-            snapshots={PROGRESSION_WITH_DAMPING}
+            snapshots={PROGRESSION_WITH_DAMPING.snapshots}
             title="t=0s to t=5s, depthDampingCoefficient=0.1"
         />
     </div>
@@ -184,7 +184,7 @@ export const HighDamping = () => (
             Too much damping can make waves feel weak; too little causes energy buildup at shore.
         </p>
         <ProgressionStrip
-            snapshots={PROGRESSION_HIGH_DAMPING}
+            snapshots={PROGRESSION_HIGH_DAMPING.snapshots}
             title="t=0s to t=5s, depthDampingCoefficient=0.2"
         />
     </div>
@@ -206,15 +206,15 @@ export const CompareAll = () => (
             Coeff=0.2: energy mostly dissipated before reaching shore.
         </p>
         <ProgressionStrip
-            snapshots={PROGRESSION_NO_DAMPING}
+            snapshots={PROGRESSION_NO_DAMPING.snapshots}
             title="No Damping (coeff=0)"
         />
         <ProgressionStrip
-            snapshots={PROGRESSION_WITH_DAMPING}
+            snapshots={PROGRESSION_WITH_DAMPING.snapshots}
             title="Moderate Damping (coeff=0.1)"
         />
         <ProgressionStrip
-            snapshots={PROGRESSION_HIGH_DAMPING}
+            snapshots={PROGRESSION_HIGH_DAMPING.snapshots}
             title="High Damping (coeff=0.2)"
         />
     </div>
@@ -235,7 +235,7 @@ export const DrainHole = () => (
             creating a vertical "stripe" where breaking removed all energy.
         </p>
         <ProgressionStrip
-            snapshots={PROGRESSION_WITH_DRAIN}
+            snapshots={PROGRESSION_WITH_DRAIN.snapshots}
             title="Center column drained at t=1s"
         />
     </div>
