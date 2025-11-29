@@ -125,6 +125,11 @@ When disabled, the system behaves as before (Plan 140 compatible).
 - Should completely drained waves disappear, or persist as minimal ripples?
 - How fast should energy rebuild via lateral diffusion after breaking?
 - Should foam generation completely stop below an energy threshold, or just reduce?
+- Should energy-driven behavior run only when the energy view is enabled, or always? (Current code applies energy gating + shoaling drag unconditionally.)
+- How should we handle negative energy samples during shoaling drag? (Drag currently uses `abs(height)` while `drainEnergyAt` ignores negatives, so half the cycle never deposits.)
+- Do we lower foam contour thresholds or increase drag/deposit to make non-breaking dissipation visible? (Current drag math is tiny versus 0.15/0.3/0.5 thresholds.)
+- Should `lastFoamY` advance on tiny drag deposits? (Advancing can skip richer breaking rows and sparsify transfer samples.)
+- Add tests for shoaling drag deposits and base-layer (foam vs transfer) rendering selection to lock behavior.
 
 ## Success Criteria
 

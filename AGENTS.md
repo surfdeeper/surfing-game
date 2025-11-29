@@ -199,3 +199,4 @@ When starting work, Claude reads context in this order:
 2. `plans/00-principles.md` - Foundational physics concepts
 3. Relevant skill(s) - Auto-loaded based on task
 4. Specific plan document - For feature work
+- never mark tests skipped without human consent.

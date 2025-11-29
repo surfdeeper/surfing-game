@@ -10,6 +10,7 @@ Design documents and implementation plans organized by category.
 | `visuals/` | Rendering, gradients, foam, visual effects |
 | `gameplay/` | Surfer mechanics, controls, multiplayer, scoring |
 | `tooling/` | Debug panel, developer tools |
+| `ai/` | AI surfer ideas, heuristics, and feedback loops |
 | `testing/` | Test strategy and expansion plans |
 | `bugfixes/` | Specific bug investigation and fixes |
 | `reference/` | Research docs, physics references (never archive) |
