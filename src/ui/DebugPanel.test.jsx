@@ -52,12 +52,14 @@ const createDefaultProps = (overrides = {}) => {
       { wave: { id: 3, type: 'background', amplitude: 0.3 }, progress: 0.7, travelDuration: 8000 },
     ],
     foamCount: overrides.foamCount !== undefined ? overrides.foamCount : 42,
+    energyTransferCount: overrides.energyTransferCount !== undefined ? overrides.energyTransferCount : 10,
     timeScale: overrides.timeScale !== undefined ? overrides.timeScale : 1,
     onTimeScaleChange: overrides.onTimeScaleChange || vi.fn(),
     toggles: overrides.toggles || {
       showBathymetry: true,
       showSetWaves: true,
       showBackgroundWaves: false,
+      showEnergyField: true,
       showFoamZones: true,
       showFoamSamples: false,
       showPlayer: true,
@@ -112,8 +114,9 @@ describe('DebugPanel', () => {
       expect(screen.getAllByText(/Bathymetry/).length).toBeGreaterThan(0);
       expect(screen.getAllByText(/Set Waves/).length).toBeGreaterThan(0);
       expect(screen.getAllByText(/Background/).length).toBeGreaterThan(0);
-      expect(screen.getAllByText(/Foam Zones/).length).toBeGreaterThan(0);
-      expect(screen.getAllByText(/Foam Samples/).length).toBeGreaterThan(0);
+      expect(screen.getAllByText(/Energy Field/).length).toBeGreaterThan(0);
+      expect(screen.getAllByText(/Energy Transfer/).length).toBeGreaterThan(0);
+      expect(screen.getAllByText(/Foam Grid Debug/).length).toBeGreaterThan(0);
       expect(screen.getAllByText(/Player/).length).toBeGreaterThan(0);
     });
 
@@ -122,6 +125,7 @@ describe('DebugPanel', () => {
       expect(screen.getByText('B')).toBeInTheDocument();
       expect(screen.getByText('S')).toBeInTheDocument();
       expect(screen.getByText('G')).toBeInTheDocument();
+      expect(screen.getByText('E')).toBeInTheDocument();
       expect(screen.getByText('F')).toBeInTheDocument();
       expect(screen.getByText('D')).toBeInTheDocument();
       expect(screen.getByText('P')).toBeInTheDocument();
@@ -245,9 +249,9 @@ describe('DebugPanel', () => {
       expect(bgValue).toHaveTextContent('1');
     });
 
-    it('displays foam segment count', () => {
+    it('displays foam cell count', () => {
       render(<DebugPanel {...createDefaultProps()} />);
-      const foamLabel = screen.getByText('Foam Segments');
+      const foamLabel = screen.getByText('Foam Cells');
       const foamValue = foamLabel.closest('.control').querySelector('.value');
       expect(foamValue).toHaveTextContent('42');
     });

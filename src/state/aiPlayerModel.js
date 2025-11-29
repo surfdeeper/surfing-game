@@ -75,36 +75,36 @@ export function createAIState(mode = AI_MODE.INTERMEDIATE) {
  * Returns {x, y} screen position or null if no good foam found
  */
 function findBestFoam(world, canvasWidth, oceanTop, oceanBottom, cfg, peakX) {
-    if (!world.foamRows || world.foamRows.length === 0) {
-        return null;
-    }
+    const foamGrid = world.foamGrid;
+    if (!foamGrid || !foamGrid.data) return null;
 
-    const minY = oceanTop + (oceanBottom - oceanTop) * cfg.minProgress;
-    const maxY = oceanTop + (oceanBottom - oceanTop) * cfg.maxProgress;
+    const { data, width, height } = foamGrid;
+    const minYNorm = cfg.minProgress;
+    const maxYNorm = cfg.maxProgress;
 
     let bestFoam = null;
     let bestScore = -1;
 
-    for (const row of world.foamRows) {
-        // Skip foam outside our target zone
-        if (row.y < minY || row.y > maxY) continue;
-        if (row.opacity < 0.3) continue; // Skip faded foam
+    const minRow = Math.max(0, Math.floor(minYNorm * height));
+    const maxRow = Math.min(height - 1, Math.ceil(maxYNorm * height));
 
-        for (const seg of row.segments) {
-            // Check if this segment is near the peak X
-            const segCenterX = ((seg.startX + seg.endX) / 2) * canvasWidth;
-            const distFromPeak = Math.abs(segCenterX - peakX);
+    for (let y = minRow; y <= maxRow; y++) {
+        const normalizedY = y / (height - 1);
+        const screenY = oceanTop + normalizedY * (oceanBottom - oceanTop);
 
-            // Prefer foam near the peak and with good intensity
-            const score = seg.intensity * row.opacity * (1 - distFromPeak / canvasWidth);
+        for (let x = 0; x < width; x++) {
+            const intensity = data[y * width + x];
+            if (intensity < cfg.foamThreshold) continue;
 
+            const normalizedX = x / (width - 1);
+            const screenX = normalizedX * canvasWidth;
+            const distFromPeak = Math.abs(screenX - peakX);
+
+            // Prefer high intensity and proximity to peak
+            const score = intensity * (1 - distFromPeak / canvasWidth);
             if (score > bestScore) {
                 bestScore = score;
-                bestFoam = {
-                    x: segCenterX,
-                    y: row.y,
-                    intensity: seg.intensity * row.opacity,
-                };
+                bestFoam = { x: screenX, y: screenY, intensity };
             }
         }
     }
@@ -136,7 +136,7 @@ export function updateAIPlayer(
     const cfg = aiState.config;
 
     // Sample foam at player position
-    const foamIntensity = sampleFoamIntensity(player.x, player.y, world.foamRows, canvasWidth);
+    const foamIntensity = sampleFoamIntensity(player.x, player.y, world.foamGrid, canvasWidth, oceanTop, oceanBottom);
 
     // Peak position for reference
     const peakX = getPeakX(world.bathymetry) * canvasWidth;

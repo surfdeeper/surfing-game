@@ -1,207 +1,55 @@
-# Plan 132: Layered Foam Rendering System
+# Plan 132: Grid-Based Foam Rendering System
 
-## Status: Planned
+Status: Planned (revised)
 
-## Problem
+## Principles
+- Single source of truth per layer; every layer is a grid (typed arrays), not ad-hoc rows/spans.
+- Energy is conserved/redirected: swell injection → propagation → dissipation; foam derives from dissipation only.
+- Read-only down the stack: rendering only samples grids; no rendering writes back to sim.
+- Shared space/time: all grids use the same dimensions and advance on the same tick.
 
-The current foam rendering uses discrete rectangles sampled at grid positions. Even with high resolution (80 X samples, 3px Y spacing), the result looks blocky:
+## Layered Grids
+1. Energy Field (source)
+   - Grid: `energy[y][x]` height/energy.
+   - Update: wave equation + depth-based speed + damping; horizon injection for set/background swells. Runs even when not rendered.
+   - Output: local energy for breaking/visual thickness.
 
-1. **Staircase edges** - Breaking zone boundaries form rigid steps instead of smooth contours
-2. **Visible grid structure** - Even with overlap, individual rectangles are apparent
-3. **Opacity stacking** - Overlapping rectangles create visible seams
-4. **No interpolation** - We know where breaking occurs but render boxes, not regions
+2. Energy Transfer Grid (energy leaving waves)
+   - Grid: `energyTransfer[y][x]` per-frame accumulator (cleared/decayed each tick).
+   - Update: when breaking triggers, drain from energy field into this grid; optional box-blur for spread.
+   - Purpose: visualizes “areas where energy is being transferred/released”.
 
-The underlying sampling is fine - the problem is purely in rendering.
+3. Foam Grid (visual medium)
+   - Grid: `foam[y][x]` scalar density (0–1).
+   - Update:
+     - Deposit: `foam += kDep * energyTransfer`, capped.
+     - Advect (stub now): small constant shoreward drift; later use velocity field.
+     - Decay: temporal fade per cell.
+   - Purpose: renderable field; future drift/interaction-ready.
 
----
+4. Optional Velocity Field (future)
+   - Grid: `velX[y][x], velY[y][x]` for advection of foam/energy bleed.
 
-## Solution: Layered Architecture
-
-Separate the foam system into distinct layers, each with its own purpose:
-
-### Layer 1: Breaking Zone Geometry (Smooth Fill)
-
-**Purpose:** Define the *shape* of where breaking occurs as smooth filled polygons.
-
-**Approach:**
-- Per Y row, scan samples to find contiguous breaking regions
-- Store as spans: `{ y, segments: [{startX, endX}, ...] }`
-- Render as filled horizontal bands from startX to endX
-- Optionally smooth edges between rows using interpolation or canvas paths
-
-**Result:** Solid filled shapes that follow bathymetry contours without visible grid.
-
-### Layer 2: Foam Intensity Map (Gradient)
-
-**Purpose:** Within the breaking zone, show *how much* breaking is occurring.
-
-**Approach:**
-- Compute intensity based on depth or distance from breaking threshold
-- Shallower water = more intense foam
-- Edges of breaking zone = softer/less foam
-- Render as gradient within the Layer 1 polygon
-
-**Result:** Visual variation within the foam zone - not uniform white.
-
-### Layer 3: Foam Particles (Future - Presentation Only)
-
-**Purpose:** Add texture and visual interest on top of the solid foam zones.
-
-**Approach:**
-- Spawn particles within the breaking zone
-- Density driven by Layer 2 intensity map
-- Purely cosmetic - the underlying shape is defined by Layer 1
-
-**Result:** Organic, animated foam texture.
-
-### Debug Layer: Sample Points (Current System)
-
-**Purpose:** Visualize the underlying sample grid for debugging.
-
-**Approach:**
-- Keep current rectangle rendering as a toggle
-- Useful for verifying bathymetry and breaking logic
-
----
-
-## Data Model Changes
-
-### Current: Individual Foam Points
-```js
-foam = {
-    id, spawnTime, x, y, opacity, sourceWaveId
-}
-world.foamSegments = [foam, foam, ...] // thousands of points
-```
-
-### New: Foam Spans Per Row
-```js
-foamRow = {
-    y: number,              // Y position (screen pixels)
-    spawnTime: number,      // for opacity fade
-    segments: [             // contiguous breaking regions
-        { startX: 0.2, endX: 0.45 },
-        { startX: 0.7, endX: 0.85 },  // can have multiple per row (e.g., two sandbars)
-    ]
-}
-world.foamRows = [foamRow, ...]  // one per Y position, much fewer entries
-```
-
-This reduces data volume and naturally represents the breaking zone shape.
-
----
+## Data Flow Per Frame
+1) Inject swells → update energy field.  
+2) Detect breaking (H vs depth/energy) → drain into `energyTransfer`.  
+3) Deposit/advect/decay into `foam`.  
+4) Render: energy gradient/contours from `energy`; foam alpha/contours from `foam`.
 
 ## Implementation Steps
-
-### Step 1: Add Toggle Buttons
-- Add "Foam Zones" button (Layer 1 - smooth polygons)
-- Add "Foam Samples" button (debug view - current rectangles)
-- Wire up to `showFoamZones` and `showFoamSamples` state
-
-### Step 2: Collect Spans Instead of Points
-- During foam deposition, instead of pushing individual foam points:
-  - Scan across X samples to find contiguous breaking regions
-  - Store as `{ y, segments: [{startX, endX}, ...] }`
-- Or: Keep current point collection but convert to spans at render time
-
-### Step 3: Render Spans as Filled Regions
-- For each foam row, draw horizontal bands from startX to endX
-- Use canvas `fillRect` or path-based fill
-
-### Step 4: Smooth the Edges via Marching Squares
-
-The key insight: blur the *data*, not the *pixels*.
-
-**Approach:**
-1. Build a low-resolution intensity grid (e.g., 80×60 cells)
-2. Apply box blur to the grid values (simple number averaging, very fast)
-3. Run marching squares algorithm to extract polygon contours at threshold
-4. Render contours as bezier curves
-
-**Why this is fast:**
-- Grid blur: ~80×60×9 = 43,200 additions (sub-millisecond)
-- Marching squares: O(grid cells) = 4,800 iterations
-- Canvas draw: single `fill()` call per contour
-
-**Why canvas blur was slow:**
-- `ctx.filter = 'blur()'` processes every pixel
-- At 800×600 = 480,000 pixels × multiple passes
-- GPU-accelerated but still 100x more work
-
-**Marching Squares lookup table:**
-```
-Cell corners: TL TR BL BR (each 0 or 1 based on threshold)
-16 cases → line segment configurations
-Output: list of {x,y} points forming contour
-```
-
-**Implementation:**
-```js
-// 1. Build intensity grid
-const grid = new Float32Array(GRID_W * GRID_H);
-for (const row of foamRows) {
-    for (const seg of row.segments) {
-        // Map world coords to grid coords and fill cells
-    }
-}
-
-// 2. Box blur the grid (3x3 kernel)
-const blurred = boxBlur(grid, GRID_W, GRID_H);
-
-// 3. Marching squares at threshold (e.g., 0.3)
-const contours = marchingSquares(blurred, GRID_W, GRID_H, 0.3);
-
-// 4. Render as bezier paths
-for (const contour of contours) {
-    ctx.beginPath();
-    drawSmoothContour(ctx, contour);
-    ctx.fill();
-}
-```
-
-### Step 5: Add Intensity Gradient (Layer 2)
-- Within each span, compute intensity based on depth
-- Render as gradient fill instead of solid white
-
----
-
-## Toggle Button Layout
-
-Current:
-```
-[Set Waves] [Background] [Depth Map]
-```
-
-After:
-```
-[Set Waves] [Background] [Depth Map] [Foam Zones] [Foam Samples]
-```
-
-- **Foam Zones**: Layer 1 smooth filled polygons (default ON)
-- **Foam Samples**: Debug view showing individual sample rectangles (default OFF)
-
----
-
-## Files to Modify
-
-- `src/main.js` - Add toggle state, modify foam collection, add layer rendering
-- `src/state/foamModel.js` - Add span-based data structures (optional, could stay in main.js)
-
----
+1. Define shared grid dimensions/mapping once; apply to all layers (energy, transfer, foam).
+2. Add `energyTransferGrid` alongside `energyField`; breaking writes drained amount here each tick; clear or decay it every frame.
+3. Add `foamGrid`; per tick: deposit from `energyTransfer`, advect with simple shoreward velocity (stub), decay with configurable rate.
+4. Rendering: sample `foamGrid` directly—either per-cell alpha or iso-contours (marching squares) without row spans; keep a debug toggle for the raw grid.
+5. (Future) Add velocity field to replace constant advection with flow-driven drift.
 
 ## Success Criteria
+- Foam intensity/shape matches dissipation footprint without staircase artifacts.
+- Background chop deposits little foam; set waves create higher dissipation and denser foam.
+- Grids stay spatially/temporally aligned; no ad-hoc row constructs.
+- Rendering reads from grids only; no feedback from canvas to sim.
 
-1. Foam zones render as smooth filled shapes, not visible rectangles
-2. Contours follow bathymetry naturally (cone for point break, lobe for sandbar)
-3. Toggle allows switching between smooth view and debug sample view
-4. No visible staircase or grid artifacts in smooth view
-5. Performance remains acceptable (fewer draw calls with spans vs points)
-
----
-
-## Future Extensions
-
-- Layer 2: Intensity gradients within foam zones
-- Layer 3: Particle effects driven by intensity map
-- Animated foam edges (subtle wobble/movement)
-- Per-wave foam coloring (set waves vs background)
+## Files to Modify (when implementing)
+- `src/state/energyFieldModel.js`: expose drain hooks and shared grid mapping.
+- `src/state/foamModel.js` (or new): manage `energyTransferGrid` and `foamGrid` updates.
+- `src/main.jsx` (render): sample `foamGrid` for visualization; add debug toggles.

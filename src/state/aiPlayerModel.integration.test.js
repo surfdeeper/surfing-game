@@ -7,6 +7,7 @@ import { createAIState, updateAIPlayer, AI_MODE, AI_STATE } from './aiPlayerMode
 import { createPlayerProxy, updatePlayerProxy } from './playerProxyModel.js';
 import { DEFAULT_BATHYMETRY } from './bathymetryModel.js';
 import { getOceanBounds, calculateTravelDuration } from '../render/coordinates.js';
+import { createFoamGrids } from './foamGridModel.js';
 
 // Simulate real game dimensions
 const CANVAS_WIDTH = 800;
@@ -16,6 +17,17 @@ const SHORE_HEIGHT = 100;
 // Get bounds exactly like the real game does
 const { oceanTop, oceanBottom, shoreY } = getOceanBounds(CANVAS_HEIGHT, SHORE_HEIGHT);
 const TRAVEL_DURATION = calculateTravelDuration(oceanBottom, 50); // 50 px/s wave speed
+
+function createFoamGridBand(yNorm, startXNorm, endXNorm, intensity = 0.5) {
+    const { foam } = createFoamGrids();
+    const row = Math.min(foam.height - 1, Math.max(0, Math.floor(yNorm * (foam.height - 1))));
+    const start = Math.min(foam.width - 1, Math.max(0, Math.floor(startXNorm * (foam.width - 1))));
+    const end = Math.min(foam.width - 1, Math.max(start, Math.floor(endXNorm * (foam.width - 1))));
+    for (let x = start; x <= end; x++) {
+        foam.data[row * foam.width + x] = intensity;
+    }
+    return foam;
+}
 
 describe('AI Player Integration', () => {
     it('logs real game dimensions', () => {
@@ -43,18 +55,10 @@ describe('AI Player Integration', () => {
         // Foam spawns at the peak (0.55 progress = 330px Y)
         const foamY = 0.58 * (oceanBottom - oceanTop) + oceanTop; // Same as expert target
 
+        const foamGrid = createFoamGridBand((foamY - oceanTop) / (oceanBottom - oceanTop), DEFAULT_BATHYMETRY.peakX - 0.15, DEFAULT_BATHYMETRY.peakX + 0.15, 0.5);
         const world = {
             waves: [],
-            foamRows: [{
-                y: foamY,
-                spawnTime: 0,
-                opacity: 1.0,
-                segments: [{
-                    startX: DEFAULT_BATHYMETRY.peakX - 0.15, // 0.20 to 0.50 normalized X
-                    endX: DEFAULT_BATHYMETRY.peakX + 0.15,
-                    intensity: 0.5
-                }]
-            }],
+            foamGrid,
             gameTime: 0,
             bathymetry: DEFAULT_BATHYMETRY,
         };
@@ -89,15 +93,16 @@ describe('AI Player Integration', () => {
             );
 
             // Update player with input (same as real game)
-            // updatePlayerProxy(player, dt, input, foamRows, shoreY, canvasWidth, canvasHeight)
             player = updatePlayerProxy(
                 player,
                 dt,
                 input,
-                world.foamRows,
+                world.foamGrid,
                 shoreY,
                 CANVAS_WIDTH,
-                CANVAS_HEIGHT
+                CANVAS_HEIGHT,
+                oceanTop,
+                oceanBottom
             );
 
             // Log every 2 seconds
@@ -140,18 +145,10 @@ describe('AI Player Integration', () => {
         console.log(`Player at target: (${player.x}, ${player.y})`);
 
         // Simulate wave arriving - foam at player's position
+        const foamGrid = createFoamGridBand((player.y - oceanTop) / (oceanBottom - oceanTop), DEFAULT_BATHYMETRY.peakX - 0.15, DEFAULT_BATHYMETRY.peakX + 0.15, 0.5);
         const world = {
             waves: [],
-            foamRows: [{
-                y: player.y, // Foam right at player
-                spawnTime: 0,
-                opacity: 1.0,
-                segments: [{
-                    startX: DEFAULT_BATHYMETRY.peakX - 0.15,
-                    endX: DEFAULT_BATHYMETRY.peakX + 0.15,
-                    intensity: 0.5
-                }]
-            }],
+            foamGrid,
             gameTime: 0,
             bathymetry: DEFAULT_BATHYMETRY,
         };
@@ -171,10 +168,8 @@ describe('AI Player Integration', () => {
         for (let frame = 0; frame < 120; frame++) {
             world.gameTime = frame * dt * 1000;
             // Keep foam at player position while riding
-            world.foamRows[0].y = player.y;
-
             const input = updateAIPlayer(player, aiState, world, dt, CANVAS_WIDTH, CANVAS_HEIGHT, oceanTop, oceanBottom, TRAVEL_DURATION);
-            player = updatePlayerProxy(player, dt, input, world.foamRows, shoreY, CANVAS_WIDTH, CANVAS_HEIGHT);
+            player = updatePlayerProxy(player, dt, input, world.foamGrid, shoreY, CANVAS_WIDTH, CANVAS_HEIGHT, oceanTop, oceanBottom);
         }
 
         console.log(`After 2s ride: pos=(${Math.round(player.x)}, ${Math.round(player.y)}), state=${aiState.state}`);
@@ -183,7 +178,7 @@ describe('AI Player Integration', () => {
         expect(aiState.state).toBe(AI_STATE.RIDING);
 
         // Now simulate foam dissipating
-        world.foamRows = [];
+        world.foamGrid = createFoamGridBand(0.1, 0, 0, 0); // empty grid
         aiState.rideTimer = 1.0; // Already riding for a while
 
         updateAIPlayer(player, aiState, world, dt, CANVAS_WIDTH, CANVAS_HEIGHT, oceanTop, oceanBottom, TRAVEL_DURATION);
@@ -205,18 +200,10 @@ describe('AI Player Integration', () => {
         console.log(`Player at target: (${player.x}, ${player.y})`);
 
         // Create foam at the player position
+        const foamGrid = createFoamGridBand((targetY - oceanTop) / (oceanBottom - oceanTop), DEFAULT_BATHYMETRY.peakX - 0.1, DEFAULT_BATHYMETRY.peakX + 0.1, 0.5);
         const world = {
             waves: [],
-            foamRows: [{
-                y: targetY,
-                spawnTime: 0,
-                opacity: 1.0,
-                segments: [{
-                    startX: DEFAULT_BATHYMETRY.peakX - 0.1,
-                    endX: DEFAULT_BATHYMETRY.peakX + 0.1,
-                    intensity: 0.5
-                }]
-            }],
+            foamGrid,
             gameTime: 100,
             bathymetry: DEFAULT_BATHYMETRY,
         };

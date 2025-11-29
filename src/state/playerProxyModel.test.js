@@ -6,12 +6,15 @@ import {
     getZone,
     sampleFoamIntensity,
 } from './playerProxyModel.js';
+import { createFoamGrids } from './foamGridModel.js';
 
 describe('playerProxyModel', () => {
     const config = PLAYER_PROXY_CONFIG;
     const canvasWidth = 800;
     const canvasHeight = 600;
     const shoreY = 500;
+    const oceanTop = 0;
+    const oceanBottom = canvasHeight;
 
     describe('createPlayerProxy', () => {
         it('creates player on shore', () => {
@@ -37,51 +40,39 @@ describe('playerProxyModel', () => {
     });
 
     describe('sampleFoamIntensity', () => {
-        it('returns 0 when no foam rows', () => {
-            const intensity = sampleFoamIntensity(400, 300, [], canvasWidth);
+        it('returns 0 when no foam', () => {
+            const { foam: foamGrid } = createFoamGrids();
+            const intensity = sampleFoamIntensity(400, 300, foamGrid, canvasWidth, oceanTop, oceanBottom);
             expect(intensity).toBe(0);
         });
 
-        it('returns 0 when player not in any foam segment', () => {
-            const foamRows = [{
-                y: 300,
-                opacity: 1,
-                segments: [{ startX: 0.1, endX: 0.2, intensity: 0.8 }]
-            }];
-            // Player at x=400 (normalized 0.5) is outside segment 0.1-0.2
-            const intensity = sampleFoamIntensity(400, 300, foamRows, canvasWidth);
-            expect(intensity).toBe(0);
+        it('returns intensity at occupied cell', () => {
+            const { foam: foamGrid } = createFoamGrids();
+            // Screen center (400, 300) maps to grid position (29.5, 19.5) due to bilinear sampling
+            // Set all 4 neighboring cells to the same value so interpolation returns that value
+            const cy = 19;
+            const cx = 29;
+            foamGrid.data[cy * foamGrid.width + cx] = 0.8;       // (29, 19)
+            foamGrid.data[cy * foamGrid.width + (cx + 1)] = 0.8; // (30, 19)
+            foamGrid.data[(cy + 1) * foamGrid.width + cx] = 0.8; // (29, 20)
+            foamGrid.data[(cy + 1) * foamGrid.width + (cx + 1)] = 0.8; // (30, 20)
+            const intensity = sampleFoamIntensity(400, 300, foamGrid, canvasWidth, oceanTop, oceanBottom);
+            expect(intensity).toBeCloseTo(0.8, 2);
         });
 
-        it('returns intensity when player is in foam segment', () => {
-            const foamRows = [{
-                y: 300,
-                opacity: 1,
-                segments: [{ startX: 0.4, endX: 0.6, intensity: 0.8 }]
-            }];
-            // Player at x=400 (normalized 0.5) is inside segment 0.4-0.6
-            const intensity = sampleFoamIntensity(400, 300, foamRows, canvasWidth);
-            expect(intensity).toBe(0.8);
-        });
-
-        it('scales intensity by foam opacity', () => {
-            const foamRows = [{
-                y: 300,
-                opacity: 0.5,
-                segments: [{ startX: 0.4, endX: 0.6, intensity: 0.8 }]
-            }];
-            const intensity = sampleFoamIntensity(400, 300, foamRows, canvasWidth);
-            expect(intensity).toBe(0.4); // 0.8 * 0.5
-        });
-
-        it('ignores foam rows too far away in Y', () => {
-            const foamRows = [{
-                y: 200, // 100px away from player at y=300
-                opacity: 1,
-                segments: [{ startX: 0.4, endX: 0.6, intensity: 0.8 }]
-            }];
-            const intensity = sampleFoamIntensity(400, 300, foamRows, canvasWidth);
-            expect(intensity).toBe(0);
+        it('interpolates between cells', () => {
+            const { foam: foamGrid } = createFoamGrids();
+            // Set two adjacent cells with different values
+            const y = Math.floor(foamGrid.height / 2);
+            foamGrid.data[y * foamGrid.width + 0] = 0.2;
+            foamGrid.data[y * foamGrid.width + 1] = 0.6;
+            // Position halfway between x=0 and x=1
+            const normalizedX = 0.5 / foamGrid.width;
+            const x = normalizedX * canvasWidth;
+            const yScreen = (y / (foamGrid.height - 1)) * (oceanBottom - oceanTop);
+            const intensity = sampleFoamIntensity(x, yScreen, foamGrid, canvasWidth, oceanTop, oceanBottom);
+            expect(intensity).toBeGreaterThan(0.2);
+            expect(intensity).toBeLessThan(0.6);
         });
     });
 
@@ -92,7 +83,8 @@ describe('playerProxyModel', () => {
 
         it('player stays still with no input and no foam', () => {
             const player = { x: 400, y: 300, vx: 0, vy: 0 };
-            const updated = updatePlayerProxy(player, 0.1, noInput, [], shoreY, canvasWidth, canvasHeight, config);
+            const { foam: foamGrid } = createFoamGrids();
+            const updated = updatePlayerProxy(player, 0.1, noInput, foamGrid, shoreY, canvasWidth, canvasHeight, oceanTop, oceanBottom, config);
 
             expect(updated.vx).toBeCloseTo(0, 1);
             expect(updated.vy).toBeCloseTo(0, 1);
@@ -100,7 +92,8 @@ describe('playerProxyModel', () => {
 
         it('player moves up (toward horizon) with up input in water', () => {
             const player = { x: 400, y: 300, vx: 0, vy: 0 };
-            const updated = updatePlayerProxy(player, 0.5, upInput, [], shoreY, canvasWidth, canvasHeight, config);
+            const { foam: foamGrid } = createFoamGrids();
+            const updated = updatePlayerProxy(player, 0.5, upInput, foamGrid, shoreY, canvasWidth, canvasHeight, oceanTop, oceanBottom, config);
 
             expect(updated.vy).toBeLessThan(0); // Negative = toward top of screen
             expect(updated.y).toBeLessThan(300);
@@ -110,8 +103,9 @@ describe('playerProxyModel', () => {
             const playerOnShore = { x: 400, y: shoreY + 50, vx: 0, vy: 0 };
             const playerInWater = { x: 400, y: shoreY - 50, vx: 0, vy: 0 };
 
-            const updatedShore = updatePlayerProxy(playerOnShore, 0.5, upInput, [], shoreY, canvasWidth, canvasHeight, config);
-            const updatedWater = updatePlayerProxy(playerInWater, 0.5, upInput, [], shoreY, canvasWidth, canvasHeight, config);
+            const { foam: foamGrid } = createFoamGrids();
+            const updatedShore = updatePlayerProxy(playerOnShore, 0.5, upInput, foamGrid, shoreY, canvasWidth, canvasHeight, oceanTop, oceanBottom, config);
+            const updatedWater = updatePlayerProxy(playerInWater, 0.5, upInput, foamGrid, shoreY, canvasWidth, canvasHeight, oceanTop, oceanBottom, config);
 
             // Shore velocity should be faster (more negative)
             expect(Math.abs(updatedShore.vy)).toBeGreaterThan(Math.abs(updatedWater.vy));
@@ -119,13 +113,12 @@ describe('playerProxyModel', () => {
 
         it('player gets pushed shoreward in foam with no input', () => {
             const player = { x: 400, y: 300, vx: 0, vy: 0 };
-            const foamRows = [{
-                y: 300,
-                opacity: 1,
-                segments: [{ startX: 0.3, endX: 0.7, intensity: 0.8 }]
-            }];
+            const { foam: foamGrid } = createFoamGrids();
+            const midY = Math.floor(foamGrid.height / 2);
+            const midX = Math.floor(foamGrid.width / 2);
+            foamGrid.data[midY * foamGrid.width + midX] = 0.8;
 
-            const updated = updatePlayerProxy(player, 0.5, noInput, foamRows, shoreY, canvasWidth, canvasHeight, config);
+            const updated = updatePlayerProxy(player, 0.5, noInput, foamGrid, shoreY, canvasWidth, canvasHeight, oceanTop, oceanBottom, config);
 
             expect(updated.vy).toBeGreaterThan(0); // Positive = toward shore
             expect(updated.y).toBeGreaterThan(300);
@@ -133,7 +126,8 @@ describe('playerProxyModel', () => {
 
         it('clamps player to screen bounds', () => {
             const playerAtTop = { x: 400, y: 5, vx: 0, vy: -100 };
-            const updated = updatePlayerProxy(playerAtTop, 0.1, upInput, [], shoreY, canvasWidth, canvasHeight, config);
+            const { foam: foamGrid } = createFoamGrids();
+            const updated = updatePlayerProxy(playerAtTop, 0.1, upInput, foamGrid, shoreY, canvasWidth, canvasHeight, oceanTop, oceanBottom, config);
 
             expect(updated.y).toBeGreaterThanOrEqual(config.radius);
         });
@@ -151,18 +145,18 @@ describe('playerProxyModel', () => {
             const dt = 0.016; // ~60fps
             const steps = Math.floor(duration / dt);
 
-            const foamRows = foamIntensity > 0 ? [{
-                y: 300,
-                opacity: 1,
-                segments: [{ startX: 0, endX: 1, intensity: foamIntensity }]
-            }] : [];
+            const { foam: foamGrid } = createFoamGrids();
+            if (foamIntensity > 0) {
+                // Fill a band with foam intensity
+                for (let y = 0; y < foamGrid.height; y++) {
+                    for (let x = 0; x < foamGrid.width; x++) {
+                        foamGrid.data[y * foamGrid.width + x] = foamIntensity;
+                    }
+                }
+            }
 
             for (let i = 0; i < steps; i++) {
-                // Update foam row Y to follow player (simulating being in foam zone)
-                if (foamRows.length > 0) {
-                    foamRows[0].y = player.y;
-                }
-                player = updatePlayerProxy(player, dt, input, foamRows, shoreY, canvasWidth, canvasHeight, config);
+                player = updatePlayerProxy(player, dt, input, foamGrid, shoreY, canvasWidth, canvasHeight, oceanTop, oceanBottom, config);
             }
 
             return 300 - player.y; // Positive = made progress toward horizon

@@ -2,7 +2,7 @@ import './DebugPanel.css';
 import { Tooltip } from 'react-tooltip';
 
 // Pure component - receives all data as props, rendered from game loop via requestAnimationFrame
-export function DebugPanel({ setLullState, gameTime, displayWaves, foamCount, timeScale, onTimeScaleChange, toggles, onToggle, fps, playerConfig, onPlayerConfigChange, aiMode, onAIModeChange }) {
+export function DebugPanel({ setLullState, gameTime, displayWaves, foamCount, energyTransferCount, timeScale, onTimeScaleChange, toggles, onToggle, fps, playerConfig, onPlayerConfigChange, aiMode, onAIModeChange }) {
   const sls = setLullState;
   const setWaves = displayWaves.filter(w => w.wave.type === 'set');
   const bgWaves = displayWaves.filter(w => w.wave.type === 'background');
@@ -49,22 +49,22 @@ export function DebugPanel({ setLullState, gameTime, displayWaves, foamCount, ti
           hotkey="G"
         />
         <Toggle
-          label="Foam Zones"
+          label="Energy Field (source)"
+          checked={toggles.showEnergyField}
+          onChange={() => onToggle('showEnergyField')}
+          hotkey="E"
+        />
+        <Toggle
+          label="Energy Transfer (contours)"
           checked={toggles.showFoamZones}
           onChange={() => onToggle('showFoamZones')}
           hotkey="F"
         />
         <Toggle
-          label="Foam Samples"
+          label="Foam Grid Debug"
           checked={toggles.showFoamSamples}
           onChange={() => onToggle('showFoamSamples')}
           hotkey="D"
-        />
-        <Toggle
-          label="Energy Field"
-          checked={toggles.showEnergyField}
-          onChange={() => onToggle('showEnergyField')}
-          hotkey="E"
         />
         <Toggle
           label="Player"
@@ -148,7 +148,8 @@ export function DebugPanel({ setLullState, gameTime, displayWaves, foamCount, ti
       <Section title="Wave Status">
         <ReadOnly label="Set Waves" value={setWaves.length} />
         <ReadOnly label="Background" value={bgWaves.length} />
-        <ReadOnly label="Foam Segments" value={foamCount} />
+        <ReadOnly label="Energy Transfer Cells" value={energyTransferCount} />
+        <ReadOnly label="Foam Cells" value={foamCount} />
       </Section>
 
       {setWaves.length > 0 && (

@@ -36,7 +36,8 @@ export const FOAM_THRESHOLDS_C = [
 /**
  * Render all enabled foam options
  * @param {CanvasRenderingContext2D} ctx - Canvas context
- * @param {Array} foamRows - Foam row data
+ * @param {Float32Array} foamGrid - Foam density grid
+ * @param {{width: number, height: number}} gridDims - Grid dimensions
  * @param {number} w - Canvas width
  * @param {number} h - Canvas height
  * @param {number} gameTime - Current game time
@@ -44,17 +45,18 @@ export const FOAM_THRESHOLDS_C = [
  * @param {object} toggles - Visibility toggles
  * @param {object} renderers - Render functions {base, optionA, optionB, optionC}
  */
-export function renderFoamContours(ctx, foamRows, w, h, gameTime, oceanBottom, toggles, renderers) {
+export function renderFoamContours(ctx, foamGrid, gridDims, w, h, gameTime, oceanBottom, toggles, renderers) {
+    if (!foamGrid || !foamGrid.length) return;
     if (toggles.showFoamZones) {
-        renderers.base(ctx, foamRows, w, h, { thresholds: FOAM_THRESHOLDS_BASE, oceanBottom });
+        renderers.base(ctx, foamGrid, gridDims.width, gridDims.height, w, h, { thresholds: FOAM_THRESHOLDS_BASE, oceanBottom });
     }
     if (toggles.showFoamOptionA) {
-        renderers.optionA(ctx, foamRows, w, h, gameTime, { thresholds: FOAM_THRESHOLDS_A, oceanBottom });
+        renderers.optionA(ctx, foamGrid, gridDims.width, gridDims.height, w, h, gameTime, { thresholds: FOAM_THRESHOLDS_A, oceanBottom });
     }
     if (toggles.showFoamOptionB) {
-        renderers.optionB(ctx, foamRows, w, h, gameTime, { thresholds: FOAM_THRESHOLDS_B, oceanBottom });
+        renderers.optionB(ctx, foamGrid, gridDims.width, gridDims.height, w, h, gameTime, { thresholds: FOAM_THRESHOLDS_B, oceanBottom });
     }
     if (toggles.showFoamOptionC) {
-        renderers.optionC(ctx, foamRows, w, h, gameTime, { thresholds: FOAM_THRESHOLDS_C, oceanBottom });
+        renderers.optionC(ctx, foamGrid, gridDims.width, gridDims.height, w, h, gameTime, { thresholds: FOAM_THRESHOLDS_C, oceanBottom });
     }
 }

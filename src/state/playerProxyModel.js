@@ -5,6 +5,8 @@
 // When in whitewater (foam zones), it gets pushed toward shore.
 // Player must hold up arrow to resist the push.
 
+import { sampleFoamGrid } from './foamGridModel.js';
+
 // Default config - can be overridden at runtime via debug panel
 export const DEFAULT_PLAYER_CONFIG = {
     radius: 8,
@@ -65,28 +67,16 @@ function getZoneSpeed(zone, config) {
  * Sample foam intensity at a given position
  * @param {number} x - Screen X position
  * @param {number} y - Screen Y position
- * @param {Array} foamRows - Array of foam row data
+ * @param {object} foamGrid - Foam density grid
  * @param {number} canvasWidth
+ * @param {number} oceanTop
+ * @param {number} oceanBottom
  * @returns {number} Intensity 0-1
  */
-export function sampleFoamIntensity(x, y, foamRows, canvasWidth) {
-    const SAMPLE_THRESHOLD = 6; // pixels
-
-    // Find foam rows near player Y
-    for (const row of foamRows) {
-        if (Math.abs(row.y - y) > SAMPLE_THRESHOLD) continue;
-        if (row.opacity <= 0) continue;
-
-        // Check if player X is within any foam segment
-        const normalizedX = x / canvasWidth;
-        for (const seg of row.segments) {
-            if (normalizedX >= seg.startX && normalizedX <= seg.endX) {
-                // Scale by row opacity (older foam pushes less)
-                return seg.intensity * row.opacity;
-            }
-        }
-    }
-    return 0;
+export function sampleFoamIntensity(x, y, foamGrid, canvasWidth, oceanTop, oceanBottom) {
+    const normalizedX = x / canvasWidth;
+    const normalizedY = Math.max(0, Math.min(1, (y - oceanTop) / (oceanBottom - oceanTop)));
+    return sampleFoamGrid(foamGrid, normalizedX, normalizedY);
 }
 
 /**
@@ -109,14 +99,16 @@ function getWhitewaterPush(foamIntensity, config) {
  * @param {object} player - Player state {x, y, vx, vy}
  * @param {number} dt - Delta time in seconds
  * @param {object} input - Keyboard state {left, right, up, down}
- * @param {Array} foamRows - Foam row data for whitewater detection
+ * @param {object} foamGrid - Foam grid for whitewater detection
  * @param {number} shoreY - Shore line Y position
  * @param {number} canvasWidth
  * @param {number} canvasHeight
+ * @param {number} oceanTop
+ * @param {number} oceanBottom
  * @param {object} config - PLAYER_PROXY_CONFIG
  * @returns {object} Updated player state
  */
-export function updatePlayerProxy(player, dt, input, foamRows, shoreY, canvasWidth, canvasHeight, config = PLAYER_PROXY_CONFIG) {
+export function updatePlayerProxy(player, dt, input, foamGrid, shoreY, canvasWidth, canvasHeight, oceanTop, oceanBottom, config = PLAYER_PROXY_CONFIG) {
     // 1. Determine zone and base speed
     const zone = getZone(player.y, shoreY);
     const baseSpeed = getZoneSpeed(zone, config);
@@ -135,7 +127,7 @@ export function updatePlayerProxy(player, dt, input, foamRows, shoreY, canvasWid
     }
 
     // 3. Sample foam intensity at player position
-    const foamIntensity = sampleFoamIntensity(player.x, player.y, foamRows, canvasWidth);
+    const foamIntensity = sampleFoamIntensity(player.x, player.y, foamGrid, canvasWidth, oceanTop, oceanBottom);
 
     // 4. Calculate effective speed (reduced in foam)
     const speedMultiplier = 1 - (foamIntensity * config.foamSpeedPenalty);

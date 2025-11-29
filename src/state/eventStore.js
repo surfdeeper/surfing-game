@@ -11,8 +11,9 @@
 import { createWave } from './waveModel.js';
 import { createInitialState as createSetLullState, DEFAULT_CONFIG } from './setLullModel.js';
 import { createInitialBackgroundState, BACKGROUND_CONFIG } from './backgroundWaveModel.js';
-import { createEnergyField } from './energyFieldModel.js';
+import { createEnergyField, FIELD_HEIGHT, FIELD_WIDTH } from './energyFieldModel.js';
 import { DEFAULT_BATHYMETRY } from './bathymetryModel.js';
+import { createFoamGrids } from './foamGridModel.js';
 
 // Event types
 export const EventType = {
@@ -52,6 +53,7 @@ export const EventType = {
  * Create initial game state
  */
 export function createInitialState() {
+    const foamLayers = createFoamGrids();
     return {
         // Core game time
         gameTime: 0,
@@ -64,8 +66,12 @@ export function createInitialState() {
 
         // Dynamic state
         waves: [],
-        foamRows: [],
-        foamSegments: [],
+        foamRows: [],       // legacy (debug)
+        foamSegments: [],   // legacy (debug)
+        foamGrid: foamLayers.foam,
+        energyTransferGrid: foamLayers.energyTransfer,
+        foamGridWidth: FIELD_WIDTH,
+        foamGridHeight: FIELD_HEIGHT,
 
         // State machines
         setConfig: DEFAULT_CONFIG,
@@ -255,6 +261,34 @@ export function createEventStore(initialState = null) {
             // Notify subscribers
             for (const subscriber of subscribers) {
                 subscriber(state, event);
+            }
+
+            return state;
+        },
+
+        /**
+         * Batch multiple events into a single state update (performance optimization)
+         * Reduces overhead by only notifying subscribers once after all events
+         * @param {Array} eventList - Array of events to dispatch
+         */
+        batchDispatch(eventList) {
+            const timestamp = performance.now();
+            for (const event of eventList) {
+                const timestampedEvent = {
+                    ...event,
+                    _timestamp: timestamp,
+                    _gameTime: state.gameTime,
+                };
+                events.push(timestampedEvent);
+                state = reducer(state, event);
+            }
+
+            // Notify subscribers once with the last event
+            if (eventList.length > 0) {
+                const lastEvent = eventList[eventList.length - 1];
+                for (const subscriber of subscribers) {
+                    subscriber(state, lastEvent);
+                }
             }
 
             return state;

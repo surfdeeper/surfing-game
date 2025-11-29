@@ -15,10 +15,7 @@ import './state/backgroundWaveModel.js';  // Needed by eventStore
 import {
     updateWaveSpawning,
     updateWaves,
-    depositFoam,
-    updateFoamLifecycle,
-    depositFoamRows,
-    updateFoamRowLifecycle,
+    updateFoamGridsFromWaves,
     updatePlayer,
 } from './update/index.js';
 import { EventType, getStore } from './state/eventStore.js';
@@ -29,7 +26,6 @@ import {
     PLAYER_PROXY_CONFIG,
     createPlayerProxy,
     drawPlayerProxy,
-    sampleFoamIntensity,
 } from './state/playerProxyModel.js';
 import {
     createAIState,
@@ -40,15 +36,16 @@ import {
     updateEnergyField,
     injectWavePulse,
 } from './state/energyFieldModel.js';
+import { FOAM_GRID_HEIGHT, FOAM_GRID_WIDTH, sampleFoamGrid } from './state/foamGridModel.js';
 import { renderEnergyField } from './render/energyFieldRenderer.js';
 import { renderWaves } from './render/waveRenderer.js';
 import { KeyboardInput } from './input/keyboard.js';
 import { createDebugPanelManager } from './ui/debugPanelManager.js';
 import {
-    renderMultiContour,
-    renderMultiContourOptionA,
-    renderMultiContourOptionB,
-    renderMultiContourOptionC,
+    renderMultiContourFromGrid,
+    renderMultiContourOptionAFromGrid,
+    renderMultiContourOptionBFromGrid,
+    renderMultiContourOptionCFromGrid,
 } from './render/marchingSquares.js';
 import { renderFoamContours } from './render/foamConfig.js';
 
@@ -194,14 +191,12 @@ function update(deltaTime) {
     store.dispatch({ type: EventType.GAME_TICK, deltaTime: scaledDelta * 1000 });
     world = store.getState();
 
-    // Update energy field (Plan 140) - propagate existing energy toward shore
-    if (toggles.showEnergyField) {
-        const { oceanBottom } = getOceanBounds(canvas.height, world.shoreHeight);
-        const travelDuration = calculateTravelDuration(oceanBottom, world.swellSpeed) / 1000; // in seconds
-        const getDepthForField = (normalizedX, normalizedY) =>
-            getDepth(normalizedX, world.bathymetry, normalizedY);
-        updateEnergyField(world.energyField, getDepthForField, scaledDelta, travelDuration);
-    }
+    // Update energy field (Plan 140) even when not rendered; rendering is toggled separately
+    const { oceanBottom } = getOceanBounds(canvas.height, world.shoreHeight);
+    const energyTravelDuration = calculateTravelDuration(oceanBottom, world.swellSpeed) / 1000; // in seconds
+    const getDepthForField = (normalizedX, normalizedY) =>
+        getDepth(normalizedX, world.bathymetry, normalizedY);
+    updateEnergyField(world.energyField, getDepthForField, scaledDelta, energyTravelDuration);
 
     // Update wave spawning via orchestrator (returns events + new state)
     const spawnResult = updateWaveSpawning(
@@ -215,9 +210,11 @@ function update(deltaTime) {
         world.gameTime
     );
 
-    // Apply state updates via dispatch
-    store.dispatch({ type: EventType.SET_LULL_UPDATE, setLullState: spawnResult.setLullState });
-    store.dispatch({ type: EventType.BACKGROUND_UPDATE, backgroundState: spawnResult.backgroundState });
+    // Apply state updates via batch dispatch (performance: single subscriber notification)
+    store.batchDispatch([
+        { type: EventType.SET_LULL_UPDATE, setLullState: spawnResult.setLullState },
+        { type: EventType.BACKGROUND_UPDATE, backgroundState: spawnResult.backgroundState },
+    ]);
     world = store.getState();
 
     // Process spawn events
@@ -228,7 +225,6 @@ function update(deltaTime) {
     }
 
     // Update wave lifecycle (filter completed waves + update refraction) via orchestrator
-    const { oceanBottom } = getOceanBounds(canvas.height, world.shoreHeight);
     const travelDuration = calculateTravelDuration(oceanBottom, world.swellSpeed);
     const bufferDuration = (world.swellSpacing / world.swellSpeed) * 1000;
     const updatedWaves = updateWaves(
@@ -241,32 +237,23 @@ function update(deltaTime) {
     store.dispatch({ type: EventType.WAVES_UPDATE, waves: updatedWaves });
     world = store.getState();
 
-    // Foam state for orchestrator functions
+    // Foam grid update (grid-based pipeline)
     const foamState = {
         gameTime: world.gameTime,
         bathymetry: world.bathymetry,
         energyField: world.energyField,
+        foamGrid: world.foamGrid,
+        energyTransferGrid: world.energyTransferGrid,
+        foamGridWidth: world.foamGridWidth || FOAM_GRID_WIDTH,
+        foamGridHeight: world.foamGridHeight || FOAM_GRID_HEIGHT,
         canvasHeight: canvas.height,
         shoreHeight: world.shoreHeight,
         swellSpeed: world.swellSpeed,
         showEnergyField: toggles.showEnergyField,
+        deltaTime: scaledDelta,
     };
 
-    // Deposit foam segments (point-based) via orchestrator
-    let updatedFoamSegments = depositFoam(world.waves, world.foamSegments, foamState);
-
-    // Update foam lifecycle (fade and remove)
-    updatedFoamSegments = updateFoamLifecycle(updatedFoamSegments, scaledDelta, world.gameTime);
-    store.dispatch({ type: EventType.FOAM_SEGMENTS_UPDATE, foamSegments: updatedFoamSegments });
-    world = store.getState();
-
-    // Deposit foam rows (span-based) via orchestrator
-    let updatedFoamRows = depositFoamRows(world.waves, world.foamRows, foamState);
-
-    // Update foam row lifecycle (fade and remove)
-    updatedFoamRows = updateFoamRowLifecycle(updatedFoamRows, world.gameTime);
-    store.dispatch({ type: EventType.FOAM_ROWS_UPDATE, foamRows: updatedFoamRows });
-    world = store.getState();
+    updateFoamGridsFromWaves(world.waves, foamState);
 
     // Update player proxy if enabled via orchestrator
     if (toggles.showPlayer && world.playerProxy) {
@@ -275,7 +262,7 @@ function update(deltaTime) {
             canvasHeight: canvas.height,
             shoreHeight: world.shoreHeight,
             swellSpeed: world.swellSpeed,
-            foamRows: world.foamRows,
+            foamGrid: world.foamGrid,
             deltaTime: scaledDelta,
             showAIPlayer: toggles.showAIPlayer,
             world,
@@ -348,37 +335,38 @@ function draw() {
     });
 
     // Foam contour rendering using extracted config (Plan 170)
-    renderFoamContours(ctx, world.foamRows, w, h, world.gameTime, oceanBottom, getToggles(), {
-        base: renderMultiContour,
-        optionA: renderMultiContourOptionA,
-        optionB: renderMultiContourOptionB,
-        optionC: renderMultiContourOptionC,
+    const foamGridWidth = world.foamGrid?.width || FOAM_GRID_WIDTH;
+    const foamGridHeight = world.foamGrid?.height || FOAM_GRID_HEIGHT;
+
+    renderFoamContours(ctx, world.foamGrid?.data, { width: foamGridWidth, height: foamGridHeight }, w, h, world.gameTime, oceanBottom, getToggles(), {
+        base: renderMultiContourFromGrid,
+        optionA: renderMultiContourOptionAFromGrid,
+        optionB: renderMultiContourOptionBFromGrid,
+        optionC: renderMultiContourOptionCFromGrid,
     });
 
     // LAYER: Foam samples (debug view - original rectangle-based rendering)
     // Draw foam deposits as individual rectangles for debugging
+    // Performance: batched by opacity to reduce state changes
     if (toggles.showFoamSamples) {
-        const foamDotWidth = w / 80 + 2;  // Slightly wider than sample spacing for overlap
-        const foamDotHeight = 4;  // Slightly taller than Y spacing (3) for overlap
-        for (const foam of world.foamSegments) {
-            if (foam.opacity <= 0) continue;
-
-            const foamX = foam.x * w;
-
-            // Draw foam as small rectangle at its fixed position
-            ctx.fillStyle = `rgba(255, 255, 255, ${foam.opacity * 0.85})`;
-            ctx.fillRect(foamX - foamDotWidth / 2, foam.y - foamDotHeight / 2, foamDotWidth, foamDotHeight);
+        const cellW = w / foamGridWidth;
+        const cellH = (oceanBottom - oceanTop) / foamGridHeight;
+        const data = world.foamGrid?.data || [];
+        for (let y = 0; y < foamGridHeight; y++) {
+            for (let x = 0; x < foamGridWidth; x++) {
+                const value = data[y * foamGridWidth + x];
+                if (!value) continue;
+                ctx.fillStyle = `rgba(255,255,255,${Math.min(0.9, value)})`;
+                ctx.fillRect(x * cellW, oceanTop + y * cellH, cellW + 1, cellH + 1);
+            }
         }
     }
 
     // LAYER: Player proxy (toggle with 'P' key)
     if (toggles.showPlayer && world.playerProxy) {
-        const foamIntensity = sampleFoamIntensity(
-            world.playerProxy.x,
-            world.playerProxy.y,
-            world.foamRows,
-            w
-        );
+        const normalizedX = world.playerProxy.x / w;
+        const normalizedY = Math.max(0, Math.min(1, (world.playerProxy.y - oceanTop) / (oceanBottom - oceanTop)));
+        const foamIntensity = sampleFoamGrid(world.foamGrid, normalizedX, normalizedY);
         drawPlayerProxy(ctx, world.playerProxy, foamIntensity, PLAYER_PROXY_CONFIG);
 
         // Draw AI key indicator in bottom right corner
@@ -388,11 +376,27 @@ function draw() {
     }
 
     // Render React debug panel (extracted to ui/debugPanelManager.js)
+    let foamCellCount = 0;
+    let energyTransferCellCount = 0;
+    if (world.foamGrid && world.foamGrid.data) {
+        const data = world.foamGrid.data;
+        for (let i = 0; i < data.length; i++) {
+            if (data[i] > 0.01) foamCellCount++;
+        }
+    }
+    if (world.energyTransferGrid && world.energyTransferGrid.data) {
+        const data = world.energyTransferGrid.data;
+        for (let i = 0; i < data.length; i++) {
+            if (data[i] > 0.01) energyTransferCellCount++;
+        }
+    }
+
     debugPanel.render({
         setLullState: world.setLullState,
         gameTime: world.gameTime,
         displayWaves: debugPanel.prepareDisplayWaves(world.waves, world.gameTime, travelDuration),
-        foamCount: world.foamSegments.length,
+        foamCount: foamCellCount,
+        energyTransferCount: energyTransferCellCount,
         timeScale: getTimeScale(),
         onTimeScaleChange: handleTimeScaleChange,
         toggles,
@@ -426,7 +430,11 @@ document.addEventListener('visibilitychange', () => {
 // Set waves only spawn during SET state (lulls are empty of set waves)
 
 // Expose world state for E2E testing
-window.world = world;
+// Note: world is reassigned each frame, so expose as getter
+Object.defineProperty(window, 'world', {
+    get: () => store.getState(),
+    configurable: true,
+});
 window.toggles = toggles;
 window.AI_MODE = AI_MODE;
 window.createAIState = createAIState;

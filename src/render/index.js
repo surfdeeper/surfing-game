@@ -32,6 +32,10 @@ export {
     renderMultiContourOptionA,
     renderMultiContourOptionB,
     renderMultiContourOptionC,
+    renderMultiContourFromGrid,
+    renderMultiContourOptionAFromGrid,
+    renderMultiContourOptionBFromGrid,
+    renderMultiContourOptionCFromGrid,
 } from './marchingSquares.js';
 
 // Coordinate utilities

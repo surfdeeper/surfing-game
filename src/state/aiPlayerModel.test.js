@@ -8,12 +8,16 @@ import {
     AI_MODE,
 } from './aiPlayerModel.js';
 import { DEFAULT_BATHYMETRY } from './bathymetryModel.js';
+import { createFoamGrids } from './foamGridModel.js';
 
 // Use real bathymetry config - same as the game
 function createMockWorld(overrides = {}) {
+    const { foam, energyTransfer } = createFoamGrids();
     return {
         waves: [],
-        foamRows: [],
+        foamRows: [], // legacy
+        foamGrid: foam,
+        energyTransferGrid: energyTransfer,
         gameTime: 0,
         bathymetry: DEFAULT_BATHYMETRY,
         ...overrides,
@@ -116,16 +120,16 @@ describe('AI Player Model', () => {
             // Player at peak X but foam is to the right
             const player = createMockPlayer(PEAK_X, EXPERT_CENTER_Y);
             const foamY = 0.70 * OCEAN_BOTTOM; // In expert zone (0.55-0.90)
-            const world = createMockWorld({
-                foamRows: [{
-                    y: foamY,
-                    opacity: 1.0,
-                    segments: [{ startX: 0.5, endX: 0.7, intensity: 0.5 }] // Foam to the right
-                }]
-            });
+            const foamWorld = createMockWorld();
+            const gridY = Math.floor((foamY / OCEAN_BOTTOM) * (foamWorld.foamGrid.height - 1));
+            const startX = Math.floor(foamWorld.foamGrid.width * 0.5);
+            const endX = Math.floor(foamWorld.foamGrid.width * 0.7);
+            for (let x = startX; x <= endX; x++) {
+                foamWorld.foamGrid.data[gridY * foamWorld.foamGrid.width + x] = 0.5;
+            }
 
             const input = updateAIPlayer(
-                player, aiState, world, 0.016,
+                player, aiState, foamWorld, 0.016,
                 CANVAS_WIDTH, CANVAS_HEIGHT,
                 OCEAN_TOP, OCEAN_BOTTOM, TRAVEL_DURATION
             );
@@ -139,19 +143,18 @@ describe('AI Player Model', () => {
             const playerY = 0.70 * OCEAN_BOTTOM;
             const player = createMockPlayer(PEAK_X, playerY);
             // Foam right at player position
-            const world = createMockWorld({
-                foamRows: [{
-                    y: playerY,
-                    opacity: 1.0,
-                    segments: [{ startX: 0, endX: 1, intensity: 0.5 }]
-                }]
-            });
+            const foamWorld = createMockWorld();
+            for (let y = 0; y < foamWorld.foamGrid.height; y++) {
+                for (let x = 0; x < foamWorld.foamGrid.width; x++) {
+                    foamWorld.foamGrid.data[y * foamWorld.foamGrid.width + x] = 0.5;
+                }
+            }
 
             // Run multiple times - wipeout is only 1% chance for expert
             for (let i = 0; i < 10; i++) {
                 aiState.state = AI_STATE.SEEKING;
                 updateAIPlayer(
-                    player, aiState, world, 0.016,
+                    player, aiState, foamWorld, 0.016,
                     CANVAS_WIDTH, CANVAS_HEIGHT,
                     OCEAN_TOP, OCEAN_BOTTOM, TRAVEL_DURATION
                 );
@@ -172,16 +175,15 @@ describe('AI Player Model', () => {
             aiState.lastPos = { x: PEAK_X, y: RIDE_Y };
 
             const player = createMockPlayer(PEAK_X, RIDE_Y);
-            const world = createMockWorld({
-                foamRows: [{
-                    y: RIDE_Y,
-                    opacity: 1.0,
-                    segments: [{ startX: 0, endX: 1, intensity: 0.5 }]
-                }]
-            });
+            const foamWorld = createMockWorld();
+            for (let y = 0; y < foamWorld.foamGrid.height; y++) {
+                for (let x = 0; x < foamWorld.foamGrid.width; x++) {
+                    foamWorld.foamGrid.data[y * foamWorld.foamGrid.width + x] = 0.5;
+                }
+            }
 
             const input = updateAIPlayer(
-                player, aiState, world, 0.016,
+                player, aiState, foamWorld, 0.016,
                 CANVAS_WIDTH, CANVAS_HEIGHT,
                 OCEAN_TOP, OCEAN_BOTTOM, TRAVEL_DURATION
             );

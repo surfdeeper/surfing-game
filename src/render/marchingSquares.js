@@ -915,3 +915,79 @@ export function renderMultiContourOptionC(ctx, foamRows, canvasW, canvasH, gameT
 
     return results;
 }
+
+/**
+ * Render multi-contour directly from a foam grid (no row conversion).
+ */
+export function renderMultiContourFromGrid(ctx, foamGrid, gridW, gridH, canvasW, canvasH, options = {}) {
+    const {
+        thresholds = [
+            { value: 0.5, color: '#ffffff', lineWidth: 3 },
+            { value: 0.3, color: '#aaddff', lineWidth: 2 },
+            { value: 0.15, color: '#6699cc', lineWidth: 1 },
+        ],
+        blurPasses = 1,
+        oceanBottom = null,
+    } = options;
+
+    const oceanH = oceanBottom ?? (canvasH - 80);
+    const blurred = blurPasses > 0 ? boxBlur(foamGrid, gridW, gridH, blurPasses) : foamGrid;
+    const results = [];
+    const sortedThresholds = [...thresholds].sort((a, b) => a.value - b.value);
+
+    for (const { value, color, lineWidth } of sortedThresholds) {
+        const segments = extractLineSegments(blurred, gridW, gridH, value);
+
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lineWidth;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+
+        ctx.beginPath();
+        for (const seg of segments) {
+            ctx.moveTo(seg.x1 * canvasW, seg.y1 * oceanH);
+            ctx.lineTo(seg.x2 * canvasW, seg.y2 * oceanH);
+        }
+        ctx.stroke();
+
+        results.push({ threshold: value, segmentCount: segments.length });
+    }
+
+    return results;
+}
+
+export function renderMultiContourOptionAFromGrid(ctx, foamGrid, gridW, gridH, canvasW, canvasH, _gameTime, options = {}) {
+    return renderMultiContourFromGrid(ctx, foamGrid, gridW, gridH, canvasW, canvasH, {
+        ...options,
+        thresholds: options.thresholds || [
+            { value: 0.5, color: '#ffffff', lineWidth: 3 },
+            { value: 0.3, color: '#aaddff', lineWidth: 2 },
+            { value: 0.15, color: '#6699cc', lineWidth: 1 },
+        ],
+        blurPasses: options.blurPasses ?? 1,
+    });
+}
+
+export function renderMultiContourOptionBFromGrid(ctx, foamGrid, gridW, gridH, canvasW, canvasH, _gameTime, options = {}) {
+    return renderMultiContourFromGrid(ctx, foamGrid, gridW, gridH, canvasW, canvasH, {
+        ...options,
+        thresholds: options.thresholds || [
+            { value: 0.5, color: '#ffffff', lineWidth: 3 },
+            { value: 0.3, color: '#aaddff', lineWidth: 2 },
+            { value: 0.15, color: '#6699cc', lineWidth: 1 },
+        ],
+        blurPasses: options.blurPasses ?? 2,
+    });
+}
+
+export function renderMultiContourOptionCFromGrid(ctx, foamGrid, gridW, gridH, canvasW, canvasH, _gameTime, options = {}) {
+    return renderMultiContourFromGrid(ctx, foamGrid, gridW, gridH, canvasW, canvasH, {
+        ...options,
+        thresholds: options.thresholds || [
+            { value: 0.5, color: '#ffffff', lineWidth: 3 },
+            { value: 0.3, color: '#aaddff', lineWidth: 2 },
+            { value: 0.15, color: '#6699cc', lineWidth: 1 },
+        ],
+        blurPasses: options.blurPasses ?? 1,
+    });
+}

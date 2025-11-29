@@ -10,6 +10,7 @@ import { updateBackgroundWaveState } from '../state/backgroundWaveModel.js';
 import { getActiveWaves, updateWaveRefraction, getWaveProgress, isWaveBreaking, isWaveBreakingWithEnergy, WAVE_TYPE } from '../state/waveModel.js';
 import { createFoam, updateFoam, getActiveFoam } from '../state/foamModel.js';
 import { updateEnergyField, getHeightAt, drainEnergyAt, injectWavePulse } from '../state/energyFieldModel.js';
+import { accumulateEnergyTransfer, updateFoamLayer } from '../state/foamGridModel.js';
 import { updatePlayerProxy, createPlayerProxy, PLAYER_PROXY_CONFIG } from '../state/playerProxyModel.js';
 import { updateAIPlayer, createAIState } from '../state/aiPlayerModel.js';
 import { getDepth } from '../state/bathymetryModel.js';
@@ -78,6 +79,88 @@ export function updateWaves(waves, gameTime, travelDuration, bufferDuration, bat
 }
 
 /**
+ * Grid-based foam update:
+ * - Detect breaking
+ * - Drain energy into transfer grid
+ * - Transfer energy into foam grid with decay/advection
+ */
+export function updateFoamGridsFromWaves(waves, state) {
+    const {
+        gameTime,
+        bathymetry,
+        energyField,
+        foamGrid,
+        energyTransferGrid,
+        foamGridWidth,
+        foamGridHeight,
+        canvasHeight,
+        shoreHeight,
+        swellSpeed,
+        showEnergyField,
+        deltaTime,
+    } = state;
+
+    const { oceanTop, oceanBottom } = getOceanBounds(canvasHeight, shoreHeight);
+    const travelDuration = calculateTravelDuration(oceanBottom, swellSpeed);
+
+    const numXSamples = foamGridWidth || foamGrid.width;
+    const foamGridRows = foamGridHeight || foamGrid.height;
+    const foamYSpacing = (oceanBottom - oceanTop) / foamGridRows;
+
+    for (const wave of waves) {
+        const progress = getWaveProgress(wave, gameTime, travelDuration);
+        const waveY = progressToScreenY(progress, oceanTop, oceanBottom);
+
+        if (wave.lastFoamY >= 0 && Math.abs(waveY - wave.lastFoamY) < foamYSpacing) {
+            continue;
+        }
+
+        const startY = wave.lastFoamY >= 0 ? wave.lastFoamY : waveY;
+        const yDelta = waveY - startY;
+        const direction = Math.sign(yDelta);
+        const numRows = Math.max(1, Math.floor(Math.abs(yDelta) / foamYSpacing));
+
+        for (let row = 0; row < numRows; row++) {
+            const foamY = startY + direction * (row + 1) * foamYSpacing;
+            const foamProgress = screenYToProgress(foamY, oceanTop, oceanBottom);
+
+            let depositedAny = false;
+            for (let i = 0; i < numXSamples; i++) {
+                const normalizedX = (i + 0.5) / numXSamples;
+                const depth = getDepth(normalizedX, bathymetry, foamProgress);
+
+                let energyAtPoint = 0;
+                const shouldBreak = showEnergyField
+                    ? (energyAtPoint = getHeightAt(energyField, normalizedX, foamProgress),
+                        isWaveBreakingWithEnergy(wave, depth, energyAtPoint))
+                    : isWaveBreaking(wave, depth);
+
+                if (shouldBreak) {
+                    const drainAmount = wave.amplitude * 20.0;
+                    const energyReleased = showEnergyField
+                        ? drainEnergyAt(energyField, normalizedX, foamProgress, drainAmount)
+                        : drainAmount;
+
+                    accumulateEnergyTransfer(energyTransferGrid, normalizedX, foamProgress, energyReleased);
+                    depositedAny = true;
+                }
+            }
+
+            if (depositedAny) {
+                wave.lastFoamY = foamY;
+            }
+        }
+    }
+
+    updateFoamLayer(foamGrid, energyTransferGrid, deltaTime);
+
+    return {
+        foamGrid,
+        energyTransferGrid,
+    };
+}
+
+/**
  * Deposit foam where waves are breaking
  */
 export function depositFoam(waves, foamSegments, state) {
@@ -87,7 +170,8 @@ export function depositFoam(waves, foamSegments, state) {
 
     const numXSamples = 80;
     const foamYSpacing = 3;
-    const newFoamSegments = [...foamSegments];
+    // Defer cloning until we actually add foam (performance optimization)
+    let newFoamSegments = null;
     const useEnergyField = state.showEnergyField;
 
     for (const wave of waves) {
@@ -127,6 +211,10 @@ export function depositFoam(waves, foamSegments, state) {
                         energyReleased = drainEnergyAt(energyField, normalizedX, foamProgress, wave.amplitude * 20.0);
                     }
 
+                    // Clone array on first addition (deferred clone pattern)
+                    if (!newFoamSegments) {
+                        newFoamSegments = [...foamSegments];
+                    }
                     const foam = createFoam(gameTime, normalizedX, foamY, wave.id);
                     foam.opacity = Math.min(1.0, energyReleased * 2);
                     newFoamSegments.push(foam);
@@ -140,7 +228,8 @@ export function depositFoam(waves, foamSegments, state) {
         }
     }
 
-    return newFoamSegments;
+    // Return original if nothing was added (avoids unnecessary state update)
+    return newFoamSegments || foamSegments;
 }
 
 /**
@@ -163,7 +252,8 @@ export function depositFoamRows(waves, foamRows, state) {
 
     const numXSamples = 80;
     const foamYSpacing = 3;
-    const newFoamRows = [...foamRows];
+    // Defer cloning until we actually add foam (performance optimization)
+    let newFoamRows = null;
 
     for (const wave of waves) {
         const progress = getWaveProgress(wave, gameTime, travelDuration);
@@ -213,6 +303,10 @@ export function depositFoamRows(waves, foamRows, state) {
             }
 
             if (segments.length > 0) {
+                // Clone array on first addition (deferred clone pattern)
+                if (!newFoamRows) {
+                    newFoamRows = [...foamRows];
+                }
                 newFoamRows.push({
                     y: foamY,
                     spawnTime: gameTime,
@@ -223,7 +317,8 @@ export function depositFoamRows(waves, foamRows, state) {
         }
     }
 
-    return newFoamRows;
+    // Return original if nothing was added (avoids unnecessary state update)
+    return newFoamRows || foamRows;
 }
 
 /**
@@ -242,7 +337,7 @@ export function updateFoamRowLifecycle(foamRows, gameTime) {
  * Update player proxy
  */
 export function updatePlayer(playerProxy, aiState, aiMode, input, state) {
-    const { canvasWidth, canvasHeight, shoreHeight, swellSpeed, foamRows } = state;
+    const { canvasWidth, canvasHeight, shoreHeight, swellSpeed, foamGrid } = state;
     const { oceanTop, oceanBottom, shoreY } = getOceanBounds(canvasHeight, shoreHeight);
     const travelDuration = calculateTravelDuration(oceanBottom, swellSpeed);
     const scaledDelta = state.deltaTime;
@@ -273,10 +368,12 @@ export function updatePlayer(playerProxy, aiState, aiMode, input, state) {
         playerProxy,
         scaledDelta,
         playerInput,
-        foamRows,
+        foamGrid,
         shoreY,
         canvasWidth,
         canvasHeight,
+        oceanTop,
+        oceanBottom,
         PLAYER_PROXY_CONFIG
     );
 
