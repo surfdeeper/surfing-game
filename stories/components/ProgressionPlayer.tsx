@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { energyToColor } from '../../src/render/colorScales';
 
 interface Snapshot {
   time: number;
@@ -12,26 +13,6 @@ interface ProgressionPlayerProps {
   frameDelay?: number;
   autoPlay?: boolean;
   loop?: boolean;
-}
-
-function energyToColor(energy: number): string {
-  // Gradient from dark blue (0) to cyan (0.5) to white (1)
-  const clamped = Math.max(0, Math.min(1, energy));
-  if (clamped < 0.5) {
-    // Dark blue to cyan
-    const t = clamped * 2;
-    const r = Math.round(20 + t * 80);
-    const g = Math.round(40 + t * 180);
-    const b = Math.round(80 + t * 175);
-    return `rgb(${r},${g},${b})`;
-  } else {
-    // Cyan to white
-    const t = (clamped - 0.5) * 2;
-    const r = Math.round(100 + t * 155);
-    const g = Math.round(220 + t * 35);
-    const b = Math.round(255);
-    return `rgb(${r},${g},${b})`;
-  }
 }
 
 function MatrixCanvas({ matrix, cellSize = 24 }: { matrix: number[][]; cellSize?: number }) {

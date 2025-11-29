@@ -96,44 +96,43 @@ export const PROGRESSION_NO_DAMPING = defineProgression({
 });
 
 /**
- * With damping (shallow water gradient) - energy decays in shallow water
+ * Low damping - subtle decay in shallow water
  */
-export const PROGRESSION_WITH_DAMPING = defineProgression({
-  id: 'energy-field/with-damping',
-  description: 'Moderate damping (shallow water gradient) - energy decays near shore',
+export const PROGRESSION_LOW_DAMPING = defineProgression({
+  id: 'energy-field/low-damping',
+  description: 'Low damping - subtle decay near shore',
   initialMatrix: INITIAL_PULSE,
   captureTimes: [0, 1, 2, 3, 4, 5],
   updateFn: (field, dt) => {
     updateEnergyField(field, shallowGradient, dt, TRAVEL_DURATION, {
-      depthDampingCoefficient: 0.1,
+      depthDampingCoefficient: 0.05,
       depthDampingExponent: 2.0,
     });
   },
   metadata: {
-    depthDampingCoefficient: 0.1,
+    depthDampingCoefficient: 0.05,
     depthDampingExponent: 2.0,
     depthFn: 'shallow gradient (10m horizon to 0.5m shore)',
-    formula: 'energy *= exp(-coefficient * dt / depth^exponent)',
     travelDuration: TRAVEL_DURATION,
   },
 });
 
 /**
- * High damping - aggressive decay for comparison
+ * High damping - aggressive decay, energy mostly gone before reaching shore
  */
 export const PROGRESSION_HIGH_DAMPING = defineProgression({
   id: 'energy-field/high-damping',
-  description: 'High damping - aggressive decay for comparison',
+  description: 'High damping - energy mostly gone before reaching shore',
   initialMatrix: INITIAL_PULSE,
   captureTimes: [0, 1, 2, 3, 4, 5],
   updateFn: (field, dt) => {
     updateEnergyField(field, shallowGradient, dt, TRAVEL_DURATION, {
-      depthDampingCoefficient: 0.2,
+      depthDampingCoefficient: 2.0,
       depthDampingExponent: 2.0,
     });
   },
   metadata: {
-    depthDampingCoefficient: 0.2,
+    depthDampingCoefficient: 2.0,
     depthDampingExponent: 2.0,
     depthFn: 'shallow gradient (10m horizon to 0.5m shore)',
     travelDuration: TRAVEL_DURATION,
@@ -237,7 +236,7 @@ describe('Energy Field Propagation - Using defineProgression()', () => {
 
   describe('Depth-based damping (shallow water decay)', () => {
     it('energy fades before reaching shore with damping', () => {
-      const matrix = PROGRESSION_WITH_DAMPING.matrixAt(4);
+      const matrix = PROGRESSION_LOW_DAMPING.matrixAt(4);
 
       // Energy should be weaker near shore due to shallow water damping
       const midEnergy = matrix[3][2];
@@ -247,10 +246,30 @@ describe('Energy Field Propagation - Using defineProgression()', () => {
     });
 
     it('higher damping coefficient = faster decay', () => {
-      const lowDampingTotal = matrixTotalEnergy(PROGRESSION_WITH_DAMPING.matrixAt(3));
+      const lowDampingTotal = matrixTotalEnergy(PROGRESSION_LOW_DAMPING.matrixAt(3));
       const highDampingTotal = matrixTotalEnergy(PROGRESSION_HIGH_DAMPING.matrixAt(3));
 
       expect(highDampingTotal).toBeLessThan(lowDampingTotal);
+    });
+
+    it('high damping produces empty bottom row at t=5s', () => {
+      const highT5 = PROGRESSION_HIGH_DAMPING.matrixAt(5);
+      const bottomRow = highT5[5];
+
+      // All values should be near zero (< 0.05 maps to '-' in ASCII)
+      for (const val of bottomRow) {
+        expect(val).toBeLessThan(0.05);
+      }
+    });
+
+    it('low damping produces non-empty bottom row at t=5s', () => {
+      const lowT5 = PROGRESSION_LOW_DAMPING.matrixAt(5);
+      const bottomRow = lowT5[5];
+
+      // Values should be around 0.25-0.3 (maps to '3' in ASCII)
+      for (const val of bottomRow) {
+        expect(val).toBeGreaterThan(0.2);
+      }
     });
 
     it('no damping preserves total energy across time', () => {
@@ -306,8 +325,8 @@ FFFFF  -----  -----  -----  -----  -----
     expect(progressionToAscii(PROGRESSION_NO_DAMPING.snapshots)).toBe(expected);
   });
 
-  it('PROGRESSION_WITH_DAMPING produces expected matrices', () => {
-    // Shallow water gradient: energy decays near shore
+  it('PROGRESSION_LOW_DAMPING produces expected matrices', () => {
+    // Low damping (coefficient 0.05): subtle fade near shore
     const expected = `
 t=0s   t=1s   t=2s   t=3s   t=4s   t=5s
 FFFFF  BBBBB  44444  22222  11111  11111
@@ -315,21 +334,21 @@ FFFFF  BBBBB  44444  22222  11111  11111
 -----  22222  44444  44444  33333  22222
 -----  11111  22222  33333  44444  33333
 -----  -----  11111  22222  33333  33333
------  -----  -----  11111  22222  22222
+-----  -----  -----  11111  22222  33333
 `.trim();
-    expect(progressionToAscii(PROGRESSION_WITH_DAMPING.snapshots)).toBe(expected);
+    expect(progressionToAscii(PROGRESSION_LOW_DAMPING.snapshots)).toBe(expected);
   });
 
   it('PROGRESSION_HIGH_DAMPING produces expected matrices', () => {
-    // Aggressive decay: compare shore row (row 5) with moderate damping
+    // High damping (coefficient 2.0): aggressive decay, bottom row empty
     const expected = `
 t=0s   t=1s   t=2s   t=3s   t=4s   t=5s
 FFFFF  BBBBB  44444  22222  11111  11111
------  AAAAA  AAAAA  44444  22222  22222
+-----  AAAAA  AAAAA  33333  22222  11111
 -----  22222  44444  44444  33333  22222
------  11111  22222  33333  44444  33333
------  -----  11111  22222  33333  33333
------  -----  -----  11111  11111  22222
+-----  11111  22222  33333  33333  33333
+-----  -----  11111  22222  22222  22222
+-----  -----  -----  -----  -----  -----
 `.trim();
     expect(progressionToAscii(PROGRESSION_HIGH_DAMPING.snapshots)).toBe(expected);
   });
