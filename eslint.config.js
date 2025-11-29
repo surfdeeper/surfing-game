@@ -129,7 +129,7 @@ export default [
       'build/**',
       'tests/visual/results/**',
       'tests/visual/report/**',
-      'tests/visual/snapshots/**',
+      'stories/**/*.png',
     ],
   },
 ];

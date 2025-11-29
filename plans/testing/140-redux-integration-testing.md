@@ -37,7 +37,7 @@ Adopt a standard Redux testing toolkit: `renderWithProviders` + real `configureS
 - Over-coupled tests: keep to behavior-first UI assertions.
 
 ## References
-- React-Redux Testing: https://react-redux.js.org/using-react-redux/testing
-- RTK Testing: https://redux-toolkit.js.org/usage/writing-tests
-- RTK Query Testing: https://redux-toolkit.js.org/rtk-query/usage/testing
-- MSW: https://mswjs.io/docs
+- React-Redux Testing: <https://react-redux.js.org/using-react-redux/testing>
+- RTK Testing: <https://redux-toolkit.js.org/usage/writing-tests>
+- RTK Query Testing: <https://redux-toolkit.js.org/rtk-query/usage/testing>
+- MSW: <https://mswjs.io/docs>

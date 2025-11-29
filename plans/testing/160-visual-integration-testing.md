@@ -192,6 +192,53 @@ export const ENERGY_FIELD_INTEGRATION_STRIPS = [
 - Integration strips should fail if upstream layer output format changes
 - Visual regression catches subtle integration bugs
 
+## Phase 5: Interactive Layer Toggle UI
+
+When viewing a layer's story (e.g., Energy Field), users should be able to toggle input layers on/off to understand causality.
+
+### UI Design
+
+```tsx
+// In ProgressionPlayer or StoryViewer
+<LayerToggles
+  currentLayer="energy"
+  availableLayers={['bathymetry']}  // Only upstream layers
+  visibleLayers={visibleLayers}
+  onToggle={setVisibleLayers}
+/>
+```
+
+### Color Scale Separation
+
+Each layer needs a **visually distinct** color scale when overlaid. See [reference-color-scales.md](../reference/reference-color-scales.md).
+
+| Layer | Color Scale | Why |
+|-------|-------------|-----|
+| Bathymetry | `cividis` | Cool/neutral, distinct from viridis |
+| Energy Field | `viridis` | Purple-cyan-yellow, high perceptual range |
+| Wave Breaking | `inferno` | Warm red-orange, heat metaphor |
+| Foam | `plasma` or grayscale | Distinct hue or simple white |
+
+### Alpha Blending
+
+When multiple layers visible:
+```typescript
+const LAYER_ALPHA = {
+  bathymetry: 0.5,  // Context layer, semi-transparent
+  energy: 0.8,      // Primary data
+  breaking: 0.9,
+  foam: 1.0,        // Top layer, opaque
+};
+```
+
+### Implementation
+
+1. [ ] Add `visibleLayers` state to ProgressionPlayer
+1. [ ] Add layer toggle UI component
+1. [ ] Implement multi-layer canvas rendering with alpha
+1. [ ] Migrate color scales to d3-scale-chromatic library
+1. [ ] Assign distinct scales per layer
+
 ## Open Questions
 
 1. **Import cycle prevention** - Should we create a separate `layerOutputs.ts` that re-exports all layer outputs to avoid A→B→A cycles?
@@ -200,9 +247,13 @@ export const ENERGY_FIELD_INTEGRATION_STRIPS = [
 
 1. **MDX documentation** - Should integration tests get their own MDX page (09-integration.mdx) or live on each layer's page?
 
+1. **Layer toggle scope** - Should toggles only show upstream dependencies, or allow toggling downstream layers too for "preview"?
+
 ## Success Criteria
 
 - [ ] At least one integration progression per layer boundary (7 total)
 - [ ] Integration tests catch a simulated interface change (verify by breaking one)
 - [ ] Full pipeline strip shows bathymetry→foam in single visual
 - [ ] No import cycles or circular dependencies
+- [ ] Layer toggle UI allows viewing upstream dependencies in stories
+- [ ] Each layer uses a distinct, perceptually-uniform color scale (d3-scale-chromatic)

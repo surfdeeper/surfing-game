@@ -173,6 +173,7 @@ it('progress increases as gameTime advances', () => {
 | Calculation wrong | Logic bug | Unit test with known inputs |
 | Value correct, visual wrong | CSS/rendering | Integration test + CSS inspection |
 | Flickering/tweaking | CSS transition conflict | Remove transitions, test in browser |
+
 ```
 
 ### 3. Add to CLAUDE.md

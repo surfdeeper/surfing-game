@@ -8,8 +8,7 @@ test-results/
 tests/visual/results/
 tests/visual/report/
 
-# But track progression strip snapshots (baseline images for visual regression)
-# These are committed to ensure consistent test baselines across environments
+# Baseline PNGs live next to story folders and stay tracked for visual regression consistency
 
 ladle-build/dist-stories/
 

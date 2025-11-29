@@ -49,7 +49,7 @@ Transform bathymetry rendering from per-frame procedural drawing into a cached b
 - Baseline FPS with heat map ON ≥ 55 (target 60).
 - Cache build time < 50ms (one-shot) on typical machine.
 - Draw calls per frame reduced from O(N_cells) to O(1–5).
-- Memory footprint of cache < 4 * width * height bytes (one RGBA buffer) + small lookup tables.
+- Memory footprint of cache < 4 *width* height bytes (one RGBA buffer) + small lookup tables.
 
 ## Testing Plan
 1. Toggle ON: Measure first-frame build duration (performance.now diff).

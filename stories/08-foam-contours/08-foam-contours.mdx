@@ -6,14 +6,14 @@ from a 2D intensity grid. Multiple threshold levels create nested contour rings:
 - **Middle ring** (medium threshold) - moderate foam density
 - **Inner ring** (high threshold, thick line) - dense foam cores
 
-import { FoamContourStrip } from './components/FoamContourStrip';
+import { FoamContourStrip } from '../components/FoamContourStrip';
 import {
   FOAM_STRIP_BASIC,
   FOAM_STRIP_ADVANCED,
   FOAM_STRIP_EDGE_CASES,
   FOAM_STRIP_NO_BLUR,
   FOAM_STRIP_HIGH_BLUR,
-} from '../src/render/foamContoursProgressions';
+} from '../../src/render/foamContoursProgressions';
 
 <section id="basic-shapes">
 
@@ -22,8 +22,8 @@ import {
 These test cases verify the marching squares algorithm handles fundamental shapes:
 
 1. **Single Circle** - A round foam patch with intensity falloff from center
-2. **Overlapping** - Two circles that merge where they touch
-3. **Wave Line** - Horizontal line simulating breaking wave foam
+1. **Overlapping** - Two circles that merge where they touch
+1. **Wave Line** - Horizontal line simulating breaking wave foam
 
 <FoamContourStrip snapshots={FOAM_STRIP_BASIC.snapshots} testId={FOAM_STRIP_BASIC.testId} />
 
@@ -41,8 +41,8 @@ These test cases verify the marching squares algorithm handles fundamental shape
 More complex scenarios that stress the algorithm:
 
 1. **Nested Levels** - Concentric rings of increasing intensity
-2. **Scattered** - Multiple separate foam patches
-3. **Edge Foam** - Foam touching grid boundaries
+1. **Scattered** - Multiple separate foam patches
+1. **Edge Foam** - Foam touching grid boundaries
 
 <FoamContourStrip snapshots={FOAM_STRIP_ADVANCED.snapshots} testId={FOAM_STRIP_ADVANCED.testId} />
 
@@ -60,7 +60,7 @@ More complex scenarios that stress the algorithm:
 Boundary conditions the algorithm must handle gracefully:
 
 1. **Empty** - No foam data (should produce no contours)
-2. **Full** - All cells above threshold (no contour lines visible)
+1. **Full** - All cells above threshold (no contour lines visible)
 
 <FoamContourStrip snapshots={FOAM_STRIP_EDGE_CASES.snapshots} testId={FOAM_STRIP_EDGE_CASES.testId} />
 

@@ -51,6 +51,7 @@ function getZone(y) {
 ```
 
 ### Movement Speeds
+
 | Zone | Base Speed | Notes |
 |------|------------|-------|
 | Shore | 150 px/s | Walking on sand, fast |

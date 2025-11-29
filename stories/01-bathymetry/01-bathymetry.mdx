@@ -3,7 +3,7 @@
 The ocean floor depth profile determines how waves behave. Shallower water
 causes waves to slow down, steepen, and eventually break.
 
-import { BathymetryStrip, BathymetryPlayer } from './components/BathymetryStrip';
+import { BathymetryStrip, BathymetryPlayer } from '../components/BathymetryStrip';
 import {
   BATHYMETRY_STRIP_BASIC,
   BATHYMETRY_STRIP_FEATURES,
@@ -13,7 +13,7 @@ import {
   PROGRESSION_REEF,
   PROGRESSION_CHANNEL,
   PROGRESSION_FLAT,
-} from '../src/render/bathymetryProgressions';
+} from '../../src/render/bathymetryProgressions';
 
 <section id="depth-profiles">
 
@@ -71,8 +71,8 @@ Where:
 As depth decreases, wave speed decreases proportionally with the square root.
 This causes waves to:
 1. Slow down as they approach shore
-2. Stack up (wavelength shortens)
-3. Increase in height (energy conservation)
-4. Eventually break when H/d > 0.78
+1. Stack up (wavelength shortens)
+1. Increase in height (energy conservation)
+1. Eventually break when H/d > 0.78
 
 </section>

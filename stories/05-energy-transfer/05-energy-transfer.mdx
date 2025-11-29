@@ -3,11 +3,11 @@
 When waves break, energy is **released** from the energy field and deposited into an
 energy transfer grid. This grid captures where energy is actively being dissipated.
 
-import { ProgressionPlayer, ProgressionStrip } from './components/ProgressionPlayer';
+import { ProgressionPlayer, ProgressionStrip } from '../components/ProgressionPlayer';
 import {
   ENERGY_TRANSFER_STRIP_BREAKING,
   ENERGY_TRANSFER_STRIP_SPREAD,
-} from '../src/render/energyTransferProgressions';
+} from '../../src/render/energyTransferProgressions';
 
 <section id="breaking-release">
 
@@ -59,9 +59,9 @@ Energy Field → Breaking Detection → Energy Transfer Grid → Foam Grid
 
 The energy transfer grid is a **per-frame accumulator**:
 1. Each tick, breaking locations deposit drained energy
-2. Foam grid reads from transfer and accumulates
-3. Transfer grid is cleared after foam deposit
-4. Foam grid persists and decays over time
+1. Foam grid reads from transfer and accumulates
+1. Transfer grid is cleared after foam deposit
+1. Foam grid persists and decays over time
 
 This separation allows:
 - Visualizing where energy is being released *right now*

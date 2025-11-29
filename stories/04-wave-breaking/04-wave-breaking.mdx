@@ -4,7 +4,7 @@ A wave breaks when its height exceeds ~0.78 times the water depth (H > 0.78d).
 At this point, particle orbital velocity exceeds wave velocity, causing
 the crest to overtake and fall forward.
 
-import { ProgressionPlayer, ProgressionStrip } from './components/ProgressionPlayer';
+import { ProgressionPlayer, ProgressionStrip } from '../components/ProgressionPlayer';
 import {
   PROGRESSION_SPILLING,
   PROGRESSION_PLUNGING,
@@ -13,7 +13,7 @@ import {
   WAVE_BREAKING_STRIP_CRITERION,
   WAVE_BREAKING_STRIP_TYPES,
   WAVE_BREAKING_STRIP_ENERGY,
-} from '../src/render/waveBreakingProgressions';
+} from '../../src/render/waveBreakingProgressions';
 
 <section id="breaking-criterion">
 
@@ -70,8 +70,8 @@ Energy is absorbed by the steep incline. Dangerous - backwash meets incoming wav
 
 When a wave breaks, kinetic energy is converted to:
 1. Turbulence (mixing)
-2. Sound (the crash)
-3. Foam (visible whitewash)
+1. Sound (the crash)
+1. Foam (visible whitewash)
 
 <ProgressionPlayer snapshots={PROGRESSION_ENERGY_TO_FOAM.snapshots} />
 

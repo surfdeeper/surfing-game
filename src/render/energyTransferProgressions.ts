@@ -41,10 +41,10 @@ export const PROGRESSION_LINE_BREAK = defineProgression({
   description: 'Wave breaking across full width - horizontal line of energy',
   initialMatrix: (() => {
     const matrix = createMatrix();
-    // Horizontal line of breaking at row 5
+    // Horizontal line of breaking at row 5 with deterministic variation
+    const variations = [0.7, 0.85, 0.65, 0.9, 0.75, 0.8, 0.7, 0.85];
     for (let x = 1; x < GRID_WIDTH - 1; x++) {
-      const intensity = 0.6 + Math.random() * 0.3;
-      matrix[5][x] = intensity;
+      matrix[5][x] = variations[(x - 1) % variations.length];
     }
     // Slight spread above and below
     for (let x = 1; x < GRID_WIDTH - 1; x++) {

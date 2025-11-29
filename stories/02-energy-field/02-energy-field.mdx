@@ -4,7 +4,7 @@ The energy field uses a row-blending algorithm to propagate energy from
 horizon (row 0) toward shore (row N). Each frame, cells blend with the
 row above them at a rate determined by `travelDuration`.
 
-import { ProgressionPlayer, ProgressionStrip } from './components/ProgressionPlayer';
+import { ProgressionPlayer, ProgressionStrip } from '../components/ProgressionPlayer';
 import {
   PROGRESSION_NO_DAMPING,
   PROGRESSION_LOW_DAMPING,
@@ -14,7 +14,7 @@ import {
   ENERGY_FIELD_STRIP_LOW_DAMPING,
   ENERGY_FIELD_STRIP_HIGH_DAMPING,
   ENERGY_FIELD_STRIP_WITH_DRAIN,
-} from '../src/state/energyFieldProgressions';
+} from '../../src/state/energyFieldProgressions';
 
 <section id="no-damping">
 

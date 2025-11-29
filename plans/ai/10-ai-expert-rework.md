@@ -9,7 +9,7 @@
 ## Current Heuristics (Expert)
 - State machine: `SEEKING` → `RIDING`, cooldown after ride.
 - Target zone: progress band 0.55–0.90; patrols peak X (from bathymetry) at band midpoint when no foam.
-- Foam targeting: scores segments by intensity * opacity * proximity to peak X; ignores rows outside band or with opacity < 0.3.
+- Foam targeting: scores segments by intensity *opacity* proximity to peak X; ignores rows outside band or with opacity < 0.3.
 - Catch: if foam intensity at player > threshold (0.12) and cooldown expired, start ride; 1% wipeout chance.
 - Ride setup: direction set away from peak (left if left of peak, right otherwise); resets timers/distance and increments stats.
 - Ride control: always paddles sideways (per `rideDirection`) plus `up` (toward horizon) to follow peeling diagonal.

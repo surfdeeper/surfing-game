@@ -49,7 +49,7 @@ These improve developer experience and UI responsiveness.
 | [129-react-18-concurrent-migration](tooling/129-react-18-concurrent-migration.md) | 📝 Future | Full React 18 upgrade with Concurrent Mode | 128 |
 | 131-react-three-fiber | 📝 Future | Canvas 2D → WebGL (Three.js) | 129 |
 
-**Why important**: 
+**Why important**:
 - Button clicks currently laggy during animations (128 fixes this)
 - React 18 Concurrent Mode enables priority-based rendering
 - Preact → React migration prepares for Three.js integration

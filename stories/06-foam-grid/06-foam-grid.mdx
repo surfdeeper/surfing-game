@@ -4,7 +4,7 @@ The foam grid accumulates density from energy transfer and persists over time.
 Unlike the energy transfer grid (cleared each frame), the foam grid maintains
 state as bubbles form, spread, and decay.
 
-import { ProgressionPlayer, ProgressionStrip } from './components/ProgressionPlayer';
+import { ProgressionPlayer, ProgressionStrip } from '../components/ProgressionPlayer';
 import {
   FOAM_GRID_STRIP_ACCUMULATION,
   FOAM_GRID_STRIP_ADVECTION,
@@ -12,7 +12,7 @@ import {
   PROGRESSION_ACCUMULATION,
   PROGRESSION_ADVECTION,
   PROGRESSION_COMBINED,
-} from '../src/render/foamGridProgressions';
+} from '../../src/render/foamGridProgressions';
 
 <section id="accumulation">
 
@@ -53,6 +53,7 @@ foam[idx] -= foam[idx] * advectFactor;
 <ProgressionStrip snapshots={FOAM_GRID_STRIP_ADVECTION.snapshots} testId={FOAM_GRID_STRIP_ADVECTION.testId} />
 
 **Parameters:**
+
 | Parameter | Range | Effect |
 |-----------|-------|--------|
 | `advectRate` | 0 - 1.0 | Fraction of foam pushed shoreward per second |
@@ -85,7 +86,7 @@ In practice, foam simultaneously accumulates at the breaking zone and advects sh
 
 The foam grid stores raw density values (0-1). This grid is then:
 1. **Sampled** for intensity-based rendering (alpha blending)
-2. **Contoured** via marching squares for outline rendering
+1. **Contoured** via marching squares for outline rendering
 
 The next two layers show these different rendering approaches:
 - **Foam Dispersion** (07) - How foam density changes over time

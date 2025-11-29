@@ -1,8 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
-  testDir: './tests/visual',
-  snapshotDir: './tests/visual/snapshots',
+  testDir: './stories',
+  testMatch: '**/*.visual.spec.ts',
   outputDir: './tests/visual/results',
 
   fullyParallel: true,
@@ -37,4 +37,5 @@ export default defineConfig({
       maxDiffPixels: 100, // Allow small differences
     },
   },
+  snapshotPathTemplate: 'stories/{testFileDir}/{arg}{ext}',
 });

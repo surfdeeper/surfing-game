@@ -334,7 +334,7 @@ This becomes a separate plan after Plan 127 is complete.
 
 **File**: `plans/tooling/129-react-18-concurrent-migration.md`
 
-#### Key Features to Use:
+#### Key Features to Use
 
 1. **`startTransition`**: Mark non-urgent updates
 1. **`useDeferredValue`**: Defer expensive calculations

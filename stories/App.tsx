@@ -2,12 +2,12 @@ import React, { useState, useEffect, Suspense, useCallback, useRef } from 'react
 import { ThemeContext, Theme, ThemeColors, darkColors, lightColors } from './ThemeContext';
 
 // Dynamically import all MDX files matching the numbered pattern
-const mdxModules = import.meta.glob<{ default: React.ComponentType }>('./*.mdx');
+const mdxModules = import.meta.glob<{ default: React.ComponentType }>('./**/*.mdx');
 
 // Extract metadata from MDX file path
 function parseFileName(path: string): { id: string; number: number; label: string } | null {
   // Match pattern like "./01-bathymetry.mdx" or "./02-energy-field.mdx"
-  const match = path.match(/\.\/(\d+)-(.+)\.mdx$/);
+  const match = path.match(/\.\/(?:.+\/)?(\d+)-(.+)\.mdx$/);
   if (!match) return null;
 
   const [, numStr, slug] = match;
@@ -1001,8 +1001,8 @@ export default function App({ MDXWrapper = React.Fragment }: AppProps) {
           style={{
             width: 200,
             padding: '24px 16px',
-            background: '#010409',
-            borderRight: '1px solid #21262d',
+            background: colors.bgHeader,
+            borderRight: `1px solid ${colors.border}`,
             position: 'sticky',
             top: 0,
             height: '100vh',
@@ -1020,7 +1020,7 @@ export default function App({ MDXWrapper = React.Fragment }: AppProps) {
             <h3
               style={{
                 margin: 0,
-                color: '#58a6ff',
+                color: colors.accent,
                 fontSize: 13,
                 fontWeight: 600,
                 letterSpacing: '0.5px',
@@ -1029,20 +1029,36 @@ export default function App({ MDXWrapper = React.Fragment }: AppProps) {
             >
               Wave Physics
             </h3>
-            <button
-              onClick={toggleMode}
-              title="Enter presentation mode (P)"
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: '#6e7681',
-                cursor: 'pointer',
-                fontSize: 16,
-                padding: '2px 6px',
-              }}
-            >
-              ▶
-            </button>
+            <div style={{ display: 'flex', gap: 4 }}>
+              <button
+                onClick={toggleTheme}
+                title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: colors.textDim,
+                  cursor: 'pointer',
+                  fontSize: 14,
+                  padding: '2px 6px',
+                }}
+              >
+                {theme === 'dark' ? '☀️' : '🌙'}
+              </button>
+              <button
+                onClick={toggleMode}
+                title="Enter presentation mode (P)"
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: colors.textDim,
+                  cursor: 'pointer',
+                  fontSize: 16,
+                  padding: '2px 6px',
+                }}
+              >
+                ▶
+              </button>
+            </div>
           </div>
           <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
             {pageEntries.map(({ id, label }) => (
@@ -1050,9 +1066,9 @@ export default function App({ MDXWrapper = React.Fragment }: AppProps) {
                 <button
                   onClick={() => handlePageChange(id)}
                   style={{
-                    background: currentPage === id ? '#21262d' : 'transparent',
+                    background: currentPage === id ? colors.buttonBg : 'transparent',
                     border: 'none',
-                    color: currentPage === id ? '#f0f6fc' : '#8b949e',
+                    color: currentPage === id ? colors.textBright : colors.textMuted,
                     padding: '10px 12px',
                     width: '100%',
                     textAlign: 'left',
@@ -1061,18 +1077,19 @@ export default function App({ MDXWrapper = React.Fragment }: AppProps) {
                     fontSize: 13,
                     fontFamily: 'inherit',
                     transition: 'all 0.15s ease',
-                    borderLeft: currentPage === id ? '3px solid #58a6ff' : '3px solid transparent',
+                    borderLeft:
+                      currentPage === id ? `3px solid ${colors.accent}` : '3px solid transparent',
                   }}
                   onMouseEnter={(e) => {
                     if (currentPage !== id) {
-                      e.currentTarget.style.background = '#161b22';
-                      e.currentTarget.style.color = '#c9d1d9';
+                      e.currentTarget.style.background = colors.bgSection;
+                      e.currentTarget.style.color = colors.text;
                     }
                   }}
                   onMouseLeave={(e) => {
                     if (currentPage !== id) {
                       e.currentTarget.style.background = 'transparent';
-                      e.currentTarget.style.color = '#8b949e';
+                      e.currentTarget.style.color = colors.textMuted;
                     }
                   }}
                 >
@@ -1091,14 +1108,14 @@ export default function App({ MDXWrapper = React.Fragment }: AppProps) {
                           }}
                           style={{
                             display: 'block',
-                            color: activeSection === section.id ? '#58a6ff' : '#6e7681',
+                            color: activeSection === section.id ? colors.accent : colors.textDim,
                             padding: '4px 8px',
                             textDecoration: 'none',
                             fontSize: 11,
                             borderLeft:
                               activeSection === section.id
-                                ? '2px solid #58a6ff'
-                                : '2px solid #30363d',
+                                ? `2px solid ${colors.accent}`
+                                : `2px solid ${colors.borderLight}`,
                             transition: 'color 0.15s ease',
                           }}
                         >
@@ -1120,14 +1137,15 @@ export default function App({ MDXWrapper = React.Fragment }: AppProps) {
             flex: 1,
             padding: '32px 56px',
             minWidth: 0,
-            background: '#0d1117',
+            background: colors.bg,
+            color: colors.text,
           }}
         >
           <Suspense
             fallback={
               <div
                 style={{
-                  color: '#8b949e',
+                  color: colors.textMuted,
                   padding: '2em',
                   textAlign: 'center',
                 }}
@@ -1139,6 +1157,28 @@ export default function App({ MDXWrapper = React.Fragment }: AppProps) {
             <MDXWrapper>{PageComponent && <PageComponent />}</MDXWrapper>
           </Suspense>
         </main>
+
+        {/* Theme-aware MDX styling for normal mode */}
+        <style>{`
+          /* Theme-aware text colors for MDX content in normal mode */
+          main h1, main h2, main h3, main h4 {
+            color: ${colors.textBright};
+          }
+          main p, main li {
+            color: ${colors.text};
+          }
+          main code {
+            background: ${colors.buttonBg};
+            color: ${colors.text};
+          }
+          main pre {
+            background: ${colors.bgHeader} !important;
+            border: 1px solid ${colors.border};
+          }
+          main a {
+            color: ${colors.accent};
+          }
+        `}</style>
       </div>
     </ThemeContext.Provider>
   );
