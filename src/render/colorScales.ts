@@ -80,3 +80,30 @@ export function viridisToColor(scalar: number): string {
 export function energyToColor(energy: number): string {
   return viridisToColor(energy);
 }
+
+/**
+ * Ocean depth color scale - blues for water depth
+ * 0 = shallow/sand (tan), 1 = deep water (dark blue)
+ */
+export function depthToColor(depth: number): string {
+  const clamped = Math.max(0, Math.min(1, depth));
+
+  // Shore (0) = tan/sand: rgb(194, 178, 128)
+  // Shallow (0.3) = light blue: rgb(135, 206, 235)
+  // Mid (0.6) = ocean blue: rgb(30, 144, 178)
+  // Deep (1.0) = dark blue: rgb(0, 51, 102)
+
+  if (clamped < 0.15) {
+    // Sand to water transition
+    const t = clamped / 0.15;
+    return `rgb(${lerp(194, 135, t)},${lerp(178, 206, t)},${lerp(128, 235, t)})`;
+  } else if (clamped < 0.5) {
+    // Shallow to mid depth
+    const t = (clamped - 0.15) / 0.35;
+    return `rgb(${lerp(135, 30, t)},${lerp(206, 144, t)},${lerp(235, 178, t)})`;
+  } else {
+    // Mid to deep
+    const t = (clamped - 0.5) / 0.5;
+    return `rgb(${lerp(30, 0, t)},${lerp(144, 51, t)},${lerp(178, 102, t)})`;
+  }
+}

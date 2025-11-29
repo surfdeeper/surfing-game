@@ -1,6 +1,6 @@
 ---
 name: visual-testing
-description: Visual regression testing with Ladle stories and Playwright. Use when working with stories, snapshots, or visual comparisons. Auto-apply when editing files in src/stories/ or tests/visual/.
+description: Visual regression testing with Ladle stories and Playwright. Use when working with stories, snapshots, or visual comparisons. Auto-apply when editing files in src/stories/ or tests/visual/. (project)
 ---
 
 # Visual Testing Skill
@@ -10,16 +10,18 @@ Visual regression tests verify rendering output hasn't changed unexpectedly.
 ## Architecture
 
 ```
-src/stories/*.stories.tsx    → Ladle stories (visual fixtures)
-tests/visual/*.spec.js       → Playwright visual tests
-tests/visual/*.spec.js-snapshots/  → Baseline screenshots
+stories/*.mdx                → MDX story pages with visual strips
+stories/components/*.tsx     → Strip rendering components
+tests/visual/*.spec.ts       → Playwright visual tests
+tests/visual/snapshots/      → Baseline screenshots
+src/render/*Progressions.ts  → Progression data + strip definitions
 ```
 
 ## Commands
 
 ```bash
 # Verify stories compile (fast, no dev server)
-npm run ladle:build
+npm run stories:build
 
 # Run visual regression tests
 npm run test:visual:headless      # CI/agents
@@ -33,12 +35,81 @@ npm run reset:visual              # Clear results/reports
 npm run reset:visual:all          # Clear results + baselines
 ```
 
+## Interactive Debugging with Chrome DevTools MCP
+
+When user wants to visually debug or iterate on a specific story/strip:
+
+### 1. Launch Stories in Browser
+
+```
+mcp__chrome-devtools__new_page({ url: "http://localhost:5174" })
+```
+
+Or navigate to a specific page:
+```
+mcp__chrome-devtools__new_page({ url: "http://localhost:5174/?page=01-bathymetry" })
+```
+
+### 2. Take Snapshot to See Current State
+
+```
+mcp__chrome-devtools__take_snapshot()
+```
+
+The snapshot shows all elements with their `uid` attributes. Look for:
+- `data-testid="strip-*"` - Visual test strips
+- Section headings and navigation
+
+### 3. Identify Selected/Target Strip
+
+From the snapshot, find the strip the user wants to fix:
+- Look for elements with `data-testid` matching strip IDs like `strip-bathymetry-basic`
+- The testId maps to progression files in `src/render/*Progressions.ts`
+
+### 4. Screenshot Specific Element
+
+```
+mcp__chrome-devtools__take_screenshot({ uid: "<strip-uid-from-snapshot>" })
+```
+
+This captures just the strip for focused comparison.
+
+### 5. Iterate on Code
+
+After identifying the strip:
+1. Find the progression file (e.g., `src/render/bathymetryProgressions.ts`)
+2. Modify the rendering logic or progression data
+3. Reload and re-screenshot:
+
+```
+mcp__chrome-devtools__navigate_page({ type: "reload" })
+mcp__chrome-devtools__take_screenshot({ uid: "<strip-uid>" })
+```
+
+### 6. Update Baseline When Satisfied
+
+```bash
+npm run test:visual:update:headless
+```
+
+### Workflow Example
+
+User: "The bathymetry strip looks wrong, fix it"
+
+1. Take snapshot → Find `data-testid="strip-bathymetry-basic"` with uid `e42`
+2. Screenshot element → `take_screenshot({ uid: "e42" })`
+3. Read progression file → `src/render/bathymetryProgressions.ts`
+4. Identify issue in `BATHYMETRY_STRIP_BASIC` definition
+5. Edit the matrix generation or color scale
+6. Reload → Re-screenshot → Compare
+7. When correct, update baselines
+
 ## Verifying Stories
 
 After code changes (TypeScript migration, refactoring), verify stories still build:
 
 ```bash
-npm run ladle:build
+npm run stories:build
 ```
 
 This catches:
@@ -46,7 +117,7 @@ This catches:
 - Type errors in story components
 - Missing dependencies
 
-**Do NOT start `npm run ladle` dev server** just to verify - use the build.
+**Do NOT start dev server** just to verify - use the build.
 
 ## Common Issues
 
@@ -62,44 +133,45 @@ import { foo } from '../state/waveModel.js';
 import { foo } from '../state/waveModel';
 ```
 
-### Missing Exports from Test Files
+### Missing Exports from Progression Files
 
-Stories often import test fixtures. Ensure they're exported:
+Stories import strip definitions. Ensure they're exported:
 
 ```typescript
-// In *.test.ts - export for stories
-export const PROGRESSION_NO_DAMPING = defineProgression({...});
+// In *Progressions.ts - export strips for visual tests
+export const BATHYMETRY_STRIPS = [BATHYMETRY_STRIP_BASIC, BATHYMETRY_STRIP_FEATURES];
 ```
 
-## Writing Visual Tests
+## Strip-Based Visual Tests
 
-### Story-Based Tests
+Visual tests are driven by strip definitions in progression files:
 
-```javascript
-// tests/visual/foam-rendering.spec.js
-const stories = [
-  { id: 'foam-rendering--current-behavior', name: 'Current Behavior' },
-  { id: 'foam-rendering--option-a', name: 'Option A' },
-];
+```typescript
+// tests/visual/all-strips.spec.ts
+import { BATHYMETRY_STRIPS } from '../../src/render/bathymetryProgressions';
 
-for (const story of stories) {
-  test(`${story.name} matches snapshot`, async ({ page }) => {
-    await page.goto(`/?story=${story.id}`);
-    await page.waitForSelector('canvas');
-    await page.waitForTimeout(500); // Ensure render complete
-
-    const canvas = page.locator('canvas').first();
-    await expect(canvas).toHaveScreenshot(`${story.id}.png`);
+for (const strip of BATHYMETRY_STRIPS) {
+  test(`${strip.testId} matches baseline`, async ({ page }) => {
+    await page.goto(`/?page=${strip.pageId}`);
+    const element = page.locator(`[data-testid="${strip.testId}"]`);
+    await expect(element).toHaveScreenshot(`${strip.testId}.png`);
   });
 }
 ```
 
+### Strip Definition Pattern
+
+Each progression file exports strips with:
+- `testId` - Unique identifier for visual tests (e.g., `strip-bathymetry-basic`)
+- `pageId` - MDX page where strip is rendered (e.g., `01-bathymetry`)
+- `snapshots` - Array of progression snapshots to render
+
 ### Best Practices
 
-1. **Wait for render** - Canvas takes time to draw
-2. **Capture canvas only** - Not full page (avoids UI noise)
-3. **Descriptive names** - `{feature}--{scenario}.png`
-4. **Check story IDs** - Use Ladle's `/meta.json` to find valid IDs
+1. **Wait for render** - Use `data-testid` selector which waits for React
+2. **Capture strip only** - Not full page (avoids UI noise)
+3. **Colocate data** - Strip definitions live with progression data
+4. **Meaningful testIds** - `strip-{category}-{variant}`
 
 ## Workflow: Unit Tests Before Visual Tests
 
@@ -120,12 +192,29 @@ Correct workflow:
 
 The matrix data is the source of truth. If the numbers don't show meaningful difference, adjusting coefficients and re-rendering visuals won't help.
 
-## Integration with Plan 200
+## File Organization
 
-Plan 200 (MDX Visual Docs) is building a progression-based visual testing system:
+```
+src/render/*Progressions.ts     → Progression data + strip definitions
+  ├── PROGRESSION_* exports     → Individual progression definitions
+  ├── *_STRIP_* exports         → Strip groupings for visual tests
+  └── *_STRIPS export           → All strips for test discovery
 
-1. Unit tests define progressions with `defineProgression()`
-2. Visual tests render progressions and compare frames
-3. Unit tests gate visual tests (skip visuals if data is wrong)
+stories/*.mdx                   → MDX pages rendering strips
+stories/components/*.tsx        → Reusable strip components
 
-See `plans/tooling/200-mdx-visual-docs.md` for details.
+tests/visual/all-strips.spec.ts → Imports all *_STRIPS, runs visual tests
+tests/visual/snapshots/         → Baseline PNG files
+```
+
+## Mapping testId to Source Code
+
+When a visual test fails or user points to a strip:
+
+1. **testId** like `strip-bathymetry-basic` maps to:
+   - Export `BATHYMETRY_STRIP_BASIC` in `src/render/bathymetryProgressions.ts`
+
+2. **pageId** like `01-bathymetry` maps to:
+   - MDX file `stories/01-bathymetry.mdx`
+
+3. **Pattern**: `strip-{category}-{variant}` → `src/render/{category}Progressions.ts`

@@ -11,4 +11,4 @@ tests/visual/report/
 # But track progression strip snapshots (baseline images for visual regression)
 # These are committed to ensure consistent test baselines across environments
 
-ladle-build/
+ladle-build/dist-stories/

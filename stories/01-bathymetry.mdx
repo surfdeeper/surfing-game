@@ -1,0 +1,78 @@
+# 1. Bathymetry (Ocean Floor)
+
+The ocean floor depth profile determines how waves behave. Shallower water
+causes waves to slow down, steepen, and eventually break.
+
+import { BathymetryStrip, BathymetryPlayer } from './components/BathymetryStrip';
+import {
+  BATHYMETRY_STRIP_BASIC,
+  BATHYMETRY_STRIP_FEATURES,
+  PROGRESSION_LINEAR_SLOPE,
+  PROGRESSION_STEEP_SHORE,
+  PROGRESSION_SANDBAR,
+  PROGRESSION_REEF,
+  PROGRESSION_CHANNEL,
+  PROGRESSION_FLAT,
+} from '../src/render/bathymetryProgressions';
+
+<section id="depth-profiles">
+
+## Depth Profiles
+
+These profiles show different ways the ocean floor can slope from deep water
+(dark blue, top) to shore (tan, bottom).
+
+<BathymetryStrip snapshots={BATHYMETRY_STRIP_BASIC.snapshots} testId={BATHYMETRY_STRIP_BASIC.testId} />
+
+**Linear Slope**: Constant gradient - simple, predictable wave behavior.
+
+**Steep Shore**: Deep water plateau with rapid shallowing near beach. Waves
+maintain speed longer, then break suddenly.
+
+**Flat Bottom**: No gradient - useful as a reference or for deep water scenarios
+where waves don't interact with the bottom.
+
+</section>
+
+<section id="bottom-features">
+
+## Bottom Features
+
+Natural features create localized depth changes that affect wave behavior:
+
+<BathymetryStrip snapshots={BATHYMETRY_STRIP_FEATURES.snapshots} testId={BATHYMETRY_STRIP_FEATURES.testId} />
+
+**Sandbar**: A shallow ridge in mid-water creates a secondary breaking zone.
+Waves may break on the bar, reform, then break again at shore.
+
+**Reef**: Localized shallow spot (coral reef, rock formation). Creates a
+focused breaking zone - popular surf spots often feature reefs.
+
+**Channel**: A deeper groove between shallow areas (common at river mouths).
+Waves don't break in channels, creating a path for paddling out.
+
+</section>
+
+<section id="depth-formula">
+
+## Wave Speed Formula
+
+Wave speed in shallow water follows:
+
+```
+c = sqrt(g * d)
+```
+
+Where:
+- `c` = wave celerity (speed)
+- `g` = gravitational acceleration (9.81 m/s)
+- `d` = water depth
+
+As depth decreases, wave speed decreases proportionally with the square root.
+This causes waves to:
+1. Slow down as they approach shore
+2. Stack up (wavelength shortens)
+3. Increase in height (energy conservation)
+4. Eventually break when H/d > 0.78
+
+</section>

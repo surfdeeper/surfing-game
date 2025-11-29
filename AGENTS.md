@@ -200,3 +200,4 @@ When starting work, Claude reads context in this order:
 3. Relevant skill(s) - Auto-loaded based on task
 4. Specific plan document - For feature work
 - never mark tests skipped without human consent.
+- Always try to run the linter and type checker individually instead of relying on the pre-commit hook.

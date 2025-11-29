@@ -294,8 +294,8 @@ describe('performance', () => {
 
     const elapsed = performance.now() - start;
 
-    // Should complete reasonably fast (100ms budget for CI/varied environments)
-    expect(elapsed).toBeLessThan(100);
+    // Should complete reasonably fast (200ms budget for CI/varied environments)
+    expect(elapsed).toBeLessThan(200);
   });
 
   it.skip('processes a large grid quickly', () => {

@@ -1,0 +1,96 @@
+# Foam Contours (Marching Squares)
+
+Foam is rendered using the marching squares algorithm to extract smooth contours
+from a 2D intensity grid. Multiple threshold levels create nested contour rings:
+- **Outer ring** (low threshold, thin line) - light foam edges
+- **Middle ring** (medium threshold) - moderate foam density
+- **Inner ring** (high threshold, thick line) - dense foam cores
+
+import { FoamContourStrip } from './components/FoamContourStrip';
+import {
+  FOAM_STRIP_BASIC,
+  FOAM_STRIP_ADVANCED,
+  FOAM_STRIP_EDGE_CASES,
+  FOAM_STRIP_NO_BLUR,
+  FOAM_STRIP_HIGH_BLUR,
+} from '../src/render/foamContoursProgressions';
+
+<section id="basic-shapes">
+
+## Basic Shapes
+
+These test cases verify the marching squares algorithm handles fundamental shapes:
+
+1. **Single Circle** - A round foam patch with intensity falloff from center
+2. **Overlapping** - Two circles that merge where they touch
+3. **Wave Line** - Horizontal line simulating breaking wave foam
+
+<FoamContourStrip snapshots={FOAM_STRIP_BASIC.snapshots} testId={FOAM_STRIP_BASIC.testId} />
+
+**What to look for:**
+- Contour lines form smooth curves, not jagged steps
+- Overlapping regions merge cleanly into one shape
+- Three distinct threshold levels visible (thin outer, medium middle, thick inner)
+
+</section>
+
+<section id="advanced-patterns">
+
+## Advanced Patterns
+
+More complex scenarios that stress the algorithm:
+
+1. **Nested Levels** - Concentric rings of increasing intensity
+2. **Scattered** - Multiple separate foam patches
+3. **Edge Foam** - Foam touching grid boundaries
+
+<FoamContourStrip snapshots={FOAM_STRIP_ADVANCED.snapshots} testId={FOAM_STRIP_ADVANCED.testId} />
+
+**What to look for:**
+- Nested contours show all three threshold levels as distinct rings
+- Scattered patches render as separate closed shapes
+- Edge foam correctly clips at boundaries without artifacts
+
+</section>
+
+<section id="edge-cases">
+
+## Edge Cases
+
+Boundary conditions the algorithm must handle gracefully:
+
+1. **Empty** - No foam data (should produce no contours)
+2. **Full** - All cells above threshold (no contour lines visible)
+
+<FoamContourStrip snapshots={FOAM_STRIP_EDGE_CASES.snapshots} testId={FOAM_STRIP_EDGE_CASES.testId} />
+
+**What to look for:**
+- Empty grid shows only the ocean background
+- Full saturation shows solid color with no contour lines
+
+</section>
+
+<section id="blur-comparison">
+
+## Blur Effect
+
+The box blur smooths the intensity grid before contour extraction.
+More blur passes create softer, rounder contours.
+
+<FoamContourStrip
+  snapshots={FOAM_STRIP_NO_BLUR.snapshots}
+  testId={FOAM_STRIP_NO_BLUR.testId}
+  blurPasses={FOAM_STRIP_NO_BLUR.blurPasses}
+/>
+
+**No blur (0 passes)** - Sharp, angular contours following grid cells
+
+<FoamContourStrip
+  snapshots={FOAM_STRIP_HIGH_BLUR.snapshots}
+  testId={FOAM_STRIP_HIGH_BLUR.testId}
+  blurPasses={FOAM_STRIP_HIGH_BLUR.blurPasses}
+/>
+
+**High blur (3 passes)** - Smooth, organic contours
+
+</section>
