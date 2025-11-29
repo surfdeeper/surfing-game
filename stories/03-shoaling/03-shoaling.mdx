@@ -6,7 +6,9 @@ As waves enter shallow water, they "feel the bottom" and undergo shoaling:
 - Wave height increases (energy conservation)
 - Circular orbits flatten into ellipses
 
-import { ProgressionPlayer, ProgressionStrip } from '../components/ProgressionPlayer';
+import { ProgressionPlayer } from '../components/ProgressionPlayer';
+import { Filmstrip, renderMatrixToCanvas } from '../components/Filmstrip';
+import { energyToColor } from '../../src/render/colorScales';
 import {
   PROGRESSION_WAVE_SHOALING,
   PROGRESSION_WAVELENGTH_COMPRESSION,
@@ -16,6 +18,9 @@ import {
   SHOALING_STRIP_STATIC,
   SHOALING_STRIP_COMBINED,
 } from '../../src/render/shoalingProgressions';
+
+export const renderEnergy = (snap, ctx, w, h) =>
+  renderMatrixToCanvas(ctx, snap.matrix, energyToColor, w, h);
 
 <section id="wave-transformation">
 
@@ -27,7 +32,7 @@ the wave taller.
 
 <ProgressionPlayer snapshots={PROGRESSION_WAVE_SHOALING.snapshots} />
 
-<ProgressionStrip snapshots={SHOALING_STRIP_HEIGHT.snapshots} testId={SHOALING_STRIP_HEIGHT.testId} />
+<Filmstrip snapshots={SHOALING_STRIP_HEIGHT.snapshots} renderSnapshot={renderEnergy} testId={SHOALING_STRIP_HEIGHT.testId} />
 
 **Key observations:**
 - Wave starts at moderate height in deep water (top)
@@ -45,7 +50,7 @@ This compresses the wavelength - waves become shorter and steeper.
 
 <ProgressionPlayer snapshots={PROGRESSION_WAVELENGTH_COMPRESSION.snapshots} />
 
-<ProgressionStrip snapshots={SHOALING_STRIP_COMPRESSION.snapshots} testId={SHOALING_STRIP_COMPRESSION.testId} />
+<Filmstrip snapshots={SHOALING_STRIP_COMPRESSION.snapshots} renderSnapshot={renderEnergy} testId={SHOALING_STRIP_COMPRESSION.testId} />
 
 **What to look for:**
 - Two wave peaks start spread apart (deep water)
@@ -66,7 +71,7 @@ c = sqrt(g * d)
 
 This static visualization shows speed as intensity: bright = fast, dark = slow.
 
-<ProgressionStrip snapshots={SHOALING_STRIP_STATIC.snapshots} testId={SHOALING_STRIP_STATIC.testId} />
+<Filmstrip snapshots={SHOALING_STRIP_STATIC.snapshots} renderSnapshot={renderEnergy} testId={SHOALING_STRIP_STATIC.testId} />
 
 **Orbital Flattening**: In deep water, water particles move in circles. As depth
 decreases, these orbits flatten into ellipses (more horizontal motion, less vertical).
@@ -85,7 +90,7 @@ occur simultaneously as the wave transforms.
 
 <ProgressionPlayer snapshots={PROGRESSION_SHOALING_COMBINED.snapshots} />
 
-<ProgressionStrip snapshots={SHOALING_STRIP_COMBINED.snapshots} testId={SHOALING_STRIP_COMBINED.testId} />
+<Filmstrip snapshots={SHOALING_STRIP_COMBINED.snapshots} renderSnapshot={renderEnergy} testId={SHOALING_STRIP_COMBINED.testId} />
 
 The simulation uses Green's Law for shoaling amplification:
 

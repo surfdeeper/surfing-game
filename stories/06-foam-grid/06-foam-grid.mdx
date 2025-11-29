@@ -4,7 +4,9 @@ The foam grid accumulates density from energy transfer and persists over time.
 Unlike the energy transfer grid (cleared each frame), the foam grid maintains
 state as bubbles form, spread, and decay.
 
-import { ProgressionPlayer, ProgressionStrip } from '../components/ProgressionPlayer';
+import { ProgressionPlayer } from '../components/ProgressionPlayer';
+import { Filmstrip, renderMatrixToCanvas } from '../components/Filmstrip';
+import { energyToColor } from '../../src/render/colorScales';
 import {
   FOAM_GRID_STRIP_ACCUMULATION,
   FOAM_GRID_STRIP_ADVECTION,
@@ -13,6 +15,9 @@ import {
   PROGRESSION_ADVECTION,
   PROGRESSION_COMBINED,
 } from '../../src/render/foamGridProgressions';
+
+export const renderEnergy = (snap, ctx, w, h) =>
+  renderMatrixToCanvas(ctx, snap.matrix, energyToColor, w, h);
 
 <section id="accumulation">
 
@@ -26,7 +31,7 @@ foam[idx] = Math.min(1, foam[idx] + transfer[idx] * depositScale);
 
 <ProgressionPlayer snapshots={PROGRESSION_ACCUMULATION.snapshots} />
 
-<ProgressionStrip snapshots={FOAM_GRID_STRIP_ACCUMULATION.snapshots} testId={FOAM_GRID_STRIP_ACCUMULATION.testId} />
+<Filmstrip snapshots={FOAM_GRID_STRIP_ACCUMULATION.snapshots} renderSnapshot={renderEnergy} testId={FOAM_GRID_STRIP_ACCUMULATION.testId} />
 
 **What to look for:**
 - t=0s: Initial energy transfer deposit
@@ -50,7 +55,7 @@ foam[idx] -= foam[idx] * advectFactor;
 
 <ProgressionPlayer snapshots={PROGRESSION_ADVECTION.snapshots} />
 
-<ProgressionStrip snapshots={FOAM_GRID_STRIP_ADVECTION.snapshots} testId={FOAM_GRID_STRIP_ADVECTION.testId} />
+<Filmstrip snapshots={FOAM_GRID_STRIP_ADVECTION.snapshots} renderSnapshot={renderEnergy} testId={FOAM_GRID_STRIP_ADVECTION.testId} />
 
 **Parameters:**
 
@@ -70,7 +75,7 @@ In practice, foam simultaneously accumulates at the breaking zone and advects sh
 
 <ProgressionPlayer snapshots={PROGRESSION_COMBINED.snapshots} />
 
-<ProgressionStrip snapshots={FOAM_GRID_STRIP_COMBINED.snapshots} testId={FOAM_GRID_STRIP_COMBINED.testId} />
+<Filmstrip snapshots={FOAM_GRID_STRIP_COMBINED.snapshots} renderSnapshot={renderEnergy} testId={FOAM_GRID_STRIP_COMBINED.testId} />
 
 **What to look for:**
 - t=0s: Empty grid

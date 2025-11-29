@@ -6,7 +6,9 @@ After wave breaking deposits foam, the foam disperses over time:
 - Longshore currents push foam sideways
 - Eventually dissipates back to clear water
 
-import { ProgressionPlayer, ProgressionStrip } from '../components/ProgressionPlayer';
+import { ProgressionPlayer } from '../components/ProgressionPlayer';
+import { Filmstrip, renderMatrixToCanvas } from '../components/Filmstrip';
+import { energyToColor } from '../../src/render/colorScales';
 import {
   PROGRESSION_INTENSITY_DECAY,
   PROGRESSION_SPATIAL_SPREADING,
@@ -15,6 +17,9 @@ import {
   FOAM_DISPERSION_STRIP_SPATIAL,
   FOAM_DISPERSION_STRIP_COMBINED,
 } from '../../src/render/foamDispersionProgressions';
+
+export const renderEnergy = (snap, ctx, w, h) =>
+  renderMatrixToCanvas(ctx, snap.matrix, energyToColor, w, h);
 
 <section id="decay-rate">
 
@@ -28,7 +33,7 @@ foam(t) = foam(0) * exp(-k * t)
 
 Where `k` is the decay coefficient. Higher values mean faster fade.
 
-<ProgressionStrip snapshots={FOAM_DISPERSION_STRIP_DECAY.snapshots} testId={FOAM_DISPERSION_STRIP_DECAY.testId} />
+<Filmstrip snapshots={FOAM_DISPERSION_STRIP_DECAY.snapshots} renderSnapshot={renderEnergy} testId={FOAM_DISPERSION_STRIP_DECAY.testId} />
 
 **Fast Decay** (k = 1.5): Foam nearly gone within 2 seconds. Appropriate for
 thin whitewash in shallow water where bubbles pop quickly.
@@ -58,7 +63,7 @@ Where:
 
 <ProgressionPlayer snapshots={PROGRESSION_SPATIAL_SPREADING.snapshots} />
 
-<ProgressionStrip snapshots={FOAM_DISPERSION_STRIP_SPATIAL.snapshots} testId={FOAM_DISPERSION_STRIP_SPATIAL.testId} />
+<Filmstrip snapshots={FOAM_DISPERSION_STRIP_SPATIAL.snapshots} renderSnapshot={renderEnergy} testId={FOAM_DISPERSION_STRIP_SPATIAL.testId} />
 
 **Spreading**: A concentrated foam point expands into a growing circle. The peak
 intensity drops as foam spreads over a larger area (conservation of mass).
@@ -76,7 +81,7 @@ Real foam behavior combines decay and spreading simultaneously:
 
 <ProgressionPlayer snapshots={PROGRESSION_DECAY_AND_SPREAD.snapshots} />
 
-<ProgressionStrip snapshots={FOAM_DISPERSION_STRIP_COMBINED.snapshots} testId={FOAM_DISPERSION_STRIP_COMBINED.testId} />
+<Filmstrip snapshots={FOAM_DISPERSION_STRIP_COMBINED.snapshots} renderSnapshot={renderEnergy} testId={FOAM_DISPERSION_STRIP_COMBINED.testId} />
 
 **What to look for:**
 - t=0s: Concentrated foam deposit from wave break

@@ -4,7 +4,9 @@ A wave breaks when its height exceeds ~0.78 times the water depth (H > 0.78d).
 At this point, particle orbital velocity exceeds wave velocity, causing
 the crest to overtake and fall forward.
 
-import { ProgressionPlayer, ProgressionStrip } from '../components/ProgressionPlayer';
+import { ProgressionPlayer } from '../components/ProgressionPlayer';
+import { Filmstrip, renderMatrixToCanvas } from '../components/Filmstrip';
+import { energyToColor } from '../../src/render/colorScales';
 import {
   PROGRESSION_SPILLING,
   PROGRESSION_PLUNGING,
@@ -14,6 +16,9 @@ import {
   WAVE_BREAKING_STRIP_TYPES,
   WAVE_BREAKING_STRIP_ENERGY,
 } from '../../src/render/waveBreakingProgressions';
+
+export const renderEnergy = (snap, ctx, w, h) =>
+  renderMatrixToCanvas(ctx, snap.matrix, energyToColor, w, h);
 
 <section id="breaking-criterion">
 
@@ -31,7 +36,7 @@ Where:
 
 Below this ratio, waves are stable. Above it, breaking is inevitable.
 
-<ProgressionStrip snapshots={WAVE_BREAKING_STRIP_CRITERION.snapshots} testId={WAVE_BREAKING_STRIP_CRITERION.testId} />
+<Filmstrip snapshots={WAVE_BREAKING_STRIP_CRITERION.snapshots} renderSnapshot={renderEnergy} testId={WAVE_BREAKING_STRIP_CRITERION.testId} />
 
 The visualization shows intensity jump at the 0.78 threshold - waves above this
 line are in the breaking zone.
@@ -45,7 +50,7 @@ line are in the breaking zone.
 Beach slope determines the type of breaker. Steeper slopes produce more dramatic
 breaks, while gentle slopes create gradual foam cascades.
 
-<ProgressionStrip snapshots={WAVE_BREAKING_STRIP_TYPES.snapshots} testId={WAVE_BREAKING_STRIP_TYPES.testId} />
+<Filmstrip snapshots={WAVE_BREAKING_STRIP_TYPES.snapshots} renderSnapshot={renderEnergy} testId={WAVE_BREAKING_STRIP_TYPES.testId} />
 
 **Spilling** (gentle slope, < 1:20): Foam cascades continuously down the wave
 face. Common on sandy beaches. Good for beginners - forgiving and predictable.
@@ -75,7 +80,7 @@ When a wave breaks, kinetic energy is converted to:
 
 <ProgressionPlayer snapshots={PROGRESSION_ENERGY_TO_FOAM.snapshots} />
 
-<ProgressionStrip snapshots={WAVE_BREAKING_STRIP_ENERGY.snapshots} testId={WAVE_BREAKING_STRIP_ENERGY.testId} />
+<Filmstrip snapshots={WAVE_BREAKING_STRIP_ENERGY.snapshots} renderSnapshot={renderEnergy} testId={WAVE_BREAKING_STRIP_ENERGY.testId} />
 
 **What to look for:**
 - t=0s: Full energy wave approaching

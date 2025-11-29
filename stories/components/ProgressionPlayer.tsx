@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { energyToColor } from '../../src/render/colorScales';
+import { useTheme } from '../ThemeContext';
 
 interface Snapshot {
   time: number;
@@ -57,6 +58,7 @@ export function ProgressionPlayer({
   const [frameIndex, setFrameIndex] = useState(0);
   const [playing, setPlaying] = useState(autoPlay);
   const [speed, setSpeed] = useState(1);
+  const { colors } = useTheme();
 
   useEffect(() => {
     if (!playing) return;
@@ -83,10 +85,11 @@ export function ProgressionPlayer({
     <div
       style={{
         display: 'inline-block',
-        background: '#2e3440',
+        background: colors.bgSection,
         padding: 16,
         borderRadius: 8,
         margin: '1em 0',
+        border: `1px solid ${colors.border}`,
       }}
     >
       <MatrixCanvas matrix={snapshot.matrix} cellSize={cellSize} />
@@ -102,9 +105,9 @@ export function ProgressionPlayer({
         <button
           onClick={() => setPlaying(!playing)}
           style={{
-            background: '#4c566a',
-            border: 'none',
-            color: '#eee',
+            background: colors.buttonBg,
+            border: `1px solid ${colors.buttonBorder}`,
+            color: colors.text,
             padding: '6px 12px',
             borderRadius: 4,
             cursor: 'pointer',
@@ -113,14 +116,14 @@ export function ProgressionPlayer({
         >
           {playing ? '⏸' : '▶️'}
         </button>
-        <span style={{ color: '#88c0d0', minWidth: 80 }}>{snapshot.label}</span>
+        <span style={{ color: colors.accent, minWidth: 80 }}>{snapshot.label}</span>
         <select
           value={speed}
           onChange={(e) => setSpeed(Number(e.target.value))}
           style={{
-            background: '#4c566a',
-            border: 'none',
-            color: '#eee',
+            background: colors.buttonBg,
+            border: `1px solid ${colors.buttonBorder}`,
+            color: colors.text,
             padding: '4px 8px',
             borderRadius: 4,
           }}
@@ -141,35 +144,6 @@ export function ProgressionPlayer({
           style={{ flex: 1, cursor: 'pointer' }}
         />
       </div>
-    </div>
-  );
-}
-
-export function ProgressionStrip({
-  snapshots,
-  cellSize = 16,
-  testId,
-}: {
-  snapshots: Snapshot[];
-  cellSize?: number;
-  testId: string;
-}) {
-  return (
-    <div
-      data-testid={testId}
-      style={{
-        display: 'flex',
-        gap: 8,
-        overflowX: 'auto',
-        padding: '1em 0',
-      }}
-    >
-      {snapshots.map((snapshot, idx) => (
-        <div key={idx} style={{ textAlign: 'center' }}>
-          <MatrixCanvas matrix={snapshot.matrix} cellSize={cellSize} />
-          <div style={{ fontSize: 11, color: '#888', marginTop: 4 }}>{snapshot.label}</div>
-        </div>
-      ))}
     </div>
   );
 }

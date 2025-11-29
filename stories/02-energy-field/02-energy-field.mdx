@@ -4,7 +4,9 @@ The energy field uses a row-blending algorithm to propagate energy from
 horizon (row 0) toward shore (row N). Each frame, cells blend with the
 row above them at a rate determined by `travelDuration`.
 
-import { ProgressionPlayer, ProgressionStrip } from '../components/ProgressionPlayer';
+import { ProgressionPlayer } from '../components/ProgressionPlayer';
+import { Filmstrip, renderMatrixToCanvas } from '../components/Filmstrip';
+import { energyToColor } from '../../src/render/colorScales';
 import {
   PROGRESSION_NO_DAMPING,
   PROGRESSION_LOW_DAMPING,
@@ -16,6 +18,9 @@ import {
   ENERGY_FIELD_STRIP_WITH_DRAIN,
 } from '../../src/state/energyFieldProgressions';
 
+export const renderEnergy = (snap, ctx, w, h) =>
+  renderMatrixToCanvas(ctx, snap.matrix, energyToColor, w, h);
+
 <section id="no-damping">
 
 ## No Damping (Deep Water)
@@ -25,7 +30,7 @@ The pulse moves as a sharp horizontal line from horizon toward shore.
 
 <ProgressionPlayer snapshots={PROGRESSION_NO_DAMPING.snapshots} />
 
-<ProgressionStrip snapshots={ENERGY_FIELD_STRIP_NO_DAMPING.snapshots} testId={ENERGY_FIELD_STRIP_NO_DAMPING.testId} />
+<Filmstrip snapshots={ENERGY_FIELD_STRIP_NO_DAMPING.snapshots} renderSnapshot={renderEnergy} testId={ENERGY_FIELD_STRIP_NO_DAMPING.testId} />
 
 **Key observations:**
 - Energy moves down one row per second as a sharp line
@@ -42,7 +47,7 @@ Coefficient `0.05` — subtle fade near shore, prevents energy buildup at shorel
 
 <ProgressionPlayer snapshots={PROGRESSION_LOW_DAMPING.snapshots} />
 
-<ProgressionStrip snapshots={ENERGY_FIELD_STRIP_LOW_DAMPING.snapshots} testId={ENERGY_FIELD_STRIP_LOW_DAMPING.testId} />
+<Filmstrip snapshots={ENERGY_FIELD_STRIP_LOW_DAMPING.snapshots} renderSnapshot={renderEnergy} testId={ENERGY_FIELD_STRIP_LOW_DAMPING.testId} />
 
 </section>
 
@@ -54,7 +59,7 @@ Coefficient `2.0` — energy mostly gone before reaching shore. Too much damping
 
 <ProgressionPlayer snapshots={PROGRESSION_HIGH_DAMPING.snapshots} />
 
-<ProgressionStrip snapshots={ENERGY_FIELD_STRIP_HIGH_DAMPING.snapshots} testId={ENERGY_FIELD_STRIP_HIGH_DAMPING.testId} />
+<Filmstrip snapshots={ENERGY_FIELD_STRIP_HIGH_DAMPING.snapshots} renderSnapshot={renderEnergy} testId={ENERGY_FIELD_STRIP_HIGH_DAMPING.testId} />
 
 </section>
 
@@ -77,7 +82,7 @@ center column is completely drained (simulating wave breaking):
 
 <ProgressionPlayer snapshots={PROGRESSION_WITH_DRAIN.snapshots} />
 
-<ProgressionStrip snapshots={ENERGY_FIELD_STRIP_WITH_DRAIN.snapshots} testId={ENERGY_FIELD_STRIP_WITH_DRAIN.testId} />
+<Filmstrip snapshots={ENERGY_FIELD_STRIP_WITH_DRAIN.snapshots} renderSnapshot={renderEnergy} testId={ENERGY_FIELD_STRIP_WITH_DRAIN.testId} />
 
 **What to look for:**
 - t=0s: Full energy pulse at horizon
