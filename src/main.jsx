@@ -13,6 +13,7 @@ import {
     WAVE_X_SAMPLES,
 } from './state/waveModel.js';
 import { DEFAULT_BATHYMETRY, getDepth } from './state/bathymetryModel.js';
+import { createBathymetryCacheManager } from './render/bathymetryRenderer.js';
 import { getOceanBounds, calculateTravelDuration } from './render/coordinates.js';
 import {
     DEFAULT_CONFIG,
@@ -62,27 +63,23 @@ import { KeyboardInput } from './input/keyboard.js';
 import { createRoot } from 'react-dom/client';
 import { DebugPanel } from './ui/DebugPanel.jsx';
 import {
-    buildIntensityGrid,
-    boxBlur,
-    extractLineSegments,
-    buildIntensityGridOptionA,
-    buildIntensityGridOptionB,
-    buildIntensityGridOptionC,
+    renderMultiContour,
+    renderMultiContourOptionA,
+    renderMultiContourOptionB,
+    renderMultiContourOptionC,
 } from './render/marchingSquares.js';
 
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 
-// Bathymetry heat map cache (Plan 130)
-// Built once on toggle/resize, then blitted each frame
-let bathymetryCache = null;
+// Bathymetry cache manager (Plan 130) - handles caching + invalidation
+const bathymetryCache = createBathymetryCacheManager();
 
 // Make canvas fill the screen
 function resize() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
-    // Invalidate bathymetry cache on resize
-    bathymetryCache = null;
+    bathymetryCache.invalidate();
 }
 resize();
 window.addEventListener('resize', resize);
@@ -421,38 +418,10 @@ function draw() {
     ctx.fillRect(0, 0, w, h);
 
     // Draw bathymetry depth heat map UNDER waves (toggle with 'B' key)
-    // NOTE: This is STATIC - the ocean floor doesn't move. The blue waves
-    // animate on top of this, which can be visually confusing at first.
-    // Performance: Cached to offscreen canvas, rebuilt only on toggle/resize (Plan 130)
+    // Uses cache manager from render/bathymetryRenderer.js (Plan 130)
     if (toggles.showBathymetry) {
-        // Build cache if needed
-        if (!bathymetryCache || bathymetryCache.width !== w || bathymetryCache.height !== oceanBottom) {
-            bathymetryCache = document.createElement('canvas');
-            bathymetryCache.width = w;
-            bathymetryCache.height = oceanBottom;
-            const cacheCtx = bathymetryCache.getContext('2d');
-
-            const stepX = 4;
-            const stepY = 4;
-            const colorScaleDepth = 15;
-
-            for (let y = oceanTop; y < oceanBottom; y += stepY) {
-                const progress = (y - oceanTop) / (oceanBottom - oceanTop);
-                for (let x = 0; x < w; x += stepX) {
-                    const normalizedX = x / w;
-                    const depth = getDepth(normalizedX, world.bathymetry, progress);
-                    const depthRatio = Math.min(1, Math.sqrt(depth / colorScaleDepth));
-                    const r = Math.floor(220 - 160 * depthRatio);
-                    const g = Math.floor(180 - 140 * depthRatio);
-                    const b = Math.floor(100 - 80 * depthRatio);
-                    cacheCtx.fillStyle = `rgb(${r}, ${g}, ${b})`;
-                    cacheCtx.fillRect(x, y, stepX, stepY);
-                }
-            }
-        }
-
-        // Blit cached image
-        ctx.drawImage(bathymetryCache, 0, 0);
+        const cache = bathymetryCache.get(w, oceanTop, oceanBottom, world.bathymetry);
+        ctx.drawImage(cache, 0, 0);
     }
 
     // Draw energy field (Plan 140) - toggle with 'E' key
@@ -481,132 +450,40 @@ function draw() {
         showBackgroundWaves: toggles.showBackgroundWaves,
     });
 
-    // LAYER 1: Foam contours using marching squares
-    // Builds an intensity grid, applies blur, then extracts contour lines
+    // Foam contour rendering using extracted helpers (Plan 170)
+    // Each option uses a different grid-building algorithm with distinct colors
+    const foamThresholdsBase = [
+        { value: 0.15, color: 'rgba(255, 255, 255, 0.3)', lineWidth: 1 },
+        { value: 0.3, color: 'rgba(255, 255, 255, 0.6)', lineWidth: 2 },
+        { value: 0.5, color: 'rgba(255, 255, 255, 0.9)', lineWidth: 3 },
+    ];
+    const foamThresholdsA = [
+        { value: 0.15, color: 'rgba(255, 100, 100, 0.4)', lineWidth: 1 },
+        { value: 0.3, color: 'rgba(255, 150, 100, 0.7)', lineWidth: 2 },
+        { value: 0.5, color: 'rgba(255, 200, 150, 0.9)', lineWidth: 3 },
+    ];
+    const foamThresholdsB = [
+        { value: 0.15, color: 'rgba(100, 255, 100, 0.4)', lineWidth: 1 },
+        { value: 0.3, color: 'rgba(150, 255, 150, 0.7)', lineWidth: 2 },
+        { value: 0.5, color: 'rgba(200, 255, 200, 0.9)', lineWidth: 3 },
+    ];
+    const foamThresholdsC = [
+        { value: 0.15, color: 'rgba(150, 100, 255, 0.4)', lineWidth: 1 },
+        { value: 0.3, color: 'rgba(180, 150, 255, 0.7)', lineWidth: 2 },
+        { value: 0.5, color: 'rgba(220, 200, 255, 0.9)', lineWidth: 3 },
+    ];
+
     if (toggles.showFoamZones) {
-        const GRID_W = 80;
-        const GRID_H = 60;
-
-        // Build intensity grid from foam rows
-        const grid = buildIntensityGrid(world.foamRows, GRID_W, GRID_H, w, oceanBottom);
-
-        // Apply blur to smooth the data
-        const blurred = boxBlur(grid, GRID_W, GRID_H, 2);
-
-        // Define threshold layers (outer to inner)
-        const thresholds = [
-            { value: 0.15, color: 'rgba(255, 255, 255, 0.3)', lineWidth: 1 },
-            { value: 0.3, color: 'rgba(255, 255, 255, 0.6)', lineWidth: 2 },
-            { value: 0.5, color: 'rgba(255, 255, 255, 0.9)', lineWidth: 3 },
-        ];
-
-        // Draw contours for each threshold
-        for (const { value, color, lineWidth } of thresholds) {
-            const segments = extractLineSegments(blurred, GRID_W, GRID_H, value);
-
-            ctx.strokeStyle = color;
-            ctx.lineWidth = lineWidth;
-            ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
-
-            ctx.beginPath();
-            for (const seg of segments) {
-                const x1 = seg.x1 * w;
-                const y1 = seg.y1 * oceanBottom;
-                const x2 = seg.x2 * w;
-                const y2 = seg.y2 * oceanBottom;
-                ctx.moveTo(x1, y1);
-                ctx.lineTo(x2, y2);
-            }
-            ctx.stroke();
-        }
+        renderMultiContour(ctx, world.foamRows, w, h, { thresholds: foamThresholdsBase, oceanBottom });
     }
-
-    // LAYER: Option A - Expanding segment bounds (red/orange contours)
-    // Outer contours expand as foam ages, inner contours collapse
     if (toggles.showFoamOptionA) {
-        const GRID_W = 80;
-        const GRID_H = 60;
-        const grid = buildIntensityGridOptionA(world.foamRows, GRID_W, GRID_H, w, oceanBottom, world.gameTime);
-        const blurred = boxBlur(grid, GRID_W, GRID_H, 2);
-
-        const thresholds = [
-            { value: 0.15, color: 'rgba(255, 100, 100, 0.4)', lineWidth: 1 },
-            { value: 0.3, color: 'rgba(255, 150, 100, 0.7)', lineWidth: 2 },
-            { value: 0.5, color: 'rgba(255, 200, 150, 0.9)', lineWidth: 3 },
-        ];
-
-        for (const { value, color, lineWidth } of thresholds) {
-            const segments = extractLineSegments(blurred, GRID_W, GRID_H, value);
-            ctx.strokeStyle = color;
-            ctx.lineWidth = lineWidth;
-            ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
-            ctx.beginPath();
-            for (const seg of segments) {
-                ctx.moveTo(seg.x1 * w, seg.y1 * oceanBottom);
-                ctx.lineTo(seg.x2 * w, seg.y2 * oceanBottom);
-            }
-            ctx.stroke();
-        }
+        renderMultiContourOptionA(ctx, world.foamRows, w, h, world.gameTime, { thresholds: foamThresholdsA, oceanBottom });
     }
-
-    // LAYER: Option B - Age-based blur (green contours)
-    // More blur passes as foam ages, causing natural expansion
     if (toggles.showFoamOptionB) {
-        const GRID_W = 80;
-        const GRID_H = 60;
-        const { grid, blurPasses } = buildIntensityGridOptionB(world.foamRows, GRID_W, GRID_H, w, oceanBottom, world.gameTime);
-        const blurred = boxBlur(grid, GRID_W, GRID_H, blurPasses);
-
-        const thresholds = [
-            { value: 0.15, color: 'rgba(100, 255, 100, 0.4)', lineWidth: 1 },
-            { value: 0.3, color: 'rgba(150, 255, 150, 0.7)', lineWidth: 2 },
-            { value: 0.5, color: 'rgba(200, 255, 200, 0.9)', lineWidth: 3 },
-        ];
-
-        for (const { value, color, lineWidth } of thresholds) {
-            const segments = extractLineSegments(blurred, GRID_W, GRID_H, value);
-            ctx.strokeStyle = color;
-            ctx.lineWidth = lineWidth;
-            ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
-            ctx.beginPath();
-            for (const seg of segments) {
-                ctx.moveTo(seg.x1 * w, seg.y1 * oceanBottom);
-                ctx.lineTo(seg.x2 * w, seg.y2 * oceanBottom);
-            }
-            ctx.stroke();
-        }
+        renderMultiContourOptionB(ctx, world.foamRows, w, h, world.gameTime, { thresholds: foamThresholdsB, oceanBottom });
     }
-
-    // LAYER: Option C - Per-row dispersion radius (blue/purple contours)
-    // Most physically accurate - foam spreads in X and Y, core/halo fade separately
     if (toggles.showFoamOptionC) {
-        const GRID_W = 80;
-        const GRID_H = 60;
-        const grid = buildIntensityGridOptionC(world.foamRows, GRID_W, GRID_H, w, oceanBottom, world.gameTime);
-        const blurred = boxBlur(grid, GRID_W, GRID_H, 2);
-
-        const thresholds = [
-            { value: 0.15, color: 'rgba(150, 100, 255, 0.4)', lineWidth: 1 },
-            { value: 0.3, color: 'rgba(180, 150, 255, 0.7)', lineWidth: 2 },
-            { value: 0.5, color: 'rgba(220, 200, 255, 0.9)', lineWidth: 3 },
-        ];
-
-        for (const { value, color, lineWidth } of thresholds) {
-            const segments = extractLineSegments(blurred, GRID_W, GRID_H, value);
-            ctx.strokeStyle = color;
-            ctx.lineWidth = lineWidth;
-            ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
-            ctx.beginPath();
-            for (const seg of segments) {
-                ctx.moveTo(seg.x1 * w, seg.y1 * oceanBottom);
-                ctx.lineTo(seg.x2 * w, seg.y2 * oceanBottom);
-            }
-            ctx.stroke();
-        }
+        renderMultiContourOptionC(ctx, world.foamRows, w, h, world.gameTime, { thresholds: foamThresholdsC, oceanBottom });
     }
 
     // LAYER: Foam samples (debug view - original rectangle-based rendering)

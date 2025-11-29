@@ -734,11 +734,11 @@ export function renderMultiContour(ctx, foamRows, canvasW, canvasH, options = {}
         gridW = 80,
         gridH = 60,
         blurPasses = 2,
+        oceanBottom = null,  // If provided, use instead of canvasH - shoreHeight
     } = options;
 
     // Ocean area (excluding shore)
-    const shoreHeight = 80;
-    const oceanH = canvasH - shoreHeight;
+    const oceanH = oceanBottom ?? (canvasH - 80);
 
     // Build intensity grid from foam rows
     const grid = buildIntensityGrid(foamRows, gridW, gridH, canvasW, oceanH);
@@ -790,10 +790,10 @@ export function renderMultiContourOptionA(ctx, foamRows, canvasW, canvasH, gameT
         gridW = 80,
         gridH = 60,
         blurPasses = 2,
+        oceanBottom = null,
     } = options;
 
-    const shoreHeight = 80;
-    const oceanH = canvasH - shoreHeight;
+    const oceanH = oceanBottom ?? (canvasH - 80);
 
     // Use Option A grid builder
     const grid = buildIntensityGridOptionA(foamRows, gridW, gridH, canvasW, oceanH, gameTime);
@@ -836,10 +836,10 @@ export function renderMultiContourOptionB(ctx, foamRows, canvasW, canvasH, gameT
         ],
         gridW = 80,
         gridH = 60,
+        oceanBottom = null,
     } = options;
 
-    const shoreHeight = 80;
-    const oceanH = canvasH - shoreHeight;
+    const oceanH = oceanBottom ?? (canvasH - 80);
 
     // Use Option B grid builder - returns grid and dynamic blur passes
     const { grid, blurPasses } = buildIntensityGridOptionB(foamRows, gridW, gridH, canvasW, oceanH, gameTime);
@@ -883,10 +883,10 @@ export function renderMultiContourOptionC(ctx, foamRows, canvasW, canvasH, gameT
         gridW = 80,
         gridH = 60,
         blurPasses = 2,
+        oceanBottom = null,
     } = options;
 
-    const shoreHeight = 80;
-    const oceanH = canvasH - shoreHeight;
+    const oceanH = oceanBottom ?? (canvasH - 80);
 
     // Use Option C grid builder
     const grid = buildIntensityGridOptionC(foamRows, gridW, gridH, canvasW, oceanH, gameTime);
