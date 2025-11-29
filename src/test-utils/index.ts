@@ -22,3 +22,13 @@ export {
   matrixMax,
   matrixPeakRow,
 } from './matrixField.js';
+
+export {
+  valueToChar,
+  charToValue,
+  matrixToAscii,
+  asciiToMatrix,
+  progressionToAscii,
+  asciiToProgression,
+  matricesMatchAscii,
+} from './asciiMatrix.js';

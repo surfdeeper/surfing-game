@@ -1,6 +1,6 @@
 # Plan 200: MDX-Based Visual Documentation System
 
-Status: in-progress (Phase 1 complete, Phase 2 on hold)
+Status: in-progress (Phase 1 & 1.5 complete, Phase 2 ready to resume)
 Owner: agents
 Depends on: none
 Supersedes: Ladle/Storybook for component visualization
@@ -448,7 +448,7 @@ npx vitest run src/test-utils/   # 53 tests pass
 npx vitest run src/state/energyFieldPropagation.test.js  # 9 tests pass
 ```
 
-### Phase 1.5: Matrix Data Verification ⬚ TODO
+### Phase 1.5: Matrix Data Verification ✅ COMPLETE
 
 **Why this phase is needed:**
 
@@ -468,64 +468,54 @@ progression. This creates a clear data correctness gate before any rendering.
 
 | Step | Task | Status |
 |------|------|--------|
-| 5a | Add matrix snapshot tests for PROGRESSION_NO_DAMPING | ⬚ Todo |
-| 5b | Add matrix snapshot tests for PROGRESSION_WITH_DAMPING | ⬚ Todo |
-| 5c | Add matrix snapshot tests for PROGRESSION_HIGH_DAMPING | ⬚ Todo |
-| 5d | Add matrix snapshot tests for PROGRESSION_WITH_DRAIN | ⬚ Todo |
+| 5a | Add matrix snapshot tests for PROGRESSION_NO_DAMPING | ✅ Done |
+| 5b | Add matrix snapshot tests for PROGRESSION_WITH_DAMPING | ✅ Done |
+| 5c | Add matrix snapshot tests for PROGRESSION_HIGH_DAMPING | ✅ Done |
+| 5d | Add matrix snapshot tests for PROGRESSION_WITH_DRAIN | ✅ Done |
 
-**Implementation:**
+**Implementation:** Compact ASCII format inspired by RxJS marble testing.
+
+Instead of verbose Vitest snapshots (1000+ lines), we use inline ASCII diagrams:
 
 ```typescript
 // In energyFieldPropagation.test.ts
 
-describe('Matrix data verification (visual test prerequisites)', () => {
-  it('PROGRESSION_NO_DAMPING produces expected matrices', () => {
-    // Snapshot the entire progression output - all frames, all cells
-    expect(PROGRESSION_NO_DAMPING.snapshots).toMatchSnapshot();
-  });
-
-  it('PROGRESSION_WITH_DAMPING produces expected matrices', () => {
-    expect(PROGRESSION_WITH_DAMPING.snapshots).toMatchSnapshot();
-  });
-
-  it('PROGRESSION_HIGH_DAMPING produces expected matrices', () => {
-    expect(PROGRESSION_HIGH_DAMPING.snapshots).toMatchSnapshot();
-  });
-
-  it('PROGRESSION_WITH_DRAIN produces expected matrices', () => {
-    expect(PROGRESSION_WITH_DRAIN.snapshots).toMatchSnapshot();
-  });
+it('PROGRESSION_NO_DAMPING produces expected matrices', () => {
+  // Deep water: energy maintains magnitude as it travels
+  const expected = `
+t=0s   t=1s   t=2s   t=3s   t=4s   t=5s
+FFFFF  BBBBB  44444  22222  11111  11111
+-----  AAAAA  AAAAA  44444  22222  22222
+-----  22222  44444  44444  33333  22222
+-----  11111  22222  33333  44444  33333
+-----  -----  11111  22222  33333  33333
+-----  -----  -----  11111  22222  33333
+`.trim();
+  expect(progressionToAscii(PROGRESSION_NO_DAMPING.snapshots)).toBe(expected);
 });
 ```
 
-**Verification workflow:**
+**Character legend:**
+- `-` = 0.0 (no energy)
+- `1-4` = 0.1-0.4
+- `A-B` = 0.5-0.6
+- `F` = 1.0 (full energy)
 
-```
-$ npx vitest run src/state/energyFieldPropagation.test.ts
+**Why ASCII over Vitest snapshots:**
+- **Readable**: Energy propagation is visually obvious (F→B→4→2→1)
+- **Compact**: 7 lines vs 1000+ line snapshot file
+- **Inline**: Expected values live in the test, not external files
+- **Diffable**: Changes show exactly which cells changed
+- **Inspired by RxJS marbles**: Proven pattern for time-based testing
 
-  ✓ Matrix data verification
-    ✓ PROGRESSION_NO_DAMPING produces expected matrices
-    ✓ PROGRESSION_WITH_DAMPING produces expected matrices
-    ...
+**Utilities added:** `src/test-utils/asciiMatrix.ts`
+- `matrixToAscii()` / `asciiToMatrix()` - single matrix conversion
+- `progressionToAscii()` - multi-frame side-by-side format
+- `matricesMatchAscii()` - compare within ASCII precision
 
-Snapshots: 4 passed
-```
+### Phase 2: Visual Regression Infrastructure ⏳ READY
 
-If matrix data changes:
-1. Review the snapshot diff to verify the change is intentional
-2. Update snapshot: `npx vitest run -u src/state/energyFieldPropagation.test.ts`
-3. Visual tests will then verify the *rendering* of the new data
-
-**Why snapshots over spot-checks:**
-
-- Spot-checks (`matrix[2][2] > 0.2`) can pass while other cells are wildly wrong
-- Snapshots capture the entire output - any drift is detected
-- When visual tests fail, we know the data was correct (snapshot passed)
-- Isolates bugs: snapshot fails = data bug, snapshot passes + visual fails = render bug
-
-### Phase 2: Visual Regression Infrastructure ⏸️ ON HOLD
-
-**Prerequisite:** Phase 1.5 must be complete before resuming Phase 2.
+**Prerequisite:** Phase 1.5 ✅ complete - matrix data is now verified by snapshots.
 
 | Step | Task | Status |
 |------|------|--------|

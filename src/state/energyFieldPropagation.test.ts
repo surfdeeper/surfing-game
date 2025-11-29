@@ -15,6 +15,7 @@ import {
   fieldToMatrix,
   matrixTotalEnergy,
   matrixPeakRow,
+  progressionToAscii,
 } from '../test-utils/index.js';
 
 // Small field dimensions for readable test output
@@ -249,6 +250,73 @@ describe('Energy Field Propagation - Using defineProgression()', () => {
       expect(matrixAfter[2][0]).toBeGreaterThan(matrixAfter[2][2]);
       expect(matrixAfter[2][4]).toBeGreaterThan(matrixAfter[2][2]);
     });
+  });
+});
+
+// ====================
+// MATRIX DATA VERIFICATION (Phase 1.5)
+// Compact ASCII format inspired by RxJS marble testing.
+// Each character represents energy level: - = 0, 1-4 = 0.1-0.4, A-B = 0.5-0.6, F = 1.0
+// ====================
+
+describe('Matrix data verification (visual test prerequisites)', () => {
+  // ASCII format: rows are horizon→shore, columns are time frames
+  // Energy starts at horizon (row 0) and propagates toward shore (row 5)
+
+  it('PROGRESSION_NO_DAMPING produces expected matrices', () => {
+    // Deep water: energy maintains magnitude as it travels
+    const expected = `
+t=0s   t=1s   t=2s   t=3s   t=4s   t=5s
+FFFFF  BBBBB  44444  22222  11111  11111
+-----  AAAAA  AAAAA  44444  22222  22222
+-----  22222  44444  44444  33333  22222
+-----  11111  22222  33333  44444  33333
+-----  -----  11111  22222  33333  33333
+-----  -----  -----  11111  22222  33333
+`.trim();
+    expect(progressionToAscii(PROGRESSION_NO_DAMPING.snapshots)).toBe(expected);
+  });
+
+  it('PROGRESSION_WITH_DAMPING produces expected matrices', () => {
+    // Shallow water gradient: energy decays near shore
+    const expected = `
+t=0s   t=1s   t=2s   t=3s   t=4s   t=5s
+FFFFF  BBBBB  44444  22222  11111  11111
+-----  AAAAA  AAAAA  44444  22222  22222
+-----  22222  44444  44444  33333  22222
+-----  11111  22222  33333  44444  33333
+-----  -----  11111  22222  33333  33333
+-----  -----  -----  11111  22222  22222
+`.trim();
+    expect(progressionToAscii(PROGRESSION_WITH_DAMPING.snapshots)).toBe(expected);
+  });
+
+  it('PROGRESSION_HIGH_DAMPING produces expected matrices', () => {
+    // Aggressive decay: compare shore row (row 5) with moderate damping
+    const expected = `
+t=0s   t=1s   t=2s   t=3s   t=4s   t=5s
+FFFFF  BBBBB  44444  22222  11111  11111
+-----  AAAAA  AAAAA  44444  22222  22222
+-----  22222  44444  44444  33333  22222
+-----  11111  22222  33333  44444  33333
+-----  -----  11111  22222  33333  33333
+-----  -----  -----  11111  11111  22222
+`.trim();
+    expect(progressionToAscii(PROGRESSION_HIGH_DAMPING.snapshots)).toBe(expected);
+  });
+
+  it('PROGRESSION_WITH_DRAIN produces expected matrices', () => {
+    // Drain at t=1s creates gap (-) in center column that persists
+    const expected = `
+t=0s   t=1s (drain)t=2s   t=3s   t=4s   t=5s
+FFFFF  BB-BB  44-44  22-22  11-11  11-11
+-----  AA-AA  AA-AA  44-44  22-22  22-22
+-----  22-22  44-44  44-44  33-33  22-22
+-----  11-11  22-22  33-33  44-44  33-33
+-----  -----  11-11  22-22  33-33  33-33
+-----  -----  -----  11-11  22-22  33-33
+`.trim();
+    expect(progressionToAscii(PROGRESSION_WITH_DRAIN.snapshots)).toBe(expected);
   });
 });
 

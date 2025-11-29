@@ -123,6 +123,55 @@ Progressions are:
 - **Deterministic** - same inputs always produce same snapshots
 - **Documented** - description explains what's being tested
 
+## ASCII Matrix Format (RxJS Marble-Inspired)
+
+For compact, readable matrix assertions, use the ASCII format from `src/test-utils/asciiMatrix.ts`:
+
+```typescript
+import { progressionToAscii, matrixToAscii } from '../test-utils';
+
+it('PROGRESSION_NO_DAMPING produces expected matrices', () => {
+  // ASCII shows all 6 time frames side-by-side
+  const expected = `
+t=0s   t=1s   t=2s   t=3s   t=4s   t=5s
+FFFFF  BBBBB  44444  22222  11111  11111
+-----  AAAAA  AAAAA  44444  22222  22222
+-----  22222  44444  44444  33333  22222
+-----  11111  22222  33333  44444  33333
+-----  -----  11111  22222  33333  33333
+-----  -----  -----  11111  22222  33333
+`.trim();
+  expect(progressionToAscii(PROGRESSION_NO_DAMPING.snapshots)).toBe(expected);
+});
+```
+
+**Character legend:**
+| Char | Value | Meaning |
+|------|-------|---------|
+| `-`  | 0.0   | No energy |
+| `1-4`| 0.1-0.4 | Low energy |
+| `A-B`| 0.5-0.6 | Medium energy |
+| `F`  | 1.0   | Full energy |
+
+**Why ASCII over Vitest snapshots:**
+- **Readable**: Energy propagation visually obvious (F→B→4→2→1)
+- **Compact**: 7 lines vs 1000+ line snapshot file
+- **Inline**: Expected values in the test, not external files
+- **Diffable**: Changes show exactly which cells changed
+
+**Utilities:**
+```typescript
+// Single matrix
+matrixToAscii([[1.0, 0.5], [0.0, 0.2]]) // → "FA\n-2"
+asciiToMatrix("FA\n-2")                  // → [[1.0, 0.5], [0.0, 0.2]]
+
+// Multi-frame progression
+progressionToAscii(snapshots)            // → side-by-side frames
+
+// Compare with ASCII precision
+matricesMatchAscii(actual, expected)     // → true if same when converted
+```
+
 ## Common Patterns
 
 ### Testing Time Progression
