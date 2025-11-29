@@ -6,10 +6,7 @@
 // - Position is calculated: progress = (currentTime - spawnTime) / travelDuration
 // - Coordinates mapped: progress (0-1) → screen pixels at render time
 
-import {
-    getWaveProgress,
-    WAVE_TYPE,
-} from './state/waveModel.js';
+import { WAVE_TYPE } from './state/waveModel.js';
 import { getDepth } from './state/bathymetryModel.js';
 import { createBathymetryCacheManager } from './render/bathymetryRenderer.js';
 import { getOceanBounds, calculateTravelDuration } from './render/coordinates.js';
@@ -25,12 +22,9 @@ import {
     updatePlayer,
 } from './update/index.js';
 import { EventType, getStore } from './state/eventStore.js';
-import {
-    loadSettings,
-    saveSettings,
-    getSettingForHotkey,
-    SETTINGS_SCHEMA,
-} from './state/settingsModel.js';
+import { loadSettings, saveSettings } from './state/settingsModel.js';
+import { createFpsTracker } from './util/fpsTracker.js';
+import { createKeyboardHandler } from './input/keyboardHandler.js';
 import {
     PLAYER_PROXY_CONFIG,
     createPlayerProxy,
@@ -49,8 +43,7 @@ import {
 import { renderEnergyField } from './render/energyFieldRenderer.js';
 import { renderWaves } from './render/waveRenderer.js';
 import { KeyboardInput } from './input/keyboard.js';
-import { createRoot } from 'react-dom/client';
-import { DebugPanel } from './ui/DebugPanel.jsx';
+import { createDebugPanelManager } from './ui/debugPanelManager.js';
 import {
     renderMultiContour,
     renderMultiContourOptionA,
@@ -154,11 +147,8 @@ function handleAIModeChange() {
     console.log(`[AI] Switched to ${world.aiMode} mode`);
 }
 
-// Create UI container for React
-const uiContainer = document.createElement('div');
-uiContainer.id = 'ui-root';
-document.body.appendChild(uiContainer);
-const reactRoot = createRoot(uiContainer);
+// Debug panel manager (extracted to ui/debugPanelManager.js)
+const debugPanel = createDebugPanelManager();
 
 // Load saved state on startup
 loadGameState(world, (timeScale) => {
@@ -174,41 +164,13 @@ if (getToggles().showPlayer && !world.playerProxy) {
     world = store.getState();
 }
 
-// Keyboard controls - uses settingsModel for hotkey mapping
-document.addEventListener('keydown', (e) => {
-    const key = e.key.toLowerCase();
-
-    // Special case: 't' cycles timeScale
-    if (key === 't') {
-        const scales = [0.25, 0.5, 1, 2, 4];
-        const currentScale = getTimeScale();
-        const currentIdx = scales.indexOf(currentScale);
-        const nextScale = scales[(currentIdx + 1) % scales.length];
-        handleTimeScaleChange(nextScale);
-        return;
-    }
-
-    // Special case: 'm' cycles AI mode (not in settings)
-    if (key === 'm') {
-        if (getToggles().showPlayer && getToggles().showAIPlayer) {
-            handleAIModeChange();
-        }
-        return;
-    }
-
-    // Special case: 'a' only toggles AI if player is enabled
-    if (key === 'a') {
-        if (getToggles().showPlayer) {
-            handleToggle('showAIPlayer');
-        }
-        return;
-    }
-
-    // General case: look up setting by hotkey from schema
-    const settingKey = getSettingForHotkey(key);
-    if (settingKey && SETTINGS_SCHEMA[settingKey]?.type === 'boolean') {
-        handleToggle(settingKey);
-    }
+// Keyboard controls - extracted to input/keyboardHandler.js
+createKeyboardHandler({
+    onToggle: handleToggle,
+    onTimeScaleChange: handleTimeScaleChange,
+    onAIModeChange: handleAIModeChange,
+    getToggles,
+    getTimeScale,
 });
 
 // Spawn a wave at the horizon with the given amplitude and type
@@ -425,79 +387,38 @@ function draw() {
         }
     }
 
-    // Prepare display data for Preact debug panel
-    const displayWaves = world.waves
-        .map(wave => ({
-            wave,
-            progress: getWaveProgress(wave, world.gameTime, travelDuration),
-            travelDuration
-        }))
-        .filter(({ progress }) => progress < 1)
-        .sort((a, b) => a.progress - b.progress);
-
-    // Render React debug panel (called every frame via requestAnimationFrame)
-    reactRoot.render(
-        <DebugPanel
-            setLullState={world.setLullState}
-            gameTime={world.gameTime}
-            displayWaves={displayWaves}
-            foamCount={world.foamSegments.length}
-            timeScale={getTimeScale()}
-            onTimeScaleChange={handleTimeScaleChange}
-            toggles={toggles}
-            onToggle={handleToggle}
-            fps={displayFps}
-            playerConfig={PLAYER_PROXY_CONFIG}
-            onPlayerConfigChange={handlePlayerConfigChange}
-            aiMode={world.aiMode}
-            onAIModeChange={handleAIModeChange}
-        />
-    );
+    // Render React debug panel (extracted to ui/debugPanelManager.js)
+    debugPanel.render({
+        setLullState: world.setLullState,
+        gameTime: world.gameTime,
+        displayWaves: debugPanel.prepareDisplayWaves(world.waves, world.gameTime, travelDuration),
+        foamCount: world.foamSegments.length,
+        timeScale: getTimeScale(),
+        onTimeScaleChange: handleTimeScaleChange,
+        toggles,
+        onToggle: handleToggle,
+        fps: fpsTracker.getDisplayFps(),
+        playerConfig: PLAYER_PROXY_CONFIG,
+        onPlayerConfigChange: handlePlayerConfigChange,
+        aiMode: world.aiMode,
+        onAIModeChange: handleAIModeChange,
+    });
 }
 
-// Game loop
-const MAX_DELTA_TIME = 0.1;  // 100ms max - prevents huge jumps after tab restore
-let lastTime = 0;
-
-// FPS tracking with smoothing and "bad FPS hold" behavior
-let displayFps = 60;
-let smoothFps = 60;
-let badFpsHoldUntil = 0;  // Timestamp until which to display the bad FPS value
+// Game loop with FPS tracking (extracted to util/fpsTracker.js)
+const fpsTracker = createFpsTracker();
 
 function gameLoop(timestamp) {
-    let deltaTime = (timestamp - lastTime) / 1000;
-    lastTime = timestamp;
-
-    // Clamp deltaTime to prevent huge jumps when returning from background
-    if (deltaTime > MAX_DELTA_TIME) {
-        deltaTime = MAX_DELTA_TIME;
-    }
-
-    // Calculate instantaneous FPS and smooth it
-    const instantFps = deltaTime > 0 ? 1 / deltaTime : 60;
-    smoothFps = smoothFps * 0.95 + instantFps * 0.05;  // Exponential moving average
-
-    // If FPS drops below 30, hold that value for 2 seconds
-    if (smoothFps < 30) {
-        displayFps = smoothFps;
-        badFpsHoldUntil = timestamp + 2000;
-    } else if (timestamp < badFpsHoldUntil) {
-        // Keep showing the bad FPS value during hold period
-        // (displayFps stays unchanged)
-    } else {
-        displayFps = smoothFps;
-    }
-
+    const deltaTime = fpsTracker.update(timestamp);
     update(deltaTime);
     draw();
-
     requestAnimationFrame(gameLoop);
 }
 
 // Reset timing when tab becomes visible again
 document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
-        lastTime = performance.now();
+        fpsTracker.resetTiming();
     }
 });
 
