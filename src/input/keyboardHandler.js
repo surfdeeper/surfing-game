@@ -9,7 +9,8 @@
 
 import { getSettingForHotkey, SETTINGS_SCHEMA } from '../state/settingsModel.js';
 
-const TIME_SCALES = [0.25, 0.5, 1, 2, 4];
+// Get time scales from schema (default: [1, 2, 4, 8])
+const TIME_SCALES = SETTINGS_SCHEMA.timeScale?.options || [1, 2, 4, 8];
 
 /**
  * Create keyboard handler
