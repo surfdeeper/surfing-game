@@ -127,9 +127,9 @@ function getDepth(x, z) {
 ### Visual Result
 As the swell approaches shore:
 1. Far out (z = -50): normal amplitude, normal wavelength
-2. Approaching reef (z = -15): slightly taller, slightly shorter wavelength
-3. Over reef (z = -5): noticeably taller, much shorter wavelength, steep face
-4. This is where breaking would happen (next plan)
+1. Approaching reef (z = -15): slightly taller, slightly shorter wavelength
+1. Over reef (z = -5): noticeably taller, much shorter wavelength, steep face
+1. This is where breaking would happen (next plan)
 
 ---
 
@@ -146,11 +146,11 @@ As the swell approaches shore:
 ## Success Criteria
 
 1. Wave appears taller as it approaches shore (visible growth)
-2. Wave crests bunch up (shorter wavelength near shore)
-3. Wave face gets steeper near the shallow zone
-4. At the reef, wave is dramatically taller/steeper than in deep water
-5. Probe confirms: height at z=-5 > height at z=-30 for same phase
-6. Still smooth - not breaking yet (that's next)
+1. Wave crests bunch up (shorter wavelength near shore)
+1. Wave face gets steeper near the shallow zone
+1. At the reef, wave is dramatically taller/steeper than in deep water
+1. Probe confirms: height at z=-5 > height at z=-30 for same phase
+1. Still smooth - not breaking yet (that's next)
 
 ---
 

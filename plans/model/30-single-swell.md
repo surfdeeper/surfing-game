@@ -110,11 +110,11 @@ src/
 ## Success Criteria
 
 1. See a smooth bump (swell) traveling toward camera
-2. Wave maintains its shape as it travels (doesn't deform yet)
-3. Correct speed: should take (wavelength / speed) seconds to travel one wavelength
-4. Probe shows correct wave height as wave passes
-5. Surface normals correct (lighting changes on wave face vs back)
-6. Can adjust wavelength, amplitude, period in UI and see changes
+1. Wave maintains its shape as it travels (doesn't deform yet)
+1. Correct speed: should take (wavelength / speed) seconds to travel one wavelength
+1. Probe shows correct wave height as wave passes
+1. Surface normals correct (lighting changes on wave face vs back)
+1. Can adjust wavelength, amplitude, period in UI and see changes
 
 ---
 

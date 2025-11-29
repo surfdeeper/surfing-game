@@ -28,16 +28,16 @@ Consolidate all coordinate functions into a single canonical location: `src/rend
 
 This location is appropriate because:
 1. Already well-documented with JSDoc
-2. Already imported by `main.jsx` (production code)
-3. Coordinate mapping is conceptually a rendering concern (abstract → screen)
-4. Tests exist at `coordinates.test.js`
+1. Already imported by `main.jsx` (production code)
+1. Coordinate mapping is conceptually a rendering concern (abstract → screen)
+1. Tests exist at `coordinates.test.js`
 
 ## Implementation Steps
 
 ### Phase 1: Fix Dead Exports (Low Risk)
 
 1. Remove broken exports from `src/render/index.js` (lines 39-44)
-2. Run lint to verify no import errors
+1. Run lint to verify no import errors
 
 ### Phase 2: Consolidate `update/index.js` Duplicates
 
@@ -47,24 +47,24 @@ This location is appropriate because:
    - `progressToScreenY` (lines 38-40)
    - `screenYToProgress` (lines 45-47)
 
-2. Add import at top of `update/index.js`:
+1. Add import at top of `update/index.js`:
    ```javascript
    import { progressToScreenY, screenYToProgress, getOceanBounds, calculateTravelDuration } from '../render/coordinates.js';
    ```
 
-3. Re-export for any consumers:
+1. Re-export for any consumers:
    ```javascript
    export { progressToScreenY, screenYToProgress, getOceanBounds, calculateTravelDuration } from '../render/coordinates.js';
    ```
 
-4. Run tests to verify no regressions
+1. Run tests to verify no regressions
 
 ### Phase 3: Consolidate `waveRenderer.js` Duplicate
 
 1. Remove `progressToScreenY` from `waveRenderer.js` (lines 56-61)
-2. Add import from `coordinates.js`
-3. Update `render/index.js` to export from `coordinates.js` instead of `waveRenderer.js`
-4. Run tests
+1. Add import from `coordinates.js`
+1. Update `render/index.js` to export from `coordinates.js` instead of `waveRenderer.js`
+1. Run tests
 
 ### Phase 4: Fix Inline Copy in Stories
 
@@ -104,16 +104,16 @@ Locations to update:
 ## Testing
 
 1. `npm run lint` - Verify no import/export errors
-2. `npm test` - All unit tests pass
-3. `npm run test:visual:headless` - Visual regression passes
-4. Manual: Verify waves render correctly in browser
+1. `npm test` - All unit tests pass
+1. `npm run test:visual:headless` - Visual regression passes
+1. Manual: Verify waves render correctly in browser
 
 ## Rollback
 
 Each phase is independent. If issues arise:
 1. Revert the specific phase's changes
-2. Re-add the duplicate function temporarily
-3. Investigate import cycle or other issues
+1. Re-add the duplicate function temporarily
+1. Investigate import cycle or other issues
 
 ## Notes
 

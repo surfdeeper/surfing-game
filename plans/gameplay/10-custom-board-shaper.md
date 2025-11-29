@@ -6,12 +6,12 @@ Purpose: visit local shapers who ask questions about your surfing to design a pe
 
 ### Consultation Flow
 1. Enter the shaper's workshop (each shaper has unique vibe/specialty)
-2. Shaper asks questions about your surfing
-3. Based on answers, shaper recommends dimensions and features
-4. Preview the board design
-5. Customize cosmetics (colors, graphics, logo placement)
-6. Order the board (cost + build time)
-7. Pick up when ready
+1. Shaper asks questions about your surfing
+1. Based on answers, shaper recommends dimensions and features
+1. Preview the board design
+1. Customize cosmetics (colors, graphics, logo placement)
+1. Order the board (cost + build time)
+1. Pick up when ready
 
 ### Shaper Questions
 

@@ -5,9 +5,9 @@
 The current two-layer wave system (background waves + set waves) creates an artificial separation that looks unrealistic:
 
 1. **Waves don't interact** - Background and set waves are independent arrays rendered as separate layers
-2. **Visual disconnect during sets** - Background waves continue unchanged when big set waves come through
-3. **Unnatural layering** - Background renders first at reduced opacity, set waves render on top at full opacity
-4. **Period independence** - Set wave timing has no effect on background wave behavior
+1. **Visual disconnect during sets** - Background waves continue unchanged when big set waves come through
+1. **Unnatural layering** - Background renders first at reduced opacity, set waves render on top at full opacity
+1. **Period independence** - Set wave timing has no effect on background wave behavior
 
 In reality, the ocean is one continuous surface where all wave energy combines. A big set wave should dominate the smaller chop, not float above it.
 
@@ -66,8 +66,8 @@ The visual distinction emerges naturally from amplitude differences, not artific
 If background waves still feel too prominent during sets after unifying:
 
 1. **Reduce spawn rate**: Spawn 50% fewer background waves during SET state
-2. **Reduce amplitude**: Lower background amplitude slightly during SET state
-3. **Skip if too close**: Don't spawn background wave if a set wave is within N seconds
+1. **Reduce amplitude**: Lower background amplitude slightly during SET state
+1. **Skip if too close**: Don't spawn background wave if a set wave is within N seconds
 
 This may not be needed - the unified rendering might look natural enough without suppression.
 
@@ -84,9 +84,9 @@ However, this is a larger architectural change. The unified array is the minimal
 ## Success Criteria
 
 1. Ocean looks like one continuous surface, not two overlapping layers
-2. Set waves naturally dominate the visual field when present
-3. Background chop visible but not artificially separated
-4. No regression in performance (wave count similar)
+1. Set waves naturally dominate the visual field when present
+1. Background chop visible but not artificially separated
+1. No regression in performance (wave count similar)
 
 ## Files to Modify
 
@@ -106,10 +106,10 @@ However, this is a larger architectural change. The unified array is the minimal
 This plan is **orthogonal** to the wave physics dependency chain:
 
 1. ✅ Time-based model (done - plan 123)
-2. ⏳ Bathymetry (plan 124) - ocean floor depth map
-3. ⏳ Shoaling (plan 40) - wave height changes with depth
-4. ⏳ Breaking (plan 50) - wave breaking physics
-5. ⏳ Peeling - break propagates along wave
+1. ⏳ Bathymetry (plan 124) - ocean floor depth map
+1. ⏳ Shoaling (plan 40) - wave height changes with depth
+1. ⏳ Breaking (plan 50) - wave breaking physics
+1. ⏳ Peeling - break propagates along wave
 
 **Plan 125 (this plan)** fixes the background/set wave layering issue. It can be implemented before or after the physics plans above - they don't depend on each other.
 

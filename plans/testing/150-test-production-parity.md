@@ -12,10 +12,10 @@ Refactor tests to exercise the same modules used in production (state/update hel
 
 ## Implementation Steps
 1. Identify the production sources for the behaviors under test (wave updates, set/lull amplitude curve, delta clamp). If any live only in `main.jsx`, extract them into existing state/update helpers and import back into `main.jsx`.
-2. Update `src/main.test.js` (or new focused specs) to import those helpers instead of duplicating logic. Remove inline implementations from tests.
-3. Ensure helpers are used by both tests and production entrypoint (`main.jsx`), deleting duplicated inline code in `main.jsx` where applicable.
-4. Add a guard to prevent future drift (lint rule or small script) flagging duplicated helper names in tests that shadow production modules.
-5. Run lint and targeted Vitest files to confirm parity.
+1. Update `src/main.test.js` (or new focused specs) to import those helpers instead of duplicating logic. Remove inline implementations from tests.
+1. Ensure helpers are used by both tests and production entrypoint (`main.jsx`), deleting duplicated inline code in `main.jsx` where applicable.
+1. Add a guard to prevent future drift (lint rule or small script) flagging duplicated helper names in tests that shadow production modules.
+1. Run lint and targeted Vitest files to confirm parity.
 
 ## Acceptance Criteria
 - No inline reimplementation of production logic in tests; tests import and exercise the production helpers.

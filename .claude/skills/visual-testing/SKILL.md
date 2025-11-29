@@ -39,18 +39,32 @@ npm run reset:visual:all          # Clear results + baselines
 
 When user wants to visually debug or iterate on a specific story/strip:
 
-### 1. Launch Stories in Browser
+**IMPORTANT**: Always use the dev server (localhost) with chrome-devtools MCP, NOT `file://` URLs. The `file://` protocol triggers CORS errors that prevent JavaScript from loading.
+
+### Start Dev Server
+
+The stories dev server runs on port 3001:
+```bash
+npm run stories  # Starts on http://localhost:3001
+```
+
+### Launch Stories in Browser
 
 ```
-mcp__chrome-devtools__new_page({ url: "http://localhost:5174" })
+mcp__chrome-devtools__new_page({ url: "http://localhost:3001" })
 ```
 
 Or navigate to a specific page:
 ```
-mcp__chrome-devtools__new_page({ url: "http://localhost:5174/?page=01-bathymetry" })
+mcp__chrome-devtools__new_page({ url: "http://localhost:3001/?page=01-bathymetry" })
 ```
 
-### 2. Take Snapshot to See Current State
+With presentation mode and theme:
+```
+mcp__chrome-devtools__new_page({ url: "http://localhost:3001/?mode=presentation&theme=light" })
+```
+
+### Take Snapshot to See Current State
 
 ```
 mcp__chrome-devtools__take_snapshot()
@@ -60,13 +74,13 @@ The snapshot shows all elements with their `uid` attributes. Look for:
 - `data-testid="strip-*"` - Visual test strips
 - Section headings and navigation
 
-### 3. Identify Selected/Target Strip
+### Identify Selected/Target Strip
 
 From the snapshot, find the strip the user wants to fix:
 - Look for elements with `data-testid` matching strip IDs like `strip-bathymetry-basic`
 - The testId maps to progression files in `src/render/*Progressions.ts`
 
-### 4. Screenshot Specific Element
+### Screenshot Specific Element
 
 ```
 mcp__chrome-devtools__take_screenshot({ uid: "<strip-uid-from-snapshot>" })
@@ -74,7 +88,7 @@ mcp__chrome-devtools__take_screenshot({ uid: "<strip-uid-from-snapshot>" })
 
 This captures just the strip for focused comparison.
 
-### 5. Iterate on Code
+### Iterate on Code
 
 After identifying the strip:
 1. Find the progression file (e.g., `src/render/bathymetryProgressions.ts`)
@@ -86,7 +100,7 @@ mcp__chrome-devtools__navigate_page({ type: "reload" })
 mcp__chrome-devtools__take_screenshot({ uid: "<strip-uid>" })
 ```
 
-### 6. Update Baseline When Satisfied
+### Update Baseline When Satisfied
 
 ```bash
 npm run test:visual:update:headless

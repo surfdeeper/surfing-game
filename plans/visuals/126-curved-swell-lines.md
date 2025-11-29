@@ -53,5 +53,5 @@ This is a future enhancement. Focus on plan 124 (straight lines + foam) first.
 ## Dependencies
 
 1. Plan 124 (bathymetry) - need depth map
-2. Plan 125 (tab visibility bug) - should fix first
-3. Shoaling visual (wave gets taller over shallow)
+1. Plan 125 (tab visibility bug) - should fix first
+1. Shoaling visual (wave gets taller over shallow)

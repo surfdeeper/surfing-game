@@ -70,36 +70,36 @@ case 'WAVE_SPAWN':
    - Extract background wave spawning
    - Pure function: `(state, deltaTime) => events[]`
 
-2. **Create `src/update/waveUpdater.js`**
+1. **Create `src/update/waveUpdater.js`**
    - Wave lifecycle (active filtering)
    - Wave refraction updates
    - Pure function: `(waves, deltaTime, bathymetry) => waves`
 
-3. **Create `src/update/foamUpdater.js`**
+1. **Create `src/update/foamUpdater.js`**
    - Foam generation at break points
    - Foam decay/removal
    - Uses existing `foamModel.js`
 
-4. **Create `src/update/energyUpdater.js`**
+1. **Create `src/update/energyUpdater.js`**
    - Energy field propagation
    - Energy draining at breaks
    - Uses existing `energyField.js`
 
-5. **Create `src/update/playerUpdater.js`**
+1. **Create `src/update/playerUpdater.js`**
    - Keyboard input handling
    - Position updates
    - Uses existing `playerProxyModel.js`
 
-6. **Create `src/update/aiUpdater.js`**
+1. **Create `src/update/aiUpdater.js`**
    - AI state machine
    - Decision making
    - Uses existing `aiPlayerModel.js`
 
-7. **Create `src/update/index.js`**
+1. **Create `src/update/index.js`**
    - Orchestrates all updaters
    - Single entry point for main.jsx
 
-8. **Update main.jsx `update()`**
+1. **Update main.jsx `update()`**
    - Import and call orchestrator
    - Should be ~20 lines
 

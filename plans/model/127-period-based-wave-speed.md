@@ -9,8 +9,8 @@ Depends on: 123-time-based-wave-model.md, 124-bathymetry.md
 All waves currently travel at a fixed `swellSpeed` (50 px/s). This is physically incorrect:
 
 1. **Set waves and background waves move at the same speed** - looks unnatural
-2. **No dispersion** - in reality, longer-period waves travel faster in deep water
-3. **Sets don't "catch up"** - groundswell should overtake wind chop
+1. **No dispersion** - in reality, longer-period waves travel faster in deep water
+1. **Sets don't "catch up"** - groundswell should overtake wind chop
 
 ## Physics
 
@@ -166,9 +166,9 @@ Or define the ocean in abstract units and tune for feel rather than strict physi
 ## Success Criteria
 
 1. Set waves visibly travel faster than background waves
-2. Sets "catch up" to slower background chop
-3. Ocean feels more dynamic and realistic
-4. No regression in existing wave behavior (breaking, foam, etc.)
+1. Sets "catch up" to slower background chop
+1. Ocean feels more dynamic and realistic
+1. No regression in existing wave behavior (breaking, foam, etc.)
 
 ## Future Enhancements
 

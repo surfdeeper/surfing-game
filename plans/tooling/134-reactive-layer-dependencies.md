@@ -109,13 +109,13 @@ Cons: Toggle shows ON but nothing renders (current problem)
    const hasFoamInput = hasWaveInput; // foam requires waves
    ```
 
-2. Wrap foam toggles in conditional render
+1. Wrap foam toggles in conditional render
 
-3. Move Foam Dispersion options under conditional (they also need foam)
+1. Move Foam Dispersion options under conditional (they also need foam)
 
-4. Add CSS for nested/dependent toggles (subtle indent)
+1. Add CSS for nested/dependent toggles (subtle indent)
 
-5. Update tests to verify conditional behavior
+1. Update tests to verify conditional behavior
 
 ## Files Affected
 
@@ -126,9 +126,9 @@ Cons: Toggle shows ON but nothing renders (current problem)
 ## Testing
 
 1. Manual: Turn off Set Waves + Background → Foam toggles should hide
-2. Manual: Turn on either wave type → Foam toggles reappear
-3. Unit: Test that foam toggles don't render when waves are off
-4. Visual: Verify no layout shift when toggles appear/disappear
+1. Manual: Turn on either wave type → Foam toggles reappear
+1. Unit: Test that foam toggles don't render when waves are off
+1. Visual: Verify no layout shift when toggles appear/disappear
 
 ## Future Considerations
 

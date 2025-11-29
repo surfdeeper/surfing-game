@@ -39,13 +39,13 @@ Out-of-scope:
    - `combinedAmplitude(t)`: Return scalar amplitude via superposition: \( A(t) = \sum_i A_i \sin(\omega_i t + \phi_i) \), clamped to `[0, A_max]`.
    - `sampleWaveParams(t)`: Returns `{ amplitude, period, phase }` for the next spawned wave.
 
-2) `src/state/waveModel.js` (integration)
+1) `src/state/waveModel.js` (integration)
    - Use set/background timing models to decide spawn times.
    - On spawn, call `swellModel.sampleWaveParams(now)` to set `amplitude` (and optionally `period`, `phase`).
    - Append to unified `waves` array.
    - Optional: run `mergeNearCoincident(waves)` to combine close neighbors.
 
-3) `mergeNearCoincident(waves)` (helper)
+1) `mergeNearCoincident(waves)` (helper)
    - Criteria: time proximity `|spawnTime_i - spawnTime_j| < T_merge` and position proximity if available.
    - Merge rule: Replace pair with single wave:
      - `type: 'doubleUp'`
@@ -68,15 +68,15 @@ Out-of-scope:
    - `combinedAmplitude()` shows constructive peaks when configured swells align.
    - Amplitude clamping works; period/phase sampling consistent.
 
-2) State: `src/state/waveModel.test.js`
+1) State: `src/state/waveModel.test.js`
    - Spawned waves pull amplitude from `swellModel` (not channel-only).
    - Optional: when merge enabled, assert `type: 'doubleUp'` appears for near-coincident spawns.
 
-3) Integration: `src/integration/gameLoop.test.js`
+1) Integration: `src/integration/gameLoop.test.js`
    - With two configured swells, some waves attain higher amplitude than either train individually.
    - Fixed amplitude after spawn affects breaking timing as expected.
 
-4) Visual/E2E: `tests/visual.spec.js`
+1) Visual/E2E: `tests/visual.spec.js`
    - Snapshot or threshold check for stronger bands during constructive interference windows.
 
 ## Migration & Backcompat
@@ -87,11 +87,11 @@ Out-of-scope:
 
 ## Tasks
 1. Implement `swellModel` with config + `combinedAmplitude()` + `sampleWaveParams()`.
-2. Thread `swellModel` into `waveModel` spawn path for amplitude.
-3. Add optional proximity merge helper.
-4. Write unit/state/integration tests.
-5. Update docs: `docs/wave-physics.md` with a brief on superposition.
-6. Tune parameters by visual pass; set sensible defaults.
+1. Thread `swellModel` into `waveModel` spawn path for amplitude.
+1. Add optional proximity merge helper.
+1. Write unit/state/integration tests.
+1. Update docs: `docs/wave-physics.md` with a brief on superposition.
+1. Tune parameters by visual pass; set sensible defaults.
 
 ## Risks
 - Over-merging reduces set rhythm; keep merge disabled by default.

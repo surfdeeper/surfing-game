@@ -18,10 +18,10 @@ Toggling the bathymetry (bottom depth) heat map drops frame rate from ~60 FPS to
 
 ## Root Cause Analysis
 1. Uncached static visualization rendered every frame (no offscreen reuse).
-2. High draw call count: per-cell `fillRect` + per-cell `fillStyle` string creation.
-3. Expensive depth function invoked per cell (multiple lobes + trig).
-4. Additional alpha compositing cost (waves made translucent when map visible).
-5. Parallel heavy subsystems (foam grid build + blur passes) not downscaled while heat map active.
+1. High draw call count: per-cell `fillRect` + per-cell `fillStyle` string creation.
+1. Expensive depth function invoked per cell (multiple lobes + trig).
+1. Additional alpha compositing cost (waves made translucent when map visible).
+1. Parallel heavy subsystems (foam grid build + blur passes) not downscaled while heat map active.
 
 ## Solution Overview
 Transform bathymetry rendering from per-frame procedural drawing into a cached bitmap pipeline with adaptive resolution and reduced overdraw.
@@ -29,21 +29,21 @@ Transform bathymetry rendering from per-frame procedural drawing into a cached b
 ## Implementation Steps
 ### Phase 1 (Quick Wins)
 1. Offscreen Cache: Build heat map once on toggle/resize into `ImageData` (RGBA) or offscreen canvas.
-2. Single Blit: Replace per-frame loop with one `putImageData` (or `drawImage`) when visible.
-3. Opaque Waves: Remove wave alpha reduction when bathymetry active (avoid extra blending).
-4. Clamp Work: Skip foam layer extra variants (only primary algorithm) while heat map visible.
+1. Single Blit: Replace per-frame loop with one `putImageData` (or `drawImage`) when visible.
+1. Opaque Waves: Remove wave alpha reduction when bathymetry active (avoid extra blending).
+1. Clamp Work: Skip foam layer extra variants (only primary algorithm) while heat map visible.
 
 ### Phase 2 (Refinements)
-5. Adaptive Resolution: Parameterize cell size; auto-increase (e.g. 4→8px) if FPS < target.
-6. Palette Quantization: Map depth ratio to fixed palette (64–128 colors). Precompute color table.
-7. Precompute Depth Grid: Build numeric depth grid once; color mapping pass separate.
-8. Lobe Influence Tables: Precompute per-x progress + lateral falloff arrays to avoid trig in cache build.
-9. Conditional Foam Scheduling: Update foam every N frames (e.g., 2–3) when bathymetry visible.
+1. Adaptive Resolution: Parameterize cell size; auto-increase (e.g. 4→8px) if FPS < target.
+1. Palette Quantization: Map depth ratio to fixed palette (64–128 colors). Precompute color table.
+1. Precompute Depth Grid: Build numeric depth grid once; color mapping pass separate.
+1. Lobe Influence Tables: Precompute per-x progress + lateral falloff arrays to avoid trig in cache build.
+1. Conditional Foam Scheduling: Update foam every N frames (e.g., 2–3) when bathymetry visible.
 
 ### Phase 3 (Optional / Future)
-10. WebGL Path: Fragment shader for bathymetry (single pass) with uniforms for lobe definitions.
-11. Dynamic Animation Support: If future moving seabed/shoaling changes bottom, add dirty-region or timed rebuild.
-12. Progressive Build: Incrementally fill cache over initial frames (first frame low-res, refine later) for instant responsiveness.
+1. WebGL Path: Fragment shader for bathymetry (single pass) with uniforms for lobe definitions.
+1. Dynamic Animation Support: If future moving seabed/shoaling changes bottom, add dirty-region or timed rebuild.
+1. Progressive Build: Incrementally fill cache over initial frames (first frame low-res, refine later) for instant responsiveness.
 
 ## Metrics & Validation
 - Baseline FPS with heat map ON ≥ 55 (target 60).
@@ -53,10 +53,10 @@ Transform bathymetry rendering from per-frame procedural drawing into a cached b
 
 ## Testing Plan
 1. Toggle ON: Measure first-frame build duration (performance.now diff).
-2. Sustained FPS: Sample over 5 seconds with heat map ON/OFF and compare.
-3. Resize: Trigger window resize → verify cache rebuild and stable FPS.
-4. Foam Interaction: Confirm foam still animates (at throttled cadence if applied) without artifacts.
-5. Visual Fidelity: Ensure color gradient matches prior rendering within tolerance (ΔE < visually noticeable threshold for gameplay).
+1. Sustained FPS: Sample over 5 seconds with heat map ON/OFF and compare.
+1. Resize: Trigger window resize → verify cache rebuild and stable FPS.
+1. Foam Interaction: Confirm foam still animates (at throttled cadence if applied) without artifacts.
+1. Visual Fidelity: Ensure color gradient matches prior rendering within tolerance (ΔE < visually noticeable threshold for gameplay).
 
 ## Risks & Mitigations
 - Large initial build hitch: Mitigate with progressive build or `requestIdleCallback` chunking if needed.

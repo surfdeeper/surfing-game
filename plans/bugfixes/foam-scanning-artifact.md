@@ -24,7 +24,7 @@ The fade pattern should NOT create a moving front that tracks wave travel speed.
    - Each row has `spawnTime` set to current `gameTime`
    - Rows are pushed to `world.foamRows` array
 
-2. **Foam fade** (`src/main.jsx:529-534`):
+1. **Foam fade** (`src/main.jsx:529-534`):
    ```javascript
    const foamRowFadeTime = 4000; // 4 seconds in ms
    world.foamRows = world.foamRows.filter(row => {
@@ -34,7 +34,7 @@ The fade pattern should NOT create a moving front that tracks wave travel speed.
    });
    ```
 
-3. **Intensity grid** (`src/render/marchingSquares.js:62`):
+1. **Intensity grid** (`src/render/marchingSquares.js:62`):
    ```javascript
    grid[idx] = Math.max(grid[idx], intensity);
    ```
@@ -75,11 +75,11 @@ Instead of depositing foam rows at fixed Y intervals tied to wave position, accu
 
 ## Testing
 1. Toggle off wave layers (S, G keys) to isolate foam
-2. Observe foam pattern - should NOT show synchronized scan lines
-3. Foam should accumulate and persist, with dispersal over time
-4. New waves should add to existing foam, not reset it
+1. Observe foam pattern - should NOT show synchronized scan lines
+1. Foam should accumulate and persist, with dispersal over time
+1. New waves should add to existing foam, not reset it
 
 ## Next Steps
 1. Test increasing `foamRowFadeTime` to 15000ms as quick experiment
-2. Evaluate which dispersion option (A/B/C) looks most natural
-3. Consider switching from row-based to grid-based foam accumulation
+1. Evaluate which dispersion option (A/B/C) looks most natural
+1. Consider switching from row-based to grid-based foam accumulation

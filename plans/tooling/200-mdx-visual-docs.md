@@ -38,9 +38,9 @@ vite.stories.config.ts         # Vite config for MDX
 
 Ladle has run its course. We need:
 1. Documentation alongside visual screenshots (not just isolated component previews)
-2. Tight coupling between unit tests and visual output
-3. No interactive controls cluttering the view - just static frames with prose
-4. Animated GIFs to show time progressions without requiring interaction
+1. Tight coupling between unit tests and visual output
+1. No interactive controls cluttering the view - just static frames with prose
+1. Animated GIFs to show time progressions without requiring interaction
 
 Current pain points:
 - Stories lack context - just canvas renders with no explanation
@@ -53,10 +53,10 @@ Current pain points:
 
 A minimal MDX-based documentation system built on Vite that:
 1. Renders `.mdx` files that mix prose with React components
-2. Imports test matrices directly from unit test files
-3. Generates static documentation pages with navigation
-4. Zero interactive widgets - pure documentation
-5. Animated playback of timeline progressions (rendered live, not pre-baked GIFs)
+1. Imports test matrices directly from unit test files
+1. Generates static documentation pages with navigation
+1. Zero interactive widgets - pure documentation
+1. Animated playback of timeline progressions (rendered live, not pre-baked GIFs)
 
 ### Core Testing Framework
 
@@ -434,10 +434,10 @@ export function Layout({ children }) {
 ## Migration Path
 
 1. Keep existing Ladle stories working during transition
-2. Create `docs/` directory with MDX equivalents
-3. Move visualization components to `docs/components/`
-4. Import test data directly from `*.test.js` files
-5. Once complete, remove Ladle dependency
+1. Create `docs/` directory with MDX equivalents
+1. Move visualization components to `docs/components/`
+1. Import test data directly from `*.test.js` files
+1. Once complete, remove Ladle dependency
 
 ## Implementation Steps
 
@@ -487,8 +487,8 @@ are correct. The current unit tests only spot-check a few cells (e.g., `matrix[2
 
 When Phase 2 attempted GIF encoding, corrupt output could have been caused by:
 1. GIF encoding bugs (encoding layer)
-2. Canvas rendering bugs (render layer)
-3. Wrong matrix data (data layer)
+1. Canvas rendering bugs (render layer)
+1. Wrong matrix data (data layer)
 
 Without verifying the exact matrices, we can't isolate which layer failed.
 
@@ -602,13 +602,13 @@ tests/visual/snapshots/progression-strips.spec.js-snapshots/
 ## Benefits
 
 1. **Prose + visuals**: Full markdown documentation alongside renders
-2. **Test coupling**: Import directly from test files - docs stay in sync
-3. **No framework lock-in**: Just Vite + MDX, ~50 lines of config
-4. **Static output**: Can deploy as GitHub Pages
-5. **Minimal dependencies**: Two packages vs Storybook's dozens
-6. **Animated playback**: See time progressions with play/pause/speed toggle
-7. **DRY**: Core framework eliminates ad hoc timeline code in each test
-8. **Reusable**: Same progression data powers tests, static strips, and animated playback
+1. **Test coupling**: Import directly from test files - docs stay in sync
+1. **No framework lock-in**: Just Vite + MDX, ~50 lines of config
+1. **Static output**: Can deploy as GitHub Pages
+1. **Minimal dependencies**: Two packages vs Storybook's dozens
+1. **Animated playback**: See time progressions with play/pause/speed toggle
+1. **DRY**: Core framework eliminates ad hoc timeline code in each test
+1. **Reusable**: Same progression data powers tests, static strips, and animated playback
 
 ## Non-Goals
 

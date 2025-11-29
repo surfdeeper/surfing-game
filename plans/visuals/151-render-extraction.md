@@ -60,28 +60,28 @@ export function renderWaves(ctx, waves, bounds, colors, gameTime, travelDuration
    - Extract ocean gradient drawing
    - Pure function: `(ctx, width, height, colors) => void`
 
-2. **Create `src/render/waveRenderer.js`**
+1. **Create `src/render/waveRenderer.js`**
    - Extract wave gradient slice logic
    - Handle both set and background wave colors
    - Pure function: `(ctx, wave, bounds, toggles, gameTime, travelDuration) => void`
 
-3. **Create `src/render/bathymetryRenderer.js`**
+1. **Create `src/render/bathymetryRenderer.js`**
    - Extract depth overlay drawing
    - Already partially in render/ folder
 
-4. **Update `src/render/foamRenderer.js`**
+1. **Update `src/render/foamRenderer.js`**
    - Already exists but may need cleanup
    - Ensure it's actually used by main.jsx (not just Storybook)
 
-5. **Create `src/render/playerRenderer.js`**
+1. **Create `src/render/playerRenderer.js`**
    - Extract player/AI drawing
 
-6. **Create `src/render/debugRenderer.js`**
+1. **Create `src/render/debugRenderer.js`**
    - FPS display
    - Lull state info
    - Toggle state display
 
-7. **Update main.jsx `draw()`**
+1. **Update main.jsx `draw()`**
    - Import and call renderers
    - Should be ~50 lines of orchestration
 

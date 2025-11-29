@@ -25,8 +25,8 @@ world.waves = (state.waves || []).map(wave => ({
 ## Why This Happened
 
 1. No schema versioning for localStorage
-2. No validation of loaded objects
-3. Code assumes waves always have `progressPerX`
+1. No validation of loaded objects
+1. Code assumes waves always have `progressPerX`
 
 ## Long-term Fix
 

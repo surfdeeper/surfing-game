@@ -14,10 +14,10 @@ Automated tests that drive the player proxy through gameplay scenarios, eliminat
 
 Currently testing player interactions requires:
 1. Starting the dev server
-2. Pressing `P` to enable player mode
-3. Manually navigating with arrow keys
-4. Waiting for waves/foam to appear
-5. Repeating for different scenarios
+1. Pressing `P` to enable player mode
+1. Manually navigating with arrow keys
+1. Waiting for waves/foam to appear
+1. Repeating for different scenarios
 
 This is slow and inconsistent. We need automated tests that simulate player input and verify behavior.
 
@@ -26,9 +26,9 @@ This is slow and inconsistent. We need automated tests that simulate player inpu
 ## Goals
 
 1. **Simulate player input** - Arrow key presses over time
-2. **Control game time** - Fast-forward through lulls, slow down for interactions
-3. **Assert player state** - Position, velocity, zone, foam interaction
-4. **Verify gameplay loops** - Paddle out, catch wave, get pushed back
+1. **Control game time** - Fast-forward through lulls, slow down for interactions
+1. **Assert player state** - Position, velocity, zone, foam interaction
+1. **Verify gameplay loops** - Paddle out, catch wave, get pushed back
 
 ---
 

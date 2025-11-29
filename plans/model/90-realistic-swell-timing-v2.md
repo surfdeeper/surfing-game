@@ -10,10 +10,10 @@ The original implementation used a **global amplitude** that affected all waves 
 
 Each wave is an **individual entity** with its own amplitude:
 1. Waves are spawned at the top of the screen
-2. Each wave gets an amplitude based on the set/lull state **at spawn time**
-3. Waves travel toward shore with their amplitude **unchanged**
-4. During lulls: **smaller waves** continue at same period (ocean is never flat)
-5. During sets: waves spawned with building/peaking/fading amplitudes
+1. Each wave gets an amplitude based on the set/lull state **at spawn time**
+1. Waves travel toward shore with their amplitude **unchanged**
+1. During lulls: **smaller waves** continue at same period (ocean is never flat)
+1. During sets: waves spawned with building/peaking/fading amplitudes
 
 Visual result:
 ```
@@ -98,11 +98,11 @@ const setConfig = {
 ## Implementation Steps
 
 1. Add `waves` array to world state
-2. Add wave spawn timer and logic
-3. Update `updateSetState()` to control spawning (not global amplitude)
-4. Modify rendering to iterate over wave objects
-5. Add wave cleanup (remove waves past shore)
-6. Update tests
+1. Add wave spawn timer and logic
+1. Update `updateSetState()` to control spawning (not global amplitude)
+1. Modify rendering to iterate over wave objects
+1. Add wave cleanup (remove waves past shore)
+1. Update tests
 
 ## Acceptance Criteria
 
@@ -124,17 +124,17 @@ const setConfig = {
    - `waves: []` - Array of discrete wave objects `{ y, amplitude }`
    - `wavesSpawned` - Counter for waves spawned in current set
 
-2. **State machine simplified** (lines 142-178): Now just `LULL` and `SET` states
+1. **State machine simplified** (lines 142-178): Now just `LULL` and `SET` states
    - `LULL`: Timer counts down, no waves spawned, existing waves continue
    - `SET`: Spawns waves when previous wave has traveled `swellSpacing` distance
 
-3. **Wave spawning** (lines 114-120): `spawnWave(amplitude)` creates wave at `y=0`
+1. **Wave spawning** (lines 114-120): `spawnWave(amplitude)` creates wave at `y=0`
 
-4. **Wave movement** (lines 184-191): Each wave moves independently via `wave.y += swellSpeed * deltaTime`
+1. **Wave movement** (lines 184-191): Each wave moves independently via `wave.y += swellSpeed * deltaTime`
 
-5. **Wave cleanup** (line 191): Waves removed when past shore
+1. **Wave cleanup** (line 191): Waves removed when past shore
 
-6. **Rendering** (lines 211-234): Iterates over `world.waves[]`, each wave renders its own gradient band with its own amplitude-based contrast
+1. **Rendering** (lines 211-234): Iterates over `world.waves[]`, each wave renders its own gradient band with its own amplitude-based contrast
 
 **Tests:** 6 tests pass, covering:
 - Frame-rate independent wave movement

@@ -213,11 +213,11 @@ function getLipDisplacement(x, z, time) {
 ## Success Criteria
 
 1. Wave breaks at physically correct location (where H > 0.78d)
-2. Breaking propagates along the wave (peel visible)
-3. Lip throws forward at breaking section (not just height change)
-4. Broken section is visibly lower and foamy
-5. Breaking looks like a continuous process, not instant switch
-6. Can see the "peak" where breaking starts
+1. Breaking propagates along the wave (peel visible)
+1. Lip throws forward at breaking section (not just height change)
+1. Broken section is visibly lower and foamy
+1. Breaking looks like a continuous process, not instant switch
+1. Can see the "peak" where breaking starts
 
 ---
 

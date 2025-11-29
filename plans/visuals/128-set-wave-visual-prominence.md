@@ -9,9 +9,9 @@ Depends on: 125-unified-wave-array.md (done)
 Set waves and background waves look too similar. While amplitude affects thickness and contrast, this isn't enough visual differentiation:
 
 1. **Same color palette** - both use `swellPeak` → `swellTrough` gradient
-2. **Only amplitude varies** - thickness and contrast scale with amplitude, but a high-amplitude background wave looks like a set wave
-3. **No visual "weight"** - set waves should feel more powerful, defined, substantial
-4. **Hard to spot sets coming** - surfers need to easily identify incoming sets
+1. **Only amplitude varies** - thickness and contrast scale with amplitude, but a high-amplitude background wave looks like a set wave
+1. **No visual "weight"** - set waves should feel more powerful, defined, substantial
+1. **Hard to spot sets coming** - surfers need to easily identify incoming sets
 
 ## Current Rendering
 
@@ -151,9 +151,9 @@ const drawWave = (wave) => {
 ## Success Criteria
 
 1. Set waves immediately recognizable as "the big ones"
-2. Background waves feel like subtle chop/texture
-3. Clear visual hierarchy without looking artificial
-4. Surfer can easily spot incoming sets at the horizon
+1. Background waves feel like subtle chop/texture
+1. Clear visual hierarchy without looking artificial
+1. Surfer can easily spot incoming sets at the horizon
 
 ## Alternative Approaches Considered
 

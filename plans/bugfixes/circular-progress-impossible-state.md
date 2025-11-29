@@ -62,25 +62,25 @@ Refactor to compute timers on-the-fly rather than storing them.
    - `setTimer` → computed as `gameTime - stateStartTime`
    - `timeSinceLastWave` → computed as `gameTime - lastWaveSpawnTime`
 
-2. **Compute derived values on-demand**
+1. **Compute derived values on-demand**
    ```javascript
    // In DebugPanel or wherever needed
    const setTimer = gameTime - setLullState.stateStartTime;
    const timeSinceLastWave = gameTime - setLullState.lastWaveSpawnTime;
    ```
 
-3. **Update localStorage to not persist derived values**
+1. **Update localStorage to not persist derived values**
    - Only save: `setState`, `stateStartTime`, `setDuration`, `currentSetWaves`, `wavesSpawned`, `lastWaveSpawnTime`, `nextWaveTime`
    - On load, timers are automatically correct because they're computed from absolute times
 
-4. **Update setLullModel.js**
+1. **Update setLullModel.js**
    - `initializeLull()`: Set `stateStartTime = gameTime`
    - `initializeSet()`: Set `stateStartTime = gameTime`
    - `recordWaveSpawned()`: Set `lastWaveSpawnTime = gameTime`
    - `shouldSpawnWave()`: Compare `gameTime - lastWaveSpawnTime >= nextWaveTime`
    - `updateSetLullState()`: Pass `gameTime` parameter, remove timer accumulation
 
-5. **Update DebugPanel**
+1. **Update DebugPanel**
    - Receive `gameTime` as prop
    - Compute `setTimer` and `timeSinceLastWave` on render
 
@@ -91,29 +91,29 @@ Refactor to compute timers on-the-fly rather than storing them.
    - Update all functions to use gameTime instead of deltaTime accumulation
    - `updateSetLullState(state, gameTime, config)` instead of `updateSetLullState(state, deltaTime, config)`
 
-2. **src/main.jsx**
+1. **src/main.jsx**
    - Pass `gameTime` to `updateSetLullState()`
    - Pass `gameTime` to `<DebugPanel>`
    - Update `saveGameState()` / `loadGameState()` (derived values auto-computed)
 
-3. **src/ui/DebugPanel.jsx**
+1. **src/ui/DebugPanel.jsx**
    - Accept `gameTime` prop
    - Compute `setTimer` and `timeSinceLastWave` from absolute timestamps
 
-4. **src/state/setLullModel.test.js**
+1. **src/state/setLullModel.test.js**
    - Update tests for new function signatures
    - Test with absolute game times instead of deltaTime
 
-5. **src/ui/DebugPanel.test.jsx**
+1. **src/ui/DebugPanel.test.jsx**
    - Update tests to pass `gameTime` prop
    - Test that computed values are always valid
 
 ## Testing
 
 1. Play game normally - verify timers display correctly
-2. Refresh page mid-game - verify timers resume correctly (not impossible state)
-3. Switch tabs and return - verify no impossible state
-4. Run existing tests - verify all pass with new structure
+1. Refresh page mid-game - verify timers resume correctly (not impossible state)
+1. Switch tabs and return - verify no impossible state
+1. Run existing tests - verify all pass with new structure
 
 ## Benefits
 

@@ -15,9 +15,9 @@ The MDX stories viewer has a single page with many stories but only one navigati
 
 Add `#anchor` style navigation:
 1. Each story/progression gets an `id` attribute
-2. Sidebar shows all stories with `href="#anchor"` links
-3. Clicking a link scrolls to that story and updates the URL hash
-4. Direct links like `/stories#no-damping` work on page load
+1. Sidebar shows all stories with `href="#anchor"` links
+1. Clicking a link scrolls to that story and updates the URL hash
+1. Direct links like `/stories#no-damping` work on page load
 
 ## Implementation Steps
 

@@ -19,13 +19,13 @@ Before we can have multiple players, we need ONE player working properly.
    - Positioned correctly on wave surface
    - Responds to input
 
-2. **Player state**
+1. **Player state**
    - Position (x, z, derived y from wave)
    - Velocity
    - Orientation (derived from wave surface + movement)
    - Animation state (cruising, turning, etc.)
 
-3. **Input handling**
+1. **Input handling**
    - Clean separation between input and player state
    - Input produces "intent", physics produces movement
    - This separation is critical for later phases
@@ -53,12 +53,12 @@ Use deterministic wave generation seeded by wall-clock time. Anyone viewing the 
    - Wave parameters (period, height, sets, lulls) derived from seed
    - Given same time = same seed = same waves
 
-2. **Time synchronization**
+1. **Time synchronization**
    - Use wall-clock time (Date.now() or similar)
    - Round to common reference point
    - All clients use same time reference
 
-3. **Wave state calculation**
+1. **Wave state calculation**
    - `waveState = generateWaves(floor(time / BUCKET_SIZE))`
    - Phase within bucket: `localTime = time % BUCKET_SIZE`
    - Position waves based on localTime
@@ -171,7 +171,7 @@ function renderRemotePlayer(player, localTime) {
 Waves MUST be identical for all players. Two approaches:
 
 1. **Deterministic (from Phase 2)**: All clients generate same waves from same seed
-2. **Server-sent**: Server broadcasts wave parameters at session start
+1. **Server-sent**: Server broadcasts wave parameters at session start
 
 Option 1 is preferred - builds on Phase 2, no additional bandwidth.
 
@@ -209,12 +209,12 @@ Option 1 is preferred - builds on Phase 2, no additional bandwidth.
    - Input → intent → physics → render pipeline
    - This is the foundation
 
-2. **Phase 2** - Add deterministic wave generation
+1. **Phase 2** - Add deterministic wave generation
    - Refactor wave system to be seedable
    - Time-bucket seeding
    - Verify determinism (same seed = same waves)
 
-3. **Phase 3** - Add networking
+1. **Phase 3** - Add networking
    - Start with 2-player peer-to-peer
    - Broadcast player state
    - Interpolate remote players

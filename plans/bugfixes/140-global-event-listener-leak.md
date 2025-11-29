@@ -12,9 +12,9 @@ Add lifecycle-safe registration: either guard with singletons or expose cleanup 
 
 ## Implementation Steps
 1. Wrap keyboard input in a singleton or export `attachKeyboard`/`detachKeyboard` from `src/input/keyboard.js`; ensure HMR/test reuses or cleans up.
-2. For `main.jsx` resize listener, register through a small helper that returns a cleanup function; wire HMR dispose handler to remove it.
-3. Add a minimal Vitest case to assert repeated setup does not increase listener counts (use jsdom window event counts or spy).
-4. Verify normal gameplay remains unchanged (manual smoke) and lint/tests pass.
+1. For `main.jsx` resize listener, register through a small helper that returns a cleanup function; wire HMR dispose handler to remove it.
+1. Add a minimal Vitest case to assert repeated setup does not increase listener counts (use jsdom window event counts or spy).
+1. Verify normal gameplay remains unchanged (manual smoke) and lint/tests pass.
 
 ## Acceptance Criteria
 - Repeated creation of `KeyboardInput` or HMR re-renders does not produce multiple `keydown/keyup` invocations per press.

@@ -63,10 +63,10 @@ The gradient contrast changes based on amplitude:
 ## Implementation Steps
 
 1. Add amplitude state variable to world config
-2. Create set/lull state machine with timing
-3. Calculate current amplitude based on state
-4. Apply amplitude to gradient rendering (contrast)
-5. Add debug UI showing set/lull status
+1. Create set/lull state machine with timing
+1. Calculate current amplitude based on state
+1. Apply amplitude to gradient rendering (contrast)
+1. Add debug UI showing set/lull status
 
 ## Acceptance Criteria
 

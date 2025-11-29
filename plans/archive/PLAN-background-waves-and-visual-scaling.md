@@ -5,8 +5,8 @@
 The current wave system has three issues:
 
 1. **Lulls treated as weak sets** - Currently lulls generate smaller waves, but real ocean lulls are the *absence* of set waves while background chop continues
-2. **Missing background wave layer** - The ocean should never be flat; small choppy waves should always be present
-3. **Amplitude doesn't visually scale well** - Large waves don't look significantly bigger than small ones (gradient thickness and contrast don't scale enough)
+1. **Missing background wave layer** - The ocean should never be flat; small choppy waves should always be present
+1. **Amplitude doesn't visually scale well** - Large waves don't look significantly bigger than small ones (gradient thickness and contrast don't scale enough)
 
 ---
 
@@ -120,8 +120,8 @@ Current `getTroughColor()` interpolates between peak and trough colors based on 
 
 **Options**:
 1. Increase the color difference between peak (#1a4a6e) and trough (#4a90b8)
-2. Add opacity scaling (higher amplitude = more opaque)
-3. Use a non-linear curve (quadratic) so high amplitudes are more distinct
+1. Add opacity scaling (higher amplitude = more opaque)
+1. Use a non-linear curve (quadratic) so high amplitudes are more distinct
 
 ```javascript
 // Proposed: quadratic scaling for more visible high-amplitude waves
@@ -181,17 +181,17 @@ Add tuning controls to debug panel:
 ## Success Criteria
 
 1. **Background waves always visible** - Ocean never appears flat, even during lulls
-2. **Clear lull/set distinction** - Lulls feel like "waiting" periods, sets feel like "action"
-3. **Amplitude clearly visible** - A 1.0 amplitude wave should look obviously bigger than a 0.3 wave
-4. **Natural ocean feel** - The two-layer system creates realistic rhythm
+1. **Clear lull/set distinction** - Lulls feel like "waiting" periods, sets feel like "action"
+1. **Amplitude clearly visible** - A 1.0 amplitude wave should look obviously bigger than a 0.3 wave
+1. **Natural ocean feel** - The two-layer system creates realistic rhythm
 
 ---
 
 ## Open Questions
 
 1. Should background waves slow down or stop when a large set wave passes? (visual clarity vs realism)
-2. Should background waves be a different color/tint, or just smaller versions of the same?
-3. Do we want background waves to be "catchable" by the surfer, or purely decorative?
+1. Should background waves be a different color/tint, or just smaller versions of the same?
+1. Do we want background waves to be "catchable" by the surfer, or purely decorative?
 
 ---
 

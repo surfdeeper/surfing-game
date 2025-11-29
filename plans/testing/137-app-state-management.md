@@ -5,9 +5,9 @@
 Bug #135 revealed fundamental gaps in how the app manages state:
 
 1. **State persisted as unvalidated JSON blob** - No schema, no migration, no validation
-2. **Unit tests use fresh state** - Never test with persisted/corrupted data
-3. **Playwright tests clear localStorage** - Always start fresh, never test persistence
-4. **Silent failures** - `undefined` becomes `NaN`, comparisons silently fail
+1. **Unit tests use fresh state** - Never test with persisted/corrupted data
+1. **Playwright tests clear localStorage** - Always start fresh, never test persistence
+1. **Silent failures** - `undefined` becomes `NaN`, comparisons silently fail
 
 This isn't just a testing problem - it's an **architecture problem**.
 
@@ -332,7 +332,7 @@ test.describe('State Persistence', () => {
 **The bug revealed a testing blind spot**: Playwright tests clearing localStorage means they never test the persistence layer. The fix isn't just "test persistence" - it's recognizing that:
 
 1. **Fresh state tests** → test the logic
-2. **Persisted state tests** → test the integration
-3. **Corrupted state tests** → test the error handling
+1. **Persisted state tests** → test the integration
+1. **Corrupted state tests** → test the error handling
 
 All three are needed for confidence.

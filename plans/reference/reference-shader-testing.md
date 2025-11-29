@@ -23,9 +23,9 @@ However, there are ways to make this process more efficient and catch regression
 
 **How to use:**
 1. Open Firefox DevTools (F12)
-2. Go to "..." menu → Settings → Enable "Shader Editor"
-3. Refresh page, find Shader Editor tab
-4. Click any shader to edit live
+1. Go to "..." menu → Settings → Enable "Shader Editor"
+1. Refresh page, find Shader Editor tab
+1. Click any shader to edit live
 
 **Shadertoy-style Development**
 - Develop complex shader logic in isolation first
@@ -211,10 +211,10 @@ if (ext) {
 
 To compare two shader approaches:
 1. Render 1000+ frames with shader A
-2. Force GPU sync with `gl.readPixels()`
-3. Measure total time
-4. Repeat with shader B
-5. Compare
+1. Force GPU sync with `gl.readPixels()`
+1. Measure total time
+1. Repeat with shader B
+1. Compare
 
 ---
 
@@ -222,20 +222,20 @@ To compare two shader approaches:
 
 ### During Active Development (Now)
 1. **Hot reload** with Vite (already set up)
-2. **Firefox Shader Editor** for live tweaking
-3. **You describe what you see** → I adjust
-4. Add **debug modes** to visualize specific parts
-5. Add **GUI sliders** for key parameters
+1. **Firefox Shader Editor** for live tweaking
+1. **You describe what you see** → I adjust
+1. Add **debug modes** to visualize specific parts
+1. Add **GUI sliders** for key parameters
 
 ### Once Wave Looks Good
 1. Save **baseline screenshots** at key camera angles
-2. Set up **Puppeteer visual regression** tests
-3. Run before commits to catch regressions
+1. Set up **Puppeteer visual regression** tests
+1. Run before commits to catch regressions
 
 ### For Complex Debugging
 1. Install **Spector.js** to inspect draw calls
-2. Add **webgl-lint** for error catching
-3. Use **debug shader outputs** (normals, UVs, masks)
+1. Add **webgl-lint** for error catching
+1. Use **debug shader outputs** (normals, UVs, masks)
 
 ---
 

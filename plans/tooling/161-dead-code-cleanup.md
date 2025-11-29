@@ -84,8 +84,8 @@ This plan covers unused code removal only - not duplicate consolidation (see Pla
 ## Testing
 
 1. `npm run lint` - Should have 0 warnings after cleanup
-2. `npm test` - All unit tests pass
-3. `npm run test:visual:headless` - Visual tests pass
+1. `npm test` - All unit tests pass
+1. `npm run test:visual:headless` - Visual tests pass
 
 ## Notes
 

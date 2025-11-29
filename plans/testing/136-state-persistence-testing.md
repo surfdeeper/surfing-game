@@ -7,9 +7,9 @@ Bug #135 revealed that state loaded from localStorage can have missing fields (`
 ### Root Cause Analysis
 
 1. **Tests construct ideal state** - All unit tests create state with all fields present
-2. **No schema validation** - `loadGameState()` blindly restores state without validation
-3. **No migration tests** - No tests for loading old state formats
-4. **Silent arithmetic failures** - `undefined - number = NaN`, and `NaN >= x` is always `false`
+1. **No schema validation** - `loadGameState()` blindly restores state without validation
+1. **No migration tests** - No tests for loading old state formats
+1. **Silent arithmetic failures** - `undefined - number = NaN`, and `NaN >= x` is always `false`
 
 ## Testing Gaps Identified
 

@@ -170,10 +170,10 @@ Replace current sliders with force-based parameters:
 ## Success Criteria
 
 1. **Glide**: Letting go of input results in gradual deceleration, not instant stop
-2. **Terminal velocity**: Holding input reaches a max speed, can't accelerate forever
-3. **Zone feel**: Shore, water, and foam feel distinctly different
-4. **Foam struggle**: Must paddle hard to make progress, pushed back when idle
-5. **Intuitive controls**: Debug sliders map to understandable physical properties
+1. **Terminal velocity**: Holding input reaches a max speed, can't accelerate forever
+1. **Zone feel**: Shore, water, and foam feel distinctly different
+1. **Foam struggle**: Must paddle hard to make progress, pushed back when idle
+1. **Intuitive controls**: Debug sliders map to understandable physical properties
 
 ---
 

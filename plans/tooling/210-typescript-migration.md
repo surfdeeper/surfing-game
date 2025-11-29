@@ -24,9 +24,9 @@ Additionally, the developer tooling needs improvement:
 ### TypeScript Strategy: Gradual Migration with Strict Mode Off
 
 1. **Non-strict mode initially** - Set `strict: false` in tsconfig to allow incremental adoption
-2. **Rename files from `.js`/`.jsx` to `.ts`/`.tsx`** - TypeScript compiler handles both
-3. **Add types incrementally** - Use `any` sparingly, add proper types over time
-4. **Future strictness plan** - Document path to enabling strict mode later
+1. **Rename files from `.js`/`.jsx` to `.ts`/`.tsx`** - TypeScript compiler handles both
+1. **Add types incrementally** - Use `any` sparingly, add proper types over time
+1. **Future strictness plan** - Document path to enabling strict mode later
 
 ### Tooling Stack
 
@@ -63,10 +63,10 @@ Before migration, fix the 7 failing tests:
 
 **DebugPanel.test.jsx (6 failures)**:
 1. Test expects `Foam Grid Debug` toggle - update test or add toggle
-2. Test expects 4 tooltip triggers, component has 6 (Depth Damping + Damping Exponent sliders added)
-3. Tests missing `onSettingChange` prop causing `TypeError: onSettingChange is not a function`
-4. Slider tests using wrong indices after UI changes
-5. Value display format changed (decimals added)
+1. Test expects 4 tooltip triggers, component has 6 (Depth Damping + Damping Exponent sliders added)
+1. Tests missing `onSettingChange` prop causing `TypeError: onSettingChange is not a function`
+1. Slider tests using wrong indices after UI changes
+1. Value display format changed (decimals added)
 
 **bathymetryModel.test.js (1 failure)**:
 - Snapshot mismatch - update snapshot with `npm test -- -u`
@@ -287,32 +287,32 @@ Order of conversion (start with leaf modules, work toward entry points):
    - `src/util/fpsTracker.js` → `src/util/fpsTracker.ts`
    - `src/input/keyboard.js` → `src/input/keyboard.ts`
 
-2. **Models** (pure data/logic):
+1. **Models** (pure data/logic):
    - `src/state/*.js` → `src/state/*.ts`
    - `src/render/coordinates.js` → `src/render/coordinates.ts`
    - `src/render/marchingSquares.js` → `src/render/marchingSquares.ts`
 
-3. **Renderers** (depend on models):
+1. **Renderers** (depend on models):
    - `src/render/*.js` → `src/render/*.ts`
 
-4. **Update logic**:
+1. **Update logic**:
    - `src/update/*.js` → `src/update/*.ts`
 
-5. **Input handlers**:
+1. **Input handlers**:
    - `src/input/*.js` → `src/input/*.ts`
 
-6. **UI Components** (React):
+1. **UI Components** (React):
    - `src/ui/*.jsx` → `src/ui/*.tsx`
    - `src/stories/*.jsx` → `src/stories/*.tsx`
 
-7. **Entry point last**:
+1. **Entry point last**:
    - `src/main.jsx` → `src/main.tsx`
 
-8. **Test files**:
+1. **Test files**:
    - `src/**/*.test.js` → `src/**/*.test.ts`
    - `src/**/*.test.jsx` → `src/**/*.test.tsx`
 
-9. **Config files**:
+1. **Config files**:
    - `vite.config.js` → `vite.config.ts`
    - `vitest.config.js` → `vitest.config.ts`
    - `playwright.config.js` → `playwright.config.ts`
@@ -356,10 +356,10 @@ export default defineConfig({
 
 After each phase:
 1. `npm run lint` - Should pass with no errors
-2. `npm run typecheck` - Should pass (may have warnings initially)
-3. `npm test` - All unit tests pass
-4. `npx playwright test tests/smoke.spec.js` - App loads without errors
-5. `npm run dev` - Dev server starts, app runs correctly
+1. `npm run typecheck` - Should pass (may have warnings initially)
+1. `npm test` - All unit tests pass
+1. `npx playwright test tests/smoke.spec.js` - App loads without errors
+1. `npm run dev` - Dev server starts, app runs correctly
 
 Final verification:
 ```bash
@@ -432,9 +432,9 @@ rules: {
 ## Success Criteria
 
 1. All 59 files converted to TypeScript
-2. `npm run lint` passes with no errors
-3. `npm run typecheck` passes with no errors
-4. All unit tests pass
-5. Smoke test passes
-6. Pre-commit hook runs in <30 seconds
-7. No `.js`/`.jsx` files remain in `src/`
+1. `npm run lint` passes with no errors
+1. `npm run typecheck` passes with no errors
+1. All unit tests pass
+1. Smoke test passes
+1. Pre-commit hook runs in <30 seconds
+1. No `.js`/`.jsx` files remain in `src/`

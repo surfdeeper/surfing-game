@@ -58,9 +58,21 @@ Technical approach and key design decisions.
 How to verify the implementation works correctly.
 ```
 
+## Updating Plans After Implementation
+
+When completing implementation steps from a plan:
+
+1. **Update status** - Change `**Status**: Proposed` to `**Status**: Complete` (or `In Progress` if partially done)
+2. **Add completion summary** - Add a `## Completion Summary` section at the end documenting:
+   - What was implemented
+   - Any deviations from the original plan
+   - Files that were actually modified
+3. **Do this proactively** - Update the plan immediately after finishing, without waiting for user to ask
+
 ## When to Apply
 
 Automatically apply when:
 - User says "create a plan", "add a feature", "document this"
 - Working with files in `plans/` directory
 - User references plan numbers or categories
+- Completing implementation of a plan (update status and add summary)

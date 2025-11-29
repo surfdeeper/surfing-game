@@ -159,11 +159,11 @@ src/
 ## Success Criteria
 
 1. Foam looks organic, not uniform white
-2. Foam patterns move and evolve
-3. More foam at breaking zone, dissipates toward shore
-4. Spray particles visible at the lip
-5. Spray affected by (optional) wind
-6. Overall: looks like actual breaking water, not painted foam
+1. Foam patterns move and evolve
+1. More foam at breaking zone, dissipates toward shore
+1. Spray particles visible at the lip
+1. Spray affected by (optional) wind
+1. Overall: looks like actual breaking water, not painted foam
 
 ---
 

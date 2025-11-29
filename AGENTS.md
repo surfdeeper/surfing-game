@@ -7,9 +7,9 @@ Guidelines for AI agents working on this codebase.
 ### Tight Feedback Loops
 Always prefer the fastest feedback mechanism available:
 1. **Lint first** (`npm run lint`) - catches syntax/import errors in ~1 second
-2. **Smoke test** (`npx playwright test tests/smoke.spec.js:3`) - verifies app loads without JS errors (~3 seconds)
-3. **Run specific tests** - test files related to your changes, not the entire suite
-4. **Don't chain commands** - run `npm run lint` separately from tests; if lint passes, then run tests. Don't `lint && test` which delays test feedback.
+1. **Smoke test** (`npx playwright test tests/smoke.spec.js:3`) - verifies app loads without JS errors (~3 seconds)
+1. **Run specific tests** - test files related to your changes, not the entire suite
+1. **Don't chain commands** - run `npm run lint` separately from tests; if lint passes, then run tests. Don't `lint && test` which delays test feedback.
 
 **CRITICAL**: Always run the smoke test after changes. Unit tests can pass while the app is broken (e.g., broken imports not exercised by unit tests).
 
@@ -29,8 +29,8 @@ Prefer these simple commands over complex chained commands that require permissi
 When you need to run complex bash logic (timeouts, retries, multi-step operations), **create a script in `scripts/`** instead of writing inline bash. This enables:
 
 1. **Pre-approval** - Scripts can be added to the allow-list, avoiding permission prompts
-2. **Reusability** - Same script works across sessions
-3. **Readability** - Complex logic is documented and version-controlled
+1. **Reusability** - Same script works across sessions
+1. **Readability** - Complex logic is documented and version-controlled
 
 **Example**: Instead of `timeout 10 npm run dev & sleep 3 && npm test`, create:
 ```bash
@@ -85,8 +85,8 @@ One implementation, tested once, used everywhere.
 When creating a reusable module (e.g., `src/render/fooRenderer.js`):
 
 1. **Use it immediately** - The caller must import and use it in the same commit
-2. **Delete inline code** - Remove any duplicated logic from main.jsx
-3. **Never create tested-but-unused helpers** - If nothing imports it, it shouldn't exist
+1. **Delete inline code** - Remove any duplicated logic from main.jsx
+1. **Never create tested-but-unused helpers** - If nothing imports it, it shouldn't exist
 
 ### Detecting Dead Helpers
 
@@ -173,9 +173,9 @@ Skills are auto-applied by Claude based on context (`.claude/skills/`):
 When debugging issues:
 
 1. **Automate first** - Write a Vitest test to reproduce the bug, never ask user to manually check console
-2. **Isolate the layer** - Is it calculation (logic) or rendering (CSS/browser)?
-3. **Check CSS interactions** - Transitions, animations, transforms can conflict with React 60fps updates
-4. **Time progression tests** - For game loop bugs, test with simulated time advancement
+1. **Isolate the layer** - Is it calculation (logic) or rendering (CSS/browser)?
+1. **Check CSS interactions** - Transitions, animations, transforms can conflict with React 60fps updates
+1. **Time progression tests** - For game loop bugs, test with simulated time advancement
 
 ### Debug State Exposure
 
@@ -196,8 +196,9 @@ If Vitest tests pass but browser visuals are wrong (flickering, stuck values), c
 
 When starting work, Claude reads context in this order:
 1. `AGENTS.md` (this file) - Guidelines and commands
-2. `plans/00-principles.md` - Foundational physics concepts
-3. Relevant skill(s) - Auto-loaded based on task
-4. Specific plan document - For feature work
+1. `plans/00-principles.md` - Foundational physics concepts
+1. Relevant skill(s) - Auto-loaded based on task
+1. Specific plan document - For feature work
 - never mark tests skipped without human consent.
 - Always try to run the linter and type checker individually instead of relying on the pre-commit hook.
+- npm run dev is game, npm run stories is visual testing react app viewer

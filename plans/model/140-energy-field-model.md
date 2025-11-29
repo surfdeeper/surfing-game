@@ -14,10 +14,10 @@ Key insight: **Waves are energy, not water.** The energy field models this direc
 ## Benefits
 
 1. **Natural wave combination**: When two energy peaks meet, they superpose automatically
-2. **Period-based speed**: Longer wavelengths travel faster (dispersion) - emerges from the physics
-3. **Double-ups**: Constructive interference creates larger waves naturally
-4. **Refraction**: Energy slows in shallow water, causing bending - unified with propagation
-5. **Realistic feel**: Ocean feels like connected fluid, not separate "wave objects"
+1. **Period-based speed**: Longer wavelengths travel faster (dispersion) - emerges from the physics
+1. **Double-ups**: Constructive interference creates larger waves naturally
+1. **Refraction**: Energy slows in shallow water, causing bending - unified with propagation
+1. **Realistic feel**: Ocean feels like connected fluid, not separate "wave objects"
 
 ## Architecture
 
@@ -313,18 +313,18 @@ Toggle: Press 'E' key to enable energy field view (replaces discrete wave render
 ## Migration Strategy
 
 1. **Phase 1**: Build field model in parallel, render with toggle
-2. **Phase 2**: Wire up foam/breaking to field
-3. **Phase 3**: Switch rendering to field-based
-4. **Phase 4**: Deprecate direct wave spawning (keep derived waves for UI)
+1. **Phase 2**: Wire up foam/breaking to field
+1. **Phase 3**: Switch rendering to field-based
+1. **Phase 4**: Deprecate direct wave spawning (keep derived waves for UI)
 
 ## Success Criteria
 
 1. Waves with different periods visibly travel at different speeds
-2. Two waves meeting creates a visible double-up (amplitude sum)
-3. Wave refraction emerges naturally from depth-dependent speed
-4. Set/lull still feels right (bigger waves come in groups)
-5. Performance: 60fps on typical hardware
-6. Discrete "waves" still available for gameplay/UI
+1. Two waves meeting creates a visible double-up (amplitude sum)
+1. Wave refraction emerges naturally from depth-dependent speed
+1. Set/lull still feels right (bigger waves come in groups)
+1. Performance: 60fps on typical hardware
+1. Discrete "waves" still available for gameplay/UI
 
 ## Open Questions
 

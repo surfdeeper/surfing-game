@@ -44,10 +44,10 @@ The orbit diameter equals the wave height at the surface, and **decreases expone
 When the water depth is less than ½ the wavelength, the bottom interferes:
 
 1. **Orbits flatten into ellipses** - vertical motion constrained by the bottom
-2. **Horizontal motion increases** - energy has to go somewhere
-3. **Wave slows down** - bottom friction drags on it
-4. **Wavelength decreases** - waves bunch up
-5. **Wave height increases** - same energy in smaller space
+1. **Horizontal motion increases** - energy has to go somewhere
+1. **Wave slows down** - bottom friction drags on it
+1. **Wavelength decreases** - waves bunch up
+1. **Wave height increases** - same energy in smaller space
 
 This is **shoaling** - the wave is "feeling the bottom."
 
@@ -75,12 +75,12 @@ As the wave shoals:
 A breaking wave is ONE CONTINUOUS PHENOMENON, not separate parts:
 
 1. **The approaching swell** - energy traveling through deep water
-2. **The shoaling zone** - swell feeling bottom, standing up
-3. **The breaking point** - where H > 0.78d, wave becomes unstable
-4. **The lip** - top of wave pitching forward (orbital velocity > wave velocity)
-5. **The face** - steep front where water is drawn up
-6. **The barrel/tube** - air pocket when lip throws over (plunging breakers)
-7. **The foam/whitewater** - turbulent aerated water after breaking
+1. **The shoaling zone** - swell feeling bottom, standing up
+1. **The breaking point** - where H > 0.78d, wave becomes unstable
+1. **The lip** - top of wave pitching forward (orbital velocity > wave velocity)
+1. **The face** - steep front where water is drawn up
+1. **The barrel/tube** - air pocket when lip throws over (plunging breakers)
+1. **The foam/whitewater** - turbulent aerated water after breaking
 
 **These are all the same wave** at different stages of its life.
 
@@ -104,21 +104,21 @@ This creates:
 
 ### What We MUST Get Right
 1. Wave is a traveling energy pulse, not a moving wall
-2. The same wave shoals, stands up, and breaks - continuous phenomenon
-3. Breaking happens where physics dictates (depth vs height)
-4. The lip throws forward because particles outrun the wave
+1. The same wave shoals, stands up, and breaks - continuous phenomenon
+1. Breaking happens where physics dictates (depth vs height)
+1. The lip throws forward because particles outrun the wave
 
 ### What We Can Simplify
 1. Don't need to simulate every particle - can use math to describe the surface
-2. Can use a fixed "reef" position for where breaking happens
-3. Can stylize foam/spray as visual effects on top of core physics
+1. Can use a fixed "reef" position for where breaking happens
+1. Can stylize foam/spray as visual effects on top of core physics
 
 ### What We Got Wrong Before
 1. Treating swell as separate from breaking wave
-2. Making wave a static wall that "peels" visually
-3. No actual wave propagation toward shore
-4. Lip curl as a height bump, not horizontal throw
-5. Building effects before getting fundamentals right
+1. Making wave a static wall that "peels" visually
+1. No actual wave propagation toward shore
+1. Lip curl as a height bump, not horizontal throw
+1. Building effects before getting fundamentals right
 
 ---
 
@@ -127,13 +127,13 @@ This creates:
 We should build in this order, validating each step:
 
 1. **Debugger** - See what we're doing
-2. **Still water** - Flat surface, basic rendering
-3. **Single swell** - One traveling bump, watch it move
-4. **Orbital motion** - Particles moving correctly in the swell
-5. **Shoaling** - Wave stands up as depth decreases
-6. **Breaking** - When physics says break, it breaks
-7. **The peel** - Break propagates along the wave
-8. **Foam/effects** - Visual polish on working physics
-9. **Surfer** - Finally add gameplay
+1. **Still water** - Flat surface, basic rendering
+1. **Single swell** - One traveling bump, watch it move
+1. **Orbital motion** - Particles moving correctly in the swell
+1. **Shoaling** - Wave stands up as depth decreases
+1. **Breaking** - When physics says break, it breaks
+1. **The peel** - Break propagates along the wave
+1. **Foam/effects** - Visual polish on working physics
+1. **Surfer** - Finally add gameplay
 
 Each step must work before moving to the next.

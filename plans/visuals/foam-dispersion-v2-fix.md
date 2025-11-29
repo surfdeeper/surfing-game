@@ -10,11 +10,11 @@ The outer contour contracts as foam fades. When older foam rows (at top) fade to
 
 **Pipeline:**
 1. `buildIntensityGridOptionB(foamRows, ...)` writes to intensity grid
-2. For each row: `if (row.opacity <= 0) continue;` ← **skips faded rows**
-3. Writes `opacity * intensity` to grid cells
-4. Calculates `avgAge` across all rows, returns `blurPasses = 2 + avgAge * 0.8`
-5. Caller applies `boxBlur(grid, blurPasses)`
-6. `extractLineSegments` finds contours at thresholds (0.15, 0.3, 0.5)
+1. For each row: `if (row.opacity <= 0) continue;` ← **skips faded rows**
+1. Writes `opacity * intensity` to grid cells
+1. Calculates `avgAge` across all rows, returns `blurPasses = 2 + avgAge * 0.8`
+1. Caller applies `boxBlur(grid, blurPasses)`
+1. `extractLineSegments` finds contours at thresholds (0.15, 0.3, 0.5)
 
 **Why it contracts:**
 - Line 179: `if (row.opacity <= 0) continue;` - faded rows write nothing

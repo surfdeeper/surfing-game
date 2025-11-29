@@ -11,8 +11,8 @@ Purpose: keep a concise, up-to-date mental model of the game's layers, design de
 - Event-sourced state: `src/state/eventStore.ts` owns the canonical game state; all mutations are dispatched events (or batchDispatch) for easy replay and testing.
 - Game loop (see `src/main.tsx`):
   1. `fpsTracker` computes `deltaTime` (resets on tab visibility change).
-  2. `update(...)` advances game time, spawns waves, updates energy + foam grids, player/AI, and persistence.
-  3. `draw(...)` renders bathymetry, energy field, waves, foam contours, debug overlays, and player proxy.
+  1. `update(...)` advances game time, spawns waves, updates energy + foam grids, player/AI, and persistence.
+  1. `draw(...)` renders bathymetry, energy field, waves, foam contours, debug overlays, and player proxy.
 - Coordinate system: horizon at top of canvas, shore at bottom; `render/coordinates.ts` maps normalized progress to screen space and travel duration.
 
 ## Layer Overview

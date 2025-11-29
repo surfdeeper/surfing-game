@@ -12,12 +12,12 @@ Unified state management enabling:
 ## Current Problems
 
 1. **main.jsx is 1064 lines** - monolithic, hard to test
-2. **localStorage is fragile**:
+1. **localStorage is fragile**:
    - No schema versioning
    - Inconsistent defaults (`=== 'true'` vs `!== 'false'`)
    - Saves raw state, not events (schema migration hell)
-3. **State scattered** - world object, toggles, timeScale all separate
-4. **No event history** - can't replay or debug timing issues
+1. **State scattered** - world object, toggles, timeScale all separate
+1. **No event history** - can't replay or debug timing issues
 
 ## Architecture
 

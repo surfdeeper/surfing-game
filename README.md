@@ -81,9 +81,9 @@ The game uses a time-based architecture where wave positions are calculated from
 The project uses a three-layer testing architecture (see [plans/tooling/200-mdx-visual-docs.md](plans/tooling/200-mdx-visual-docs.md) for details):
 
 1. **Unit tests** (Vitest): Physics calculations and state logic. Must pass before visual tests run.
-2. **Progression tests** (Vitest): Time-based matrix snapshots using ASCII format for compact, readable assertions on simulation behavior over time.
-3. **Visual regression tests** (Playwright): Screenshot-based tests that only run after unit tests pass, isolating render bugs from data bugs.
-4. **E2E tests** (Playwright): Full application integration testing.
+1. **Progression tests** (Vitest): Time-based matrix snapshots using ASCII format for compact, readable assertions on simulation behavior over time.
+1. **Visual regression tests** (Playwright): Screenshot-based tests that only run after unit tests pass, isolating render bugs from data bugs.
+1. **E2E tests** (Playwright): Full application integration testing.
 
 ```bash
 npm test                        # Unit + progression tests

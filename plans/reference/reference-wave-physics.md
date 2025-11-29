@@ -37,11 +37,11 @@ When waves enter water shallower than ½ their wavelength, everything changes.
 ### The Transformation Process
 
 1. **Wave base touches bottom** - friction begins affecting the wave
-2. **Orbits flatten into ellipses** - vertical motion constrained, horizontal motion increases
-3. **Wave slows down** - the bottom drags on the wave
-4. **Wavelength decreases** - waves bunch up
-5. **Wave height INCREASES** - energy conservation (same energy, smaller space)
-6. **Wave steepens** - shorter wavelength + taller height = steeper face
+1. **Orbits flatten into ellipses** - vertical motion constrained, horizontal motion increases
+1. **Wave slows down** - the bottom drags on the wave
+1. **Wavelength decreases** - waves bunch up
+1. **Wave height INCREASES** - energy conservation (same energy, smaller space)
+1. **Wave steepens** - shorter wavelength + taller height = steeper face
 
 ```
 Shoaling transformation:
@@ -71,9 +71,9 @@ A wave breaks when **particle velocity exceeds wave velocity**.
 
 As the wave shoals:
 1. Horizontal orbital velocity increases (ellipses flatten)
-2. Wave celerity (speed) decreases (friction with bottom)
-3. Eventually: **particle speed > wave speed**
-4. The crest literally outruns the wave - it falls forward
+1. Wave celerity (speed) decreases (friction with bottom)
+1. Eventually: **particle speed > wave speed**
+1. The crest literally outruns the wave - it falls forward
 
 ### Breaking Criteria
 
@@ -290,21 +290,21 @@ H_breaking ≈ 0.78 × depth
    - Texture/color should indicate upward flow
    - Vertical streaking on clean sections
 
-2. **The lip needs proper throw mechanics**
+1. **The lip needs proper throw mechanics**
    - Detaches and falls in arc
    - Not just a bump at the top
 
-3. **Asymmetric wave profile**
+1. **Asymmetric wave profile**
    - Gentle back slope (out to sea)
    - Steep front face (toward shore)
    - Concave face near lip (water sucked up)
 
-4. **Proper foam behavior**
+1. **Proper foam behavior**
    - Dense at the impact zone
    - Dissipates as it spreads
    - Follows wave motion patterns
 
-5. **The peel should look like continuous breaking**
+1. **The peel should look like continuous breaking**
    - Not just geometry change
    - Active transition zone with spray
    - Foam generation at the peel point

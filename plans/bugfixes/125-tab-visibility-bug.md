@@ -36,8 +36,8 @@ function gameLoop(timestamp) {
 
 Possible scenarios:
 1. **Huge deltaTime** causes waves to skip past shore, state to become invalid
-2. **NaN propagation** if calculations overflow
-3. **rAF not resuming** if Chrome garbage collected the callback (unlikely but possible)
+1. **NaN propagation** if calculations overflow
+1. **rAF not resuming** if Chrome garbage collected the callback (unlikely but possible)
 
 ## Solution
 
@@ -163,9 +163,9 @@ document.addEventListener('visibilitychange', () => {
 ## Testing
 
 1. Open game in browser
-2. Switch to another tab for 10+ seconds
-3. Switch back
-4. Verify:
+1. Switch to another tab for 10+ seconds
+1. Switch back
+1. Verify:
    - Game resumes smoothly
    - No frozen screen
    - Waves are in reasonable positions (not teleported)

@@ -239,11 +239,11 @@ function checkWipeout(surfer, waveState) {
 ## Success Criteria
 
 1. Surfer stays on wave surface naturally
-2. Arrow keys provide intuitive control
-3. Going down the face builds speed
-4. Must actively stay ahead of peel to survive
-5. Wipeouts feel fair and physical
-6. The "game" emerges: stay in the pocket, don't wipe out
+1. Arrow keys provide intuitive control
+1. Going down the face builds speed
+1. Must actively stay ahead of peel to survive
+1. Wipeouts feel fair and physical
+1. The "game" emerges: stay in the pocket, don't wipe out
 
 ---
 

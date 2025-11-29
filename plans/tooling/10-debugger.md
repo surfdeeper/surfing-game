@@ -110,12 +110,12 @@ src/
 Before moving to the next plan, we should be able to:
 
 1. See a grid at Y=0 representing the water surface plane
-2. See XYZ axes at the origin
-3. Orbit the camera around with mouse drag
-4. Zoom with scroll wheel
-5. Click preset buttons to jump to standard views
-6. See camera coordinates update in real-time
-7. Have a probe point we can move and see its coordinates
+1. See XYZ axes at the origin
+1. Orbit the camera around with mouse drag
+1. Zoom with scroll wheel
+1. Click preset buttons to jump to standard views
+1. See camera coordinates update in real-time
+1. Have a probe point we can move and see its coordinates
 
 ---
 

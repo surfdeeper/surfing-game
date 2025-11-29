@@ -192,9 +192,9 @@ Replace inline logic with calls to `setLullModel.js` functions.
 
 **Recommended approach:**
 1. Start with Phase 1 (extract) + Phase 2 (unit tests) together
-2. Add Phase 4 (tab visibility) as quick win
-3. Add Phase 3 (integration) for confidence
-4. Phase 5 & 6 as polish
+1. Add Phase 4 (tab visibility) as quick win
+1. Add Phase 3 (integration) for confidence
+1. Phase 5 & 6 as polish
 
 ---
 

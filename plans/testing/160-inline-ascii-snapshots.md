@@ -9,8 +9,8 @@
 Progression files (`src/render/*Progressions.ts`) define matrix-based test data, but there's no way to see what the data actually looks like without running tests or viewing rendered output. This creates friction when:
 
 1. **Reviewing code** - You can't tell if a matrix-building function is correct without running it
-2. **Understanding behavior** - New developers must run tests to see what progressions produce
-3. **Detecting drift** - If code changes but output doesn't match expectations, you won't know until visual tests fail
+1. **Understanding behavior** - New developers must run tests to see what progressions produce
+1. **Detecting drift** - If code changes but output doesn't match expectations, you won't know until visual tests fail
 
 The ASCII matrix system already exists (`src/test-utils/asciiMatrix.ts`) but isn't used to document progressions inline.
 
@@ -44,9 +44,9 @@ BBBBBBBB
 ### Key Design Decisions
 
 1. **Comment format**: `/* @ascii-snapshot <progression-id> */` followed by the ASCII grid
-2. **Single validator test**: One test file discovers all progressions, extracts comments, validates
-3. **Update script**: `npm run update:ascii` regenerates all comments from computed output
-4. **No per-file tests**: The magic happens in the shared validator—progression files just have the comment
+1. **Single validator test**: One test file discovers all progressions, extracts comments, validates
+1. **Update script**: `npm run update:ascii` regenerates all comments from computed output
+1. **No per-file tests**: The magic happens in the shared validator—progression files just have the comment
 
 ## Implementation Steps
 
@@ -56,21 +56,21 @@ BBBBBBBB
    - `extractAsciiSnapshots(sourceCode: string): Map<id, asciiString>`
    - `updateAsciiSnapshots(sourceCode: string, snapshots: Map<id, asciiString>): string`
 
-2. **Create validator test** (`src/test-utils/asciiSnapshots.test.ts`)
+1. **Create validator test** (`src/test-utils/asciiSnapshots.test.ts`)
    - Import progression registry
    - For each registered progression with an `@ascii-snapshot` comment in its source file:
      - Compute actual ASCII from `matrixToAscii(progression.snapshots[0].matrix)`
      - Compare to embedded comment
      - Fail with diff if mismatch
 
-3. **Create update script** (`scripts/update-ascii-snapshots.ts`)
+1. **Create update script** (`scripts/update-ascii-snapshots.ts`)
    - Find all `*Progressions.ts` files
    - For each file, update `@ascii-snapshot` comments with computed values
    - Write back to disk
 
 ### Phase 2: Migrate bathymetryProgressions.ts
 
-4. **Split into directory structure**:
+1. **Split into directory structure**:
    ```
    src/render/bathymetry/
    ├── index.ts              # Re-exports + strip definitions
@@ -82,13 +82,13 @@ BBBBBBBB
    └── flat.ts
    ```
 
-5. **Add ASCII comments** to each file using update script
+1. **Add ASCII comments** to each file using update script
 
-6. **Verify** with validator test
+1. **Verify** with validator test
 
 ### Phase 3: Migrate remaining progressions
 
-7. Apply same pattern to:
+1. Apply same pattern to:
    - `foamContoursProgressions.ts`
    - `shoalingProgressions.ts`
    - `waveBreakingProgressions.ts`
@@ -109,9 +109,9 @@ BBBBBBBB
 ## Testing
 
 1. **Validator test passes** when comments match computed output
-2. **Validator test fails** with clear diff when comments are stale
-3. **Update script** correctly regenerates comments
-4. **Existing visual tests** continue to pass (no behavior change)
+1. **Validator test fails** with clear diff when comments are stale
+1. **Update script** correctly regenerates comments
+1. **Existing visual tests** continue to pass (no behavior change)
 
 ## Example Validator Test Output
 

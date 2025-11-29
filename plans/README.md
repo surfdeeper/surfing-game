@@ -29,9 +29,9 @@ Design documents and implementation plans organized by category.
 ## Creating New Plans
 
 1. Choose the appropriate subfolder by category
-2. Use the next logical number
-3. Include clear sections: Problem, Proposed Solution, Implementation Steps
-4. Mark dependencies on other plans if any
+1. Use the next logical number
+1. Include clear sections: Problem, Proposed Solution, Implementation Steps
+1. Mark dependencies on other plans if any
 
 ## Archiving
 

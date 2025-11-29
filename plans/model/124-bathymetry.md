@@ -15,11 +15,11 @@ The initial implementation had foam triangles attached to wave transforms, which
 Per GPT feedback, the dependency order for realistic wave physics is:
 
 1. ✅ Lock 2D timing model (done - sets/lulls/spawn-per-wave)
-2. ✅ Unified wave array (done - plan 125)
-3. ✅ Bathymetry (this plan - complete)
-4. Shoaling (height changes with depth)
-5. Breaking logic
-6. Peeling logic
+1. ✅ Unified wave array (done - plan 125)
+1. ✅ Bathymetry (this plan - complete)
+1. Shoaling (height changes with depth)
+1. Breaking logic
+1. Peeling logic
 
 ---
 
@@ -252,7 +252,7 @@ describe('foam lifecycle', () => {
 ## Success Criteria
 
 1. Breaking triggered by depth, not progress threshold
-2. Foam exists as independent entity, not attached to wave
-3. Foam trail persists after wave passes
-4. Peel propagates laterally along bathymetry
-5. Visual looks like real whitewater, not a sliding triangle
+1. Foam exists as independent entity, not attached to wave
+1. Foam trail persists after wave passes
+1. Peel propagates laterally along bathymetry
+1. Visual looks like real whitewater, not a sliding triangle

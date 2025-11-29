@@ -22,8 +22,8 @@ Helpers were extracted and tested (`render/waveRenderer`, `update/index`, `state
 
 ### 🔮 Remaining Steps (Optional)
 1. **Settings to store**: Migrate settings from `settingsModel` to `eventStore` for unified state
-2. **Further extraction**: Extract FPS tracking, game state persistence to separate modules
-3. **Goal**: main.jsx target is <300 lines (currently 577)
+1. **Further extraction**: Extract FPS tracking, game state persistence to separate modules
+1. **Goal**: main.jsx target is <300 lines (currently 577)
 
 ## Original Proposed Solution
 Incrementally migrate `main.jsx` to import and use the extracted, tested helpers. Delete duplicated logic once wired. Keep visual parity via existing tests and minimal behavioral changes per step.

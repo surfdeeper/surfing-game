@@ -4,8 +4,8 @@
 
 Establish a minimal but robust testing approach that:
 1. Protects the fragile timing/physics layer with deterministic unit tests
-2. Allows visual verification for subjective "does it look right?" aspects
-3. Prevents AI refactoring from breaking core behavior
+1. Allows visual verification for subjective "does it look right?" aspects
+1. Prevents AI refactoring from breaking core behavior
 
 ## Unit Tests (Deterministic)
 

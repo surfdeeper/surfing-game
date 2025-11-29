@@ -4,9 +4,9 @@
 
 Before implementing the full surfer physics (Plan 70), we need a **minimal player proxy** to:
 1. Test the feel of movement on shore vs water
-2. Validate whitewater interaction mechanics
-3. Prove the "fight the current" gameplay loop works
-4. Establish input handling patterns
+1. Validate whitewater interaction mechanics
+1. Prove the "fight the current" gameplay loop works
+1. Establish input handling patterns
 
 This is a **stepping stone** - a simple dot that lets us iterate on the core "struggle against the ocean" feel before adding surfboard physics.
 
@@ -142,10 +142,10 @@ function sampleFoamIntensity(x, y, foamRows) {
 
 This creates the **struggle loop**:
 1. Wait for lull (less foam)
-2. Paddle hard toward horizon
-3. Get caught by set wave foam
-4. Hold position or get pushed back
-5. Repeat until you reach the lineup
+1. Paddle hard toward horizon
+1. Get caught by set wave foam
+1. Hold position or get pushed back
+1. Repeat until you reach the lineup
 
 ---
 
@@ -298,10 +298,10 @@ const PLAYER_PROXY_CONFIG = {
 ## Success Criteria
 
 1. **Movement feels responsive** - Arrow keys give immediate feedback
-2. **Zone transition is obvious** - Clearly slower in water than on shore
-3. **Foam creates tension** - Getting caught in whitewater is stressful
-4. **Escape is possible** - Can paddle out during lulls
-5. **The struggle is fun** - Core loop of "time your paddle out" works
+1. **Zone transition is obvious** - Clearly slower in water than on shore
+1. **Foam creates tension** - Getting caught in whitewater is stressful
+1. **Escape is possible** - Can paddle out during lulls
+1. **The struggle is fun** - Core loop of "time your paddle out" works
 
 ---
 

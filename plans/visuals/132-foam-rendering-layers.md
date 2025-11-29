@@ -14,12 +14,12 @@ Status: Planned (revised)
    - Update: wave equation + depth-based speed + damping; horizon injection for set/background swells. Runs even when not rendered.
    - Output: local energy for breaking/visual thickness.
 
-2. Energy Transfer Grid (energy leaving waves)
+1. Energy Transfer Grid (energy leaving waves)
    - Grid: `energyTransfer[y][x]` per-frame accumulator (cleared/decayed each tick).
    - Update: when breaking triggers, drain from energy field into this grid; optional box-blur for spread.
    - Purpose: visualizes “areas where energy is being transferred/released”.
 
-3. Foam Grid (visual medium)
+1. Foam Grid (visual medium)
    - Grid: `foam[y][x]` scalar density (0–1).
    - Update:
      - Deposit: `foam += kDep * energyTransfer`, capped.
@@ -27,21 +27,21 @@ Status: Planned (revised)
      - Decay: temporal fade per cell.
    - Purpose: renderable field; future drift/interaction-ready.
 
-4. Optional Velocity Field (future)
+1. Optional Velocity Field (future)
    - Grid: `velX[y][x], velY[y][x]` for advection of foam/energy bleed.
 
 ## Data Flow Per Frame
 1) Inject swells → update energy field.  
-2) Detect breaking (H vs depth/energy) → drain into `energyTransfer`.  
-3) Deposit/advect/decay into `foam`.  
-4) Render: energy gradient/contours from `energy`; foam alpha/contours from `foam`.
+1) Detect breaking (H vs depth/energy) → drain into `energyTransfer`.  
+1) Deposit/advect/decay into `foam`.  
+1) Render: energy gradient/contours from `energy`; foam alpha/contours from `foam`.
 
 ## Implementation Steps
 1. Define shared grid dimensions/mapping once; apply to all layers (energy, transfer, foam).
-2. Add `energyTransferGrid` alongside `energyField`; breaking writes drained amount here each tick; clear or decay it every frame.
-3. Add `foamGrid`; per tick: deposit from `energyTransfer`, advect with simple shoreward velocity (stub), decay with configurable rate.
-4. Rendering: sample `foamGrid` directly—either per-cell alpha or iso-contours (marching squares) without row spans; keep a debug toggle for the raw grid.
-5. (Future) Add velocity field to replace constant advection with flow-driven drift.
+1. Add `energyTransferGrid` alongside `energyField`; breaking writes drained amount here each tick; clear or decay it every frame.
+1. Add `foamGrid`; per tick: deposit from `energyTransfer`, advect with simple shoreward velocity (stub), decay with configurable rate.
+1. Rendering: sample `foamGrid` directly—either per-cell alpha or iso-contours (marching squares) without row spans; keep a debug toggle for the raw grid.
+1. (Future) Add velocity field to replace constant advection with flow-driven drift.
 
 ## Success Criteria
 - Foam intensity/shape matches dissipation footprint without staircase artifacts.

@@ -5,9 +5,9 @@
 The current architecture has several issues that make testing difficult:
 
 1. **Mutable position** - Wave `y` is mutated each frame, not derived from time
-2. **No separation of concerns** - Game state and rendering are intertwined in `main.js`
-3. **Can't unit test with fake timers** - Position depends on accumulated frame deltas, not absolute time
-4. **Screen-coupled coordinates** - Waves use pixel positions, tightly coupled to canvas dimensions
+1. **No separation of concerns** - Game state and rendering are intertwined in `main.js`
+1. **Can't unit test with fake timers** - Position depends on accumulated frame deltas, not absolute time
+1. **Screen-coupled coordinates** - Waves use pixel positions, tightly coupled to canvas dimensions
 
 ## Goal
 
@@ -106,25 +106,25 @@ src/
    - `createWave(spawnTime, amplitude)` - factory function
    - `getWaveProgress(wave, currentTime, travelDuration)` - pure position calc
    - `isWaveComplete(wave, currentTime, travelDuration)` - check if past shore
-2. Create `src/state/waveModel.test.js` with fake timer tests
+1. Create `src/state/waveModel.test.js` with fake timer tests
 
 ### Phase 2: Extract Game State
 1. Create `src/state/gameState.js` with:
    - State container (waves array, set/lull state, timing)
    - `updateState(state, currentTime)` - pure state transition
    - `getVisibleWaves(state, currentTime)` - filter active waves
-2. Move set/lull logic from `main.js`
+1. Move set/lull logic from `main.js`
 
 ### Phase 3: Coordinate Mapping
 1. Create `src/render/coordinates.js` with:
    - `progressToScreenY(progress, bounds)`
    - `screenYToProgress(y, bounds)`
-2. Unit tests for coordinate mapping
+1. Unit tests for coordinate mapping
 
 ### Phase 4: Extract Renderer
 1. Create `src/render/renderer.js`
-2. Move all `ctx.*` calls from `main.js`
-3. Renderer receives state + coordinates, outputs to canvas
+1. Move all `ctx.*` calls from `main.js`
+1. Renderer receives state + coordinates, outputs to canvas
 
 ### Phase 5: Wire Together
 1. Simplify `main.js` to:
@@ -171,18 +171,18 @@ describe('waveModel', () => {
 ## Benefits
 
 1. **Testable** - Unit test wave positions without canvas/browser
-2. **Deterministic** - Same time input = same output, always
-3. **Debuggable** - Can "rewind" by using past timestamps
-4. **Decoupled** - Renderer can be swapped (Canvas 2D → Three.js)
-5. **Serializable** - Game state can be saved/restored/synced (multiplayer prep)
+1. **Deterministic** - Same time input = same output, always
+1. **Debuggable** - Can "rewind" by using past timestamps
+1. **Decoupled** - Renderer can be swapped (Canvas 2D → Three.js)
+1. **Serializable** - Game state can be saved/restored/synced (multiplayer prep)
 
 ## Migration Path
 
 Can be done incrementally:
 1. Add new modules alongside existing code
-2. Test new modules
-3. Gradually move logic from `main.js` to new modules
-4. Delete old mutable code once new path works
+1. Test new modules
+1. Gradually move logic from `main.js` to new modules
+1. Delete old mutable code once new path works
 
 ## Out of Scope
 

@@ -11,10 +11,10 @@
 While Preact with manual optimizations (Plan 128 Phase 1) fixes immediate lag issues, a full **React 18 migration** unlocks:
 
 1. **Automatic concurrency**: No manual `requestIdleCallback` needed
-2. **Priority-based rendering**: Built-in scheduling for urgent vs. non-urgent updates
-3. **Suspense for data loading**: Future-proof for server data, multiplayer
-4. **Better DevTools**: React DevTools Profiler for performance debugging
-5. **React Three Fiber compatibility**: Future 3D rendering (Plan 131)
+1. **Priority-based rendering**: Built-in scheduling for urgent vs. non-urgent updates
+1. **Suspense for data loading**: Future-proof for server data, multiplayer
+1. **Better DevTools**: React DevTools Profiler for performance debugging
+1. **React Three Fiber compatibility**: Future 3D rendering (Plan 131)
 
 ## Architecture: React 18 Concurrent Mode
 
@@ -528,15 +528,15 @@ test('render time stays under 16ms', (done) => {
 ## Success Criteria
 
 1. ✅ All Preact code migrated to React 18
-2. ✅ Concurrent Mode enabled (createRoot)
-3. ✅ Button clicks respond <16ms consistently
-4. ✅ Frame rate locked at 60 FPS
-5. ✅ `startTransition` used for non-urgent updates
-6. ✅ `useDeferredValue` used for expensive calculations
-7. ✅ All tests passing
-8. ✅ No visual regressions
-9. ✅ Performance metrics improved vs. baseline
-10. ✅ React DevTools Profiler shows optimal rendering
+1. ✅ Concurrent Mode enabled (createRoot)
+1. ✅ Button clicks respond <16ms consistently
+1. ✅ Frame rate locked at 60 FPS
+1. ✅ `startTransition` used for non-urgent updates
+1. ✅ `useDeferredValue` used for expensive calculations
+1. ✅ All tests passing
+1. ✅ No visual regressions
+1. ✅ Performance metrics improved vs. baseline
+1. ✅ React DevTools Profiler shows optimal rendering
 
 ## Future Enhancements
 

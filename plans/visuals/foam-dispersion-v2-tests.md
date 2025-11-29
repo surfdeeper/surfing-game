@@ -26,10 +26,10 @@ The contour "creeps downward" as older top rows fade away.
 
 Simple test that:
 1. Creates foam rows deposited top-to-bottom (simulating wave travel)
-2. Top rows have older `spawnTime`, bottom rows newer
-3. Applies fading opacity based on age
-4. Tracks top edge position over multiple time points
-5. Asserts: top edge must never move down from initial position
+1. Top rows have older `spawnTime`, bottom rows newer
+1. Applies fading opacity based on age
+1. Tracks top edge position over multiple time points
+1. Asserts: top edge must never move down from initial position
 
 ```javascript
 it.skip('top edge should not move down as top rows fade', () => {
@@ -43,9 +43,9 @@ it.skip('top edge should not move down as top rows fade', () => {
 
 Option B uses blur to simulate dispersion. As older foam rows fade to 0 opacity:
 1. Intensity values in grid drop to 0 for those rows
-2. Blur spreads remaining intensity but can't create intensity from nothing
-3. Contour threshold no longer met in faded areas
-4. Result: contour contracts to follow remaining foam
+1. Blur spreads remaining intensity but can't create intensity from nothing
+1. Contour threshold no longer met in faded areas
+1. Result: contour contracts to follow remaining foam
 
 ## Fix Required
 

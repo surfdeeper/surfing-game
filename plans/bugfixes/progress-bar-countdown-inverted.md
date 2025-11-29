@@ -15,11 +15,11 @@ Progress bars should smoothly drain from 100% to 0% as countdown progresses, mat
 
 ### Investigation Process
 1. Initially suspected calculation error - text was correct but progress bar wrong
-2. Added `console.log` and asked user to check browser - **wrong approach**
-3. User requested automated debugging via Vitest - **correct approach**
-4. Wrote integration tests that proved calculation was correct
-5. Tests passed, meaning calculation logic is fine
-6. Identified CSS transition as the culprit
+1. Added `console.log` and asked user to check browser - **wrong approach**
+1. User requested automated debugging via Vitest - **correct approach**
+1. Wrote integration tests that proved calculation was correct
+1. Tests passed, meaning calculation logic is fine
+1. Identified CSS transition as the culprit
 
 ### The Bug
 `src/ui/DebugPanel.css` had:
@@ -34,8 +34,8 @@ When React re-renders at 60fps, the CSS transition tries to animate each change 
 ## Fix Applied
 
 1. **Removed CSS transition** from `.circular-progress-fill`
-2. **Added debug text format** showing `remaining / total` (e.g., "5.0s / 15.0s") for easier debugging
-3. **Added integration tests** that verify progress changes correctly over simulated time
+1. **Added debug text format** showing `remaining / total` (e.g., "5.0s / 15.0s") for easier debugging
+1. **Added integration tests** that verify progress changes correctly over simulated time
 
 ### Files Changed
 - `src/ui/DebugPanel.css` - Removed transition
@@ -51,8 +51,8 @@ npx vitest run src/ui/DebugPanel.test.jsx  # 60 tests pass
 ## Lessons Learned
 
 1. **CSS transitions + 60fps React don't mix** - Never use CSS transitions on elements that re-render every frame
-2. **Test in Vitest first** - Don't ask user to check console; write automated tests
-3. **Integration tests catch calculation bugs** - Unit tests for components should include time progression scenarios
+1. **Test in Vitest first** - Don't ask user to check console; write automated tests
+1. **Integration tests catch calculation bugs** - Unit tests for components should include time progression scenarios
 
 ---
 
@@ -138,13 +138,13 @@ If smooth animation is needed, use JavaScript animation (RAF) or React Spring, n
 ## Debugging UI Issues
 
 1. **Never ask user to check console** - write automated tests instead
-2. **Expose debug state** for browser inspection:
+1. **Expose debug state** for browser inspection:
    ```javascript
    if (import.meta.env.DEV) {
      window.__debug = { state, gameTime };
    }
    ```
-3. **Separate calculation from rendering** - extract to testable pure functions
+1. **Separate calculation from rendering** - extract to testable pure functions
 ```
 
 ### 2. Add to testing Skill
@@ -245,7 +245,7 @@ Common issue: CSS transitions on elements updated every frame cause visual glitc
 This bug took longer to fix than necessary because:
 
 1. **No guidance against manual debugging** - I defaulted to asking user to check console
-2. **No CSS + 60fps warning** - Common pitfall not documented
-3. **No debugging skill** - No systematic methodology documented
+1. **No CSS + 60fps warning** - Common pitfall not documented
+1. **No debugging skill** - No systematic methodology documented
 
 The fix was simple (remove one CSS line), but the debugging process was inefficient. Adding the recommended context engineering updates would prevent similar issues in the future.

@@ -5,16 +5,16 @@
 The debug panel has several usability issues:
 
 1. **Wave state labels overflow** - Text like `[approaching]` pushes content off the right edge
-2. **Waves shown after reaching shore** - Waves appear in debug panel even after passing the shore line, with "at shore" status. They should be removed when they reach shore.
-3. **Wave order is counterintuitive** - Waves are listed in spawn order (oldest first), not screen order (top to bottom). The first wave in the list should be the one closest to the horizon.
+1. **Waves shown after reaching shore** - Waves appear in debug panel even after passing the shore line, with "at shore" status. They should be removed when they reach shore.
+1. **Wave order is counterintuitive** - Waves are listed in spawn order (oldest first), not screen order (top to bottom). The first wave in the list should be the one closest to the horizon.
 
 ## Solution
 
 ### Changes to `src/main.js`
 
 1. **Remove wave state labels** - Delete the `[approaching]`/`[visible]`/`[at shore]` text
-2. **Filter waves at shore** - Only show waves where `wave.y < shoreY` in the debug panel
-3. **Sort waves by position** - Display waves sorted by `y` ascending (smallest y = closest to horizon = first in list)
+1. **Filter waves at shore** - Only show waves where `wave.y < shoreY` in the debug panel
+1. **Sort waves by position** - Display waves sorted by `y` ascending (smallest y = closest to horizon = first in list)
 
 ## Implementation
 

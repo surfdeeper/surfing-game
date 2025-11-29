@@ -12,10 +12,10 @@ Establish a single canonical instructions doc and make tooling-agnostic wording.
 
 ## Implementation Steps
 1. Pick `AGENTS.md` as the canonical source; replace `CLAUDE.md` content with a short pointer linking to `AGENTS.md` (or vice versa) to prevent divergence.
-2. Update wording to refer to “agents” generically and clarify that both Claude and Codex read the same instructions/context order.
-3. Add a brief note explaining `.claude/commands` and `.claude/skills` are the shared directory for both agents (or plan rename if team prefers symmetry), including how to add new commands/skills.
-4. Update any references in docs/README to the canonical file name if present.
-5. Run lint on markdown if applicable; verify links resolve.
+1. Update wording to refer to “agents” generically and clarify that both Claude and Codex read the same instructions/context order.
+1. Add a brief note explaining `.claude/commands` and `.claude/skills` are the shared directory for both agents (or plan rename if team prefers symmetry), including how to add new commands/skills.
+1. Update any references in docs/README to the canonical file name if present.
+1. Run lint on markdown if applicable; verify links resolve.
 
 ## Acceptance Criteria
 - Only one file contains the full instructions; the other clearly points to it without duplicated content.

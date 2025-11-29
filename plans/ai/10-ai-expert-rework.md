@@ -28,22 +28,22 @@
    - Simplify UI control to just enable/disable AI (no mode toggle).
    - Update tests to reflect single-mode behavior and defaults.
 
-2) Lineup behavior
+1) Lineup behavior
    - Define a target lineup point near peak X within the expert band; paddle out from shore to that point on spawn.
    - Add station-keeping: small deadzone and gentle damping so AI holds position instead of oscillating.
    - Keep a short cooldown after rides to prevent immediate re-entry into foam while returning to lineup.
 
-3) Wave/foam selection
+1) Wave/foam selection
    - Keep peak-centered scoring but gate by minimum foam length/opacity to ignore weak/short segments.
    - Prefer earlier, higher-intensity foam near the peak; bias toward peel that is still growing.
    - Add a minimum time between catch attempts to prevent rapid in/out thrashing.
 
-4) Ride heuristic
+1) Ride heuristic
    - Choose a consistent ride direction (or foam-informed) and stick to the peel; continue while foam ahead exists.
    - Relax end condition: don’t bail immediately when intensity dips briefly; allow short grace while foam persists ahead.
    - Avoid getting stuck in foam: if speed drops while intensity is high, bias up/diagonal to escape turbulence.
 
-5) Telemetry & debug hooks
+1) Telemetry & debug hooks
    - Log ride length, distance, and end reason; count wipeouts and cooldown entries.
    - Expose current target, foam score, and ride direction for quick tuning (dev-only).
    - Keep existing key-indicator overlay; optionally display target point/foam lock for debugging.

@@ -19,7 +19,7 @@ Real surf conditions often have 2-3 different swells arriving simultaneously fro
 When multiple swells combine:
 
 1. **Constructive interference**: Crests align = larger waves
-2. **Destructive interference**: Crest meets trough = cancellation
+1. **Destructive interference**: Crest meets trough = cancellation
 
 This is the physics behind why sets and lulls occur naturally.
 
@@ -67,9 +67,9 @@ function combinedAmplitude(y, time) {
 ## Implementation Steps
 
 1. Refactor single swell to array of swells
-2. Each swell has independent period, speed, offset
-3. Sum wave contributions at each y position
-4. Map combined amplitude to gradient intensity
+1. Each swell has independent period, speed, offset
+1. Sum wave contributions at each y position
+1. Map combined amplitude to gradient intensity
 
 ## Acceptance Criteria
 

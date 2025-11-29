@@ -49,17 +49,17 @@ Recommendation: Option A (rename) plus Option C (visual fade-in for polish)
    - Clamp time to shore to minimum 0
    - Or: Skip displaying waves that have passed the shore line
 
-2. **Improve debug panel terminology** (`src/main.js:336`)
+1. **Improve debug panel terminology** (`src/main.js:336`)
    - Change "Waves on screen" to "Active waves"
    - Add wave state indicator (approaching/visible/at shore)
 
-3. **Add wave visibility states** (enhance wave display)
+1. **Add wave visibility states** (enhance wave display)
    - Show wave position relative to screen: "approaching", "visible", "at shore"
    - Maybe show distance from horizon for context
 
 ### Phase 2: Visual Polish (Future)
 
-4. **Fade-in waves from horizon**
+1. **Fade-in waves from horizon**
    - Waves should visually fade in as they approach from the top
    - First ~50px could have alpha ramp from 0 to 1
 
@@ -103,15 +103,15 @@ The current renderer is a simple **immediate-mode Canvas 2D** system in `src/mai
 ### Rendering Pipeline (`draw()` function, lines 237-346)
 
 1. **Clear canvas** with ocean color (line 243-244)
-2. **Draw shore** - tan-colored strip at bottom (lines 246-248)
-3. **Draw waves** - each wave rendered as two gradient bands (lines 250-277):
+1. **Draw shore** - tan-colored strip at bottom (lines 246-248)
+1. **Draw waves** - each wave rendered as two gradient bands (lines 250-277):
    - Peak (dark) → Trough (light) gradient
    - Trough (light) → Next Peak (dark) gradient
    - Gradients are vertical only (`createLinearGradient(0, y1, 0, y2)`)
    - Full-width rectangles (`ctx.fillRect(0, y, w, height)`)
-4. **Draw grid lines** - vertical reference lines every 100px (lines 279-292)
-5. **Draw labels** - "Wave sets and lulls" title, "Shore" label (lines 294-298)
-6. **Draw debug panel** - state info, wave list (lines 300-346)
+1. **Draw grid lines** - vertical reference lines every 100px (lines 279-292)
+1. **Draw labels** - "Wave sets and lulls" title, "Shore" label (lines 294-298)
+1. **Draw debug panel** - state info, wave list (lines 300-346)
 
 ### The Vertical Lines You're Seeing
 
@@ -152,10 +152,10 @@ world = {
 ### Problems with Current Architecture for React/Three.js Migration
 
 1. **Mutable state**: Position (`y`) is mutated directly, not derived from time
-2. **No component boundaries**: Everything in one `draw()` function
-3. **Immediate mode**: No retained scene graph or component tree
-4. **Tightly coupled**: Rendering logic mixed with game state
-5. **No testability**: Can't unit test rendering separate from state
+1. **No component boundaries**: Everything in one `draw()` function
+1. **Immediate mode**: No retained scene graph or component tree
+1. **Tightly coupled**: Rendering logic mixed with game state
+1. **No testability**: Can't unit test rendering separate from state
 
 ---
 
@@ -235,12 +235,12 @@ This enables:
 
 **Migration Steps**:
 1. Extract pure game logic into separate module (✅ Done - Plan 123)
-2. Convert wave model to time-based (✅ Done - Plan 123)
-3. Add React UI layer (✅ Done - Plan 127: Preact)
-4. Optimize for performance (📋 Plan 128: Concurrent Mode)
-5. Migrate to React 18 (📋 Plan 129: React 18 Migration)
-6. Incrementally convert rendering to React Three Fiber (📋 Plan 131)
-7. Add WebGL shaders for water effects (📋 Plan 131)
+1. Convert wave model to time-based (✅ Done - Plan 123)
+1. Add React UI layer (✅ Done - Plan 127: Preact)
+1. Optimize for performance (📋 Plan 128: Concurrent Mode)
+1. Migrate to React 18 (📋 Plan 129: React 18 Migration)
+1. Incrementally convert rendering to React Three Fiber (📋 Plan 131)
+1. Add WebGL shaders for water effects (📋 Plan 131)
 
 **Note**: React migration now split into focused plans:
 - **Plan 127**: Preact UI Layer (UI components)
@@ -258,10 +258,10 @@ This enables:
 ## Implementation Steps
 
 1. Fix the negative time issue (clamp to 0)
-2. Rename "Waves on screen" to "Active waves"
-3. Add wave state labels in debug list (approaching/visible/at shore)
-4. Test the changes
-5. Create the future plan files:
+1. Rename "Waves on screen" to "Active waves"
+1. Add wave state labels in debug list (approaching/visible/at shore)
+1. Test the changes
+1. Create the future plan files:
    - `plans/122-dynamic-shoreline.md`
    - `plans/123-wave-lifecycle-model.md` (✅ Done)
    - `plans/127-declarative-ui-layer.md` (✅ Done)

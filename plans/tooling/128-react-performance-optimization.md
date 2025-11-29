@@ -5,9 +5,9 @@
 Current button interactions are **laggy during animations** due to:
 
 1. **Blocking render loop**: Canvas rendering happens synchronously in `requestAnimationFrame`
-2. **No work prioritization**: All rendering work has equal priority
-3. **UI updates compete with animations**: Button clicks trigger state changes that re-render during heavy animation frames
-4. **Single-threaded bottleneck**: JavaScript main thread handles both UI events and canvas rendering
+1. **No work prioritization**: All rendering work has equal priority
+1. **UI updates compete with animations**: Button clicks trigger state changes that re-render during heavy animation frames
+1. **Single-threaded bottleneck**: JavaScript main thread handles both UI events and canvas rendering
 
 ### Current Performance Issues
 
@@ -337,10 +337,10 @@ This becomes a separate plan after Plan 127 is complete.
 #### Key Features to Use:
 
 1. **`startTransition`**: Mark non-urgent updates
-2. **`useDeferredValue`**: Defer expensive calculations
-3. **Automatic batching**: Multiple setState calls batched
-4. **Concurrent rendering**: Interruptible, priority-based
-5. **Suspense boundaries**: Loading states for data
+1. **`useDeferredValue`**: Defer expensive calculations
+1. **Automatic batching**: Multiple setState calls batched
+1. **Concurrent rendering**: Interruptible, priority-based
+1. **Suspense boundaries**: Loading states for data
 
 **Example**:
 ```jsx
@@ -563,23 +563,23 @@ Realistic target: Compute should be >10ms (20× overhead)
 
 ### Phase 1
 1. ✅ Button clicks feel instant (<33ms response time)
-2. ✅ Stats update smoothly without blocking UI
-3. ✅ Frame rate stays at 60 FPS during heavy animation
-4. ✅ No visual regressions
-5. ✅ All tests pass
+1. ✅ Stats update smoothly without blocking UI
+1. ✅ Frame rate stays at 60 FPS during heavy animation
+1. ✅ No visual regressions
+1. ✅ All tests pass
 
 ### Phase 2 (Future)
 1. ✅ React 18 Concurrent Mode enabled
-2. ✅ `startTransition` used for non-urgent updates
-3. ✅ `useDeferredValue` used for expensive calculations
-4. ✅ Button response <16ms consistently
-5. ✅ Smooth animations at 60+ FPS
+1. ✅ `startTransition` used for non-urgent updates
+1. ✅ `useDeferredValue` used for expensive calculations
+1. ✅ Button response <16ms consistently
+1. ✅ Smooth animations at 60+ FPS
 
 ### Phase 3 (Optional - Only If Profiling Justifies)
 1. ✅ Web Worker handles wave calculations (only if >10ms compute time)
-2. ✅ Main thread freed up for UI interactions
-3. ✅ Communication overhead <10% of compute time
-4. ✅ Measurements show net performance gain (not overhead loss)
+1. ✅ Main thread freed up for UI interactions
+1. ✅ Communication overhead <10% of compute time
+1. ✅ Measurements show net performance gain (not overhead loss)
 
 ## References
 

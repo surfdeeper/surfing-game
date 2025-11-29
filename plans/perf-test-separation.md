@@ -5,9 +5,9 @@
 Performance tests in `marchingSquares.test.js` are flaky because:
 
 1. **Cold execution** - Single-shot timing without JIT warmup
-2. **Test suite contamination** - Run after heavy tests (DebugPanel takes 12+ seconds)
-3. **Tight thresholds** - 10-15ms limits hit by GC pauses, OS scheduling
-4. **Unrealistic conditions** - Real game loop has warmed-up code paths
+1. **Test suite contamination** - Run after heavy tests (DebugPanel takes 12+ seconds)
+1. **Tight thresholds** - 10-15ms limits hit by GC pauses, OS scheduling
+1. **Unrealistic conditions** - Real game loop has warmed-up code paths
 
 Measured reality:
 - Test shows: 10-100ms (flaky)
@@ -126,10 +126,10 @@ export default defineConfig({
 ## Success Criteria
 
 1. `npm test` runs fast and never flaky (no perf tests)
-2. `npm run test:perf` runs isolated performance tests with realistic thresholds
-3. Performance tests use warmup iterations and averaged measurements
-4. Performance tests run in node environment (no jsdom overhead)
-5. Thresholds are realistic (~5ms warmed, not 10ms cold)
+1. `npm run test:perf` runs isolated performance tests with realistic thresholds
+1. Performance tests use warmup iterations and averaged measurements
+1. Performance tests run in node environment (no jsdom overhead)
+1. Thresholds are realistic (~5ms warmed, not 10ms cold)
 
 ## Future Considerations
 

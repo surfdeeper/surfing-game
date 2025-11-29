@@ -113,8 +113,8 @@ for (const { value, color, lineWidth } of thresholds) {
 **Option C (Hybrid)** seems most practical:
 
 1. **Bathymetry**: Use the extracted helper - it's identical and reduces duplication
-2. **Contours**: Keep inline - the color schemes differ per option and performance is critical
-3. **Dead code**: Delete the unused `drawContours()` function
+1. **Contours**: Keep inline - the color schemes differ per option and performance is critical
+1. **Dead code**: Delete the unused `drawContours()` function
 
 ---
 
@@ -123,16 +123,16 @@ for (const { value, color, lineWidth } of thresholds) {
 If proceeding with Option C:
 
 1. [ ] Import `buildBathymetryCache` or `createBathymetryCacheManager` from `bathymetryRenderer.js`
-2. [ ] Replace inline bathymetry cache building (lines 670-698) with helper call
-3. [ ] Delete unused `drawContours()` function (lines 838-855)
-4. [ ] Run `npm run lint`
-5. [ ] Run `npm test`
-6. [ ] Run visual tests to verify no rendering changes
+1. [ ] Replace inline bathymetry cache building (lines 670-698) with helper call
+1. [ ] Delete unused `drawContours()` function (lines 838-855)
+1. [ ] Run `npm run lint`
+1. [ ] Run `npm test`
+1. [ ] Run visual tests to verify no rendering changes
 
 ---
 
 ## Questions for Decision
 
 1. Should we consolidate bathymetry rendering?
-2. Should we consolidate contour drawing (accept slight refactoring)?
-3. Should we delete the dead `drawContours()` function?
+1. Should we consolidate contour drawing (accept slight refactoring)?
+1. Should we delete the dead `drawContours()` function?

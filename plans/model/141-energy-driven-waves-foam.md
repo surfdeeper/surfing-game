@@ -116,9 +116,9 @@ When disabled, the system behaves as before (Plan 140 compatible).
 ## Benefits
 
 1. **Visual coherence**: Energy field and wave visuals match perfectly
-2. **Realistic reformation**: Waves shrink after breaking, can break again if energy rebuilds
-3. **Set wave distinction**: Set waves produce noticeably more foam
-4. **Emergent gameplay**: Player can see where energy is concentrated (where to catch waves)
+1. **Realistic reformation**: Waves shrink after breaking, can break again if energy rebuilds
+1. **Set wave distinction**: Set waves produce noticeably more foam
+1. **Emergent gameplay**: Player can see where energy is concentrated (where to catch waves)
 
 ## Open Questions
 
@@ -134,6 +134,6 @@ When disabled, the system behaves as before (Plan 140 compatible).
 ## Success Criteria
 
 1. Wave visually thins after breaking over sandbar
-2. Set waves produce brighter/thicker foam than background waves
-3. A wave that broke at the outer sandbar has less energy at the inner point
-4. Energy field and wave rendering stay visually synchronized
+1. Set waves produce brighter/thicker foam than background waves
+1. A wave that broke at the outer sandbar has less energy at the inner point
+1. Energy field and wave rendering stay visually synchronized

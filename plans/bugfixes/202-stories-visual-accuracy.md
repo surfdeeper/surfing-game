@@ -10,7 +10,7 @@ The MDX stories viewer shows incorrect visuals for some progressions:
 
 1. **"No dissipation" shows dissipation** - The progression labeled as having no dissipation actually shows energy decay, which contradicts its name/purpose
 
-2. **"Hole" example looks odd** - The hole/gap visualization doesn't render as expected (needs more detail on what's wrong)
+1. **"Hole" example looks odd** - The hole/gap visualization doesn't render as expected (needs more detail on what's wrong)
 
 ## Investigation Needed
 
@@ -21,9 +21,9 @@ The MDX stories viewer shows incorrect visuals for some progressions:
 ## Potential Causes
 
 1. **Wrong damping coefficient** - `depthDampingCoefficient` might not be 0 for "no dissipation"
-2. **Matrix interpretation** - Color mapping might not match expected values
-3. **Progression definition** - Test file exports might have incorrect config
-4. **Render function** - `renderEnergyField` might apply transformations
+1. **Matrix interpretation** - Color mapping might not match expected values
+1. **Progression definition** - Test file exports might have incorrect config
+1. **Render function** - `renderEnergyField` might apply transformations
 
 ## Files to Investigate
 

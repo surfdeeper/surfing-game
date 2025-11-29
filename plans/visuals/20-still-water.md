@@ -91,11 +91,11 @@ src/
 ## Success Criteria
 
 1. See a flat water surface at Y = 0
-2. Water is darker in the distance (deep), lighter near shore (shallow)
-3. Sky reflects on water surface, more at glancing angles
-4. Specular highlight from "sun"
-5. Probe shows depth value when over water
-6. Looks like calm water, not just a blue plane
+1. Water is darker in the distance (deep), lighter near shore (shallow)
+1. Sky reflects on water surface, more at glancing angles
+1. Specular highlight from "sun"
+1. Probe shows depth value when over water
+1. Looks like calm water, not just a blue plane
 
 ---
 

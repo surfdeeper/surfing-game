@@ -55,7 +55,7 @@ After bending, waves try to reform into a line via diffusion:
 
 Called each frame for each wave. Two-step process:
 1. Apply bathymetry-based speed differences to each X slice
-2. Apply lateral diffusion to smooth out bends
+1. Apply lateral diffusion to smooth out bends
 
 ### `getProgressAtX(wave, normalizedX)`
 
@@ -80,9 +80,9 @@ for (let i = 0; i < numSlices; i++) {
 ## Visual Behavior
 
 1. Wave starts as straight line at horizon
-2. As it passes over sandbar/point, shallow sections lag behind → wave bends
-3. After passing obstacle, diffusion pulls wave back toward straight
-4. Wave continues with slightly rotated orientation
+1. As it passes over sandbar/point, shallow sections lag behind → wave bends
+1. After passing obstacle, diffusion pulls wave back toward straight
+1. Wave continues with slightly rotated orientation
 
 ## Tuning
 

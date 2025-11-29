@@ -17,14 +17,14 @@ User reports seeing only background waves, with set waves not appearing even whe
 
 1. **Unit tests pass**: All 69 tests in `setLullModel.test.js` pass, confirming the state machine logic is correct.
 
-2. **E2E tests pass**: Created new Playwright tests (`tests/set-waves.spec.js`) that verify:
+1. **E2E tests pass**: Created new Playwright tests (`tests/set-waves.spec.js`) that verify:
    - Game starts in LULL state
    - Set waves spawn when state transitions to SET
    - No set waves spawn during LULL
    - State cycles LULL -> SET -> LULL correctly
    - Toggle only affects visibility, not simulation
 
-3. **Root cause identified**: The issue is **stale localStorage state**.
+1. **Root cause identified**: The issue is **stale localStorage state**.
    - Game state is persisted to localStorage (including `setLullState` and `gameTime`)
    - If the user's localStorage has corrupted or mismatched timestamps, the state machine may appear stuck
    - The `showSetWaves` toggle defaults to `true`, so that's not the issue
@@ -33,9 +33,9 @@ User reports seeing only background waves, with set waves not appearing even whe
 
 1. **User accidentally pressed 'S' key**: This toggles set wave visibility off. Set waves still simulate but aren't drawn.
 
-2. **Stale localStorage from old session**: If `setLullState.stateStartTime` is from a very old session but doesn't match current `gameTime`, timing could be off.
+1. **Stale localStorage from old session**: If `setLullState.stateStartTime` is from a very old session but doesn't match current `gameTime`, timing could be off.
 
-3. **Tab was hidden during transition**: The visibility change handler resets timing, which should be correct but might have edge cases.
+1. **Tab was hidden during transition**: The visibility change handler resets timing, which should be correct but might have edge cases.
 
 ## Fix
 
@@ -54,12 +54,12 @@ Or press 'S' key to toggle set wave visibility if it was accidentally turned off
 - Created comprehensive E2E test suite: `tests/set-waves.spec.js`
 - All 7 tests pass, confirming correct behavior:
   1. Game starts in LULL state
-  2. Set waves spawn when state transitions to SET
-  3. No set waves spawn during LULL state
-  4. Background waves spawn continuously
-  5. Waves array contains both types after full cycle
-  6. State cycles LULL -> SET -> LULL
-  7. Set wave toggle affects visibility but waves still simulate
+  1. Set waves spawn when state transitions to SET
+  1. No set waves spawn during LULL state
+  1. Background waves spawn continuously
+  1. Waves array contains both types after full cycle
+  1. State cycles LULL -> SET -> LULL
+  1. Set wave toggle affects visibility but waves still simulate
 
 ## Prevention
 - The window.world exposure allows debugging state in browser console

@@ -12,3 +12,5 @@ tests/visual/report/
 # These are committed to ensure consistent test baselines across environments
 
 ladle-build/dist-stories/
+
+dist-stories
