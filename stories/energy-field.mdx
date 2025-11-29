@@ -12,6 +12,8 @@ import {
   PROGRESSION_WITH_DRAIN,
 } from '../src/state/energyFieldPropagation.test';
 
+<section id="no-damping">
+
 ## No Damping (Deep Water)
 
 In deep water with `depthDampingCoefficient=0`, energy maintains its
@@ -27,7 +29,9 @@ but total energy is conserved.
 - By t=3s, energy band is centered around rows 2-3
 - Total energy remains roughly constant across frames
 
----
+</section>
+
+<section id="depth-damping">
 
 ## With Depth-Based Damping
 
@@ -50,7 +54,9 @@ Where:
 Notice how energy fades as it approaches shore (bottom rows). This
 prevents energy from "piling up" at the shoreline.
 
----
+</section>
+
+<section id="high-damping">
 
 ## High Damping
 
@@ -60,7 +66,9 @@ Doubling the coefficient to `0.2` causes more aggressive decay:
 
 <ProgressionStrip snapshots={PROGRESSION_HIGH_DAMPING.snapshots} testId="strip-high-damping" />
 
----
+</section>
+
+<section id="damping-comparison">
 
 ## Damping Coefficient Comparison
 
@@ -73,7 +81,9 @@ Doubling the coefficient to `0.2` causes more aggressive decay:
 **Tradeoff:** Too much damping makes waves feel weak; too little causes
 visual artifacts at the shoreline.
 
----
+</section>
+
+<section id="energy-drain">
 
 ## Energy Drain (Wave Breaking)
 
@@ -101,3 +111,5 @@ center column is completely drained (simulating wave breaking):
 
 The contrast between center (0.0) and neighbors (0.3-0.5) demonstrates
 how breaking creates localized energy depletion.
+
+</section>

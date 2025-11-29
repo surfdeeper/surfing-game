@@ -1,6 +1,6 @@
 # Plan 201: Stories Anchor Navigation
 
-Status: PLACEHOLDER
+Status: COMPLETE
 Owner: agents
 Depends on: 200-mdx-visual-docs
 
@@ -23,19 +23,21 @@ Add `#anchor` style navigation:
 
 | Step | Task | Status |
 |------|------|--------|
-| 1 | Add `id` attributes to each story section in MDX | |
-| 2 | Generate sidebar links from story headings | |
-| 3 | Handle initial hash on page load (scroll to anchor) | |
-| 4 | Update URL hash when clicking sidebar links | |
-| 5 | Optional: highlight active section in sidebar on scroll | |
+| 1 | Add `id` attributes to each story section in MDX | ✅ |
+| 2 | Generate sidebar links from story headings | ✅ |
+| 3 | Handle initial hash on page load (scroll to anchor) | ✅ |
+| 4 | Update URL hash when clicking sidebar links | ✅ |
+| 5 | Optional: highlight active section in sidebar on scroll | ✅ |
 
-## Files to Modify
+## Files Modified
 
-- `stories/App.tsx` - sidebar navigation component
-- `stories/energy-field.mdx` - add section IDs
-- `stories/components/ProgressionPlayer.tsx` - possibly wrap with anchor
+- `stories/App.tsx` - three-column layout with sticky right-side TOC
+- `stories/energy-field.mdx` - wrapped sections with `<section id="...">` tags
 
-## Notes
+## Implementation Notes
 
-- Keep it simple - no routing library needed, just native anchor behavior
-- Consider auto-generating IDs from progression names
+- Left sidebar: file/page navigation (sticky)
+- Right sidebar: "On this page" section anchors (sticky)
+- Main content scrolls independently
+- Active section highlighted with cyan border
+- Hash updates on click and loads correct section on page load
