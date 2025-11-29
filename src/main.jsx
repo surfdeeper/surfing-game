@@ -90,6 +90,8 @@ for (const [key, value] of Object.entries(savedSettings)) {
         store.dispatch({ type: EventType.TIME_SCALE_CHANGE, timeScale: value });
     } else if (typeof value === 'boolean') {
         store.dispatch({ type: EventType.TOGGLE_CHANGE, key, value });
+    } else if (typeof value === 'number') {
+        store.dispatch({ type: EventType.TOGGLE_CHANGE, key, value });
     }
 }
 world = store.getState();
@@ -117,6 +119,14 @@ function handleToggle(key) {
         store.dispatch({ type: EventType.PLAYER_INIT, playerProxy: createPlayerProxy(canvas.width, shoreY) });
         world = store.getState();
     }
+}
+
+// Numeric/setting change handler for debug UI (non-boolean)
+function handleSettingChange(key, value) {
+    store.dispatch({ type: EventType.TOGGLE_CHANGE, key, value });
+    world = store.getState();
+    toggles = { ...world.toggles, timeScale: world.timeScale };
+    saveSettings({ ...world.toggles, timeScale: world.timeScale });
 }
 
 // Time scale handler for React UI
@@ -177,10 +187,8 @@ function spawnWave(amplitude, type) {
 
     // Inject pulse into energy field to match discrete wave
     // Set waves have more energy (2x) than background waves
-    if (toggles.showEnergyField) {
-        const energyMultiplier = type === WAVE_TYPE.SET ? 2.0 : 1.0;
-        injectWavePulse(world.energyField, amplitude * energyMultiplier);
-    }
+    const energyMultiplier = type === WAVE_TYPE.SET ? 2.0 : 1.0;
+    injectWavePulse(world.energyField, amplitude * energyMultiplier);
 }
 
 function update(deltaTime) {
@@ -196,7 +204,10 @@ function update(deltaTime) {
     const energyTravelDuration = calculateTravelDuration(oceanBottom, world.swellSpeed) / 1000; // in seconds
     const getDepthForField = (normalizedX, normalizedY) =>
         getDepth(normalizedX, world.bathymetry, normalizedY);
-    updateEnergyField(world.energyField, getDepthForField, scaledDelta, energyTravelDuration);
+    updateEnergyField(world.energyField, getDepthForField, scaledDelta, energyTravelDuration, {
+        depthDampingCoefficient: toggles.depthDampingCoefficient ?? 1.5,
+        depthDampingExponent: toggles.depthDampingExponent ?? 2.0,
+    });
 
     // Update wave spawning via orchestrator (returns events + new state)
     const spawnResult = updateWaveSpawning(
@@ -249,7 +260,6 @@ function update(deltaTime) {
         canvasHeight: canvas.height,
         shoreHeight: world.shoreHeight,
         swellSpeed: world.swellSpeed,
-        showEnergyField: toggles.showEnergyField,
         deltaTime: scaledDelta,
     };
 
@@ -337,21 +347,23 @@ function draw() {
     // Foam contour rendering using extracted config (Plan 170)
     const foamGridWidth = world.foamGrid?.width || FOAM_GRID_WIDTH;
     const foamGridHeight = world.foamGrid?.height || FOAM_GRID_HEIGHT;
+    const foamGridData = world.foamGrid?.data;
+    const transferGridData = world.energyTransferGrid?.lastFrame;
 
-    renderFoamContours(ctx, world.foamGrid?.data, { width: foamGridWidth, height: foamGridHeight }, w, h, world.gameTime, oceanBottom, getToggles(), {
+    renderFoamContours(ctx, { transferGrid: transferGridData, foamGrid: foamGridData }, { width: foamGridWidth, height: foamGridHeight }, w, h, world.gameTime, oceanBottom, getToggles(), {
         base: renderMultiContourFromGrid,
         optionA: renderMultiContourOptionAFromGrid,
         optionB: renderMultiContourOptionBFromGrid,
         optionC: renderMultiContourOptionCFromGrid,
     });
 
-    // LAYER: Foam samples (debug view - original rectangle-based rendering)
-    // Draw foam deposits as individual rectangles for debugging
+    // LAYER: Energy transfer samples (debug view - per-frame transfer snapshot)
+    // Draw transfer deposits as individual rectangles for debugging
     // Performance: batched by opacity to reduce state changes
     if (toggles.showFoamSamples) {
         const cellW = w / foamGridWidth;
         const cellH = (oceanBottom - oceanTop) / foamGridHeight;
-        const data = world.foamGrid?.data || [];
+        const data = (transferGridData && transferGridData.length ? transferGridData : foamGridData) || [];
         for (let y = 0; y < foamGridHeight; y++) {
             for (let x = 0; x < foamGridWidth; x++) {
                 const value = data[y * foamGridWidth + x];
@@ -378,16 +390,14 @@ function draw() {
     // Render React debug panel (extracted to ui/debugPanelManager.js)
     let foamCellCount = 0;
     let energyTransferCellCount = 0;
-    if (world.foamGrid && world.foamGrid.data) {
-        const data = world.foamGrid.data;
-        for (let i = 0; i < data.length; i++) {
-            if (data[i] > 0.01) foamCellCount++;
+    if (foamGridData) {
+        for (let i = 0; i < foamGridData.length; i++) {
+            if (foamGridData[i] > 0.01) foamCellCount++;
         }
     }
-    if (world.energyTransferGrid && world.energyTransferGrid.data) {
-        const data = world.energyTransferGrid.data;
-        for (let i = 0; i < data.length; i++) {
-            if (data[i] > 0.01) energyTransferCellCount++;
+    if (transferGridData) {
+        for (let i = 0; i < transferGridData.length; i++) {
+            if (transferGridData[i] > 0.01) energyTransferCellCount++;
         }
     }
 
@@ -401,6 +411,7 @@ function draw() {
         onTimeScaleChange: handleTimeScaleChange,
         toggles,
         onToggle: handleToggle,
+        onSettingChange: handleSettingChange,
         fps: fpsTracker.getDisplayFps(),
         playerConfig: PLAYER_PROXY_CONFIG,
         onPlayerConfigChange: handlePlayerConfigChange,

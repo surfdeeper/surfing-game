@@ -29,6 +29,8 @@ export const SETTINGS_SCHEMA = {
 
     // Energy field
     showEnergyField: { type: 'boolean', default: false, hotkey: 'e' },
+    depthDampingCoefficient: { type: 'number', default: 0.1 },
+    depthDampingExponent: { type: 'number', default: 2.0 },
 
     // Time scale (not a toggle but a setting)
     timeScale: { type: 'number', default: 1, options: [1, 2, 4, 8] },

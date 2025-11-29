@@ -104,6 +104,8 @@ export function createInitialState() {
             showFoamOptionB: false,
             showFoamOptionC: false,
             showEnergyField: false,
+            depthDampingCoefficient: 0.1,
+            depthDampingExponent: 2.0,
         },
     };
 }

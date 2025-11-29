@@ -96,7 +96,6 @@ export function updateFoamGridsFromWaves(waves, state) {
         canvasHeight,
         shoreHeight,
         swellSpeed,
-        showEnergyField,
         deltaTime,
     } = state;
 
@@ -106,6 +105,7 @@ export function updateFoamGridsFromWaves(waves, state) {
     const numXSamples = foamGridWidth || foamGrid.width;
     const foamGridRows = foamGridHeight || foamGrid.height;
     const foamYSpacing = (oceanBottom - oceanTop) / foamGridRows;
+    const baseDragRate = 0.6; // per-second dissipation in shallow water even without breaking
 
     for (const wave of waves) {
         const progress = getWaveProgress(wave, gameTime, travelDuration);
@@ -129,17 +129,23 @@ export function updateFoamGridsFromWaves(waves, state) {
                 const normalizedX = (i + 0.5) / numXSamples;
                 const depth = getDepth(normalizedX, bathymetry, foamProgress);
 
-                let energyAtPoint = 0;
-                const shouldBreak = showEnergyField
-                    ? (energyAtPoint = getHeightAt(energyField, normalizedX, foamProgress),
-                        isWaveBreakingWithEnergy(wave, depth, energyAtPoint))
-                    : isWaveBreaking(wave, depth);
+                const energyAtPoint = Math.abs(getHeightAt(energyField, normalizedX, foamProgress));
+                const shouldBreak = isWaveBreakingWithEnergy(wave, depth, energyAtPoint);
+
+                // Always dissipate some energy as waves shoal, even before breaking
+                const shallowFactor = Math.max(0, 1 - depth / 6); // stronger drag in shallow water
+                const dragEnergy = energyAtPoint * shallowFactor * baseDragRate * deltaTime;
+                if (dragEnergy > 0) {
+                    const released = drainEnergyAt(energyField, normalizedX, foamProgress, dragEnergy);
+                    if (released > 0) {
+                        accumulateEnergyTransfer(energyTransferGrid, normalizedX, foamProgress, released);
+                        depositedAny = true;
+                    }
+                }
 
                 if (shouldBreak) {
                     const drainAmount = wave.amplitude * 20.0;
-                    const energyReleased = showEnergyField
-                        ? drainEnergyAt(energyField, normalizedX, foamProgress, drainAmount)
-                        : drainAmount;
+                    const energyReleased = drainEnergyAt(energyField, normalizedX, foamProgress, drainAmount);
 
                     accumulateEnergyTransfer(energyTransferGrid, normalizedX, foamProgress, energyReleased);
                     depositedAny = true;
@@ -150,6 +156,19 @@ export function updateFoamGridsFromWaves(waves, state) {
                 wave.lastFoamY = foamY;
             }
         }
+    }
+
+    // Capture the transfer frame for rendering/debugging before it is cleared
+    if (energyTransferGrid) {
+        const { data } = energyTransferGrid;
+        const target = energyTransferGrid.lastFrame && energyTransferGrid.lastFrame.length === data.length
+            ? energyTransferGrid.lastFrame
+            : new Float32Array(data.length);
+
+        for (let i = 0; i < data.length; i++) {
+            target[i] = Math.min(1, data[i]);
+        }
+        energyTransferGrid.lastFrame = target;
     }
 
     updateFoamLayer(foamGrid, energyTransferGrid, deltaTime);
@@ -172,8 +191,6 @@ export function depositFoam(waves, foamSegments, state) {
     const foamYSpacing = 3;
     // Defer cloning until we actually add foam (performance optimization)
     let newFoamSegments = null;
-    const useEnergyField = state.showEnergyField;
-
     for (const wave of waves) {
         const progress = getWaveProgress(wave, gameTime, travelDuration);
         const waveY = progressToScreenY(progress, oceanTop, oceanBottom);
@@ -196,25 +213,16 @@ export function depositFoam(waves, foamSegments, state) {
                 const normalizedX = (i + 0.5) / numXSamples;
                 const depth = getDepth(normalizedX, bathymetry, foamProgress);
 
-                let shouldBreak;
-                let energyAtPoint = 0;
-                if (useEnergyField) {
-                    energyAtPoint = getHeightAt(energyField, normalizedX, foamProgress);
-                    shouldBreak = isWaveBreakingWithEnergy(wave, depth, energyAtPoint);
-                } else {
-                    shouldBreak = isWaveBreaking(wave, depth);
+            const energyAtPoint = Math.abs(getHeightAt(energyField, normalizedX, foamProgress));
+            const shouldBreak = isWaveBreakingWithEnergy(wave, depth, energyAtPoint);
+
+            if (shouldBreak) {
+                const energyReleased = drainEnergyAt(energyField, normalizedX, foamProgress, wave.amplitude * 20.0);
+
+                // Clone array on first addition (deferred clone pattern)
+                if (!newFoamSegments) {
+                    newFoamSegments = [...foamSegments];
                 }
-
-                if (shouldBreak) {
-                    let energyReleased = wave.amplitude;
-                    if (useEnergyField) {
-                        energyReleased = drainEnergyAt(energyField, normalizedX, foamProgress, wave.amplitude * 20.0);
-                    }
-
-                    // Clone array on first addition (deferred clone pattern)
-                    if (!newFoamSegments) {
-                        newFoamSegments = [...foamSegments];
-                    }
                     const foam = createFoam(gameTime, normalizedX, foamY, wave.id);
                     foam.opacity = Math.min(1.0, energyReleased * 2);
                     newFoamSegments.push(foam);
@@ -246,7 +254,7 @@ export function updateFoamLifecycle(foamSegments, deltaTime, gameTime) {
  * Deposit foam rows (span-based) for smooth rendering
  */
 export function depositFoamRows(waves, foamRows, state) {
-    const { gameTime, bathymetry } = state;
+    const { gameTime, bathymetry, energyField } = state;
     const { oceanTop, oceanBottom } = getOceanBounds(state.canvasHeight, state.shoreHeight);
     const travelDuration = calculateTravelDuration(oceanBottom, state.swellSpeed);
 
@@ -280,7 +288,8 @@ export function depositFoamRows(waves, foamRows, state) {
             for (let i = 0; i <= numXSamples; i++) {
                 const normalizedX = (i + 0.5) / numXSamples;
                 const depth = i < numXSamples ? getDepth(normalizedX, bathymetry, foamProgress) : Infinity;
-                const breaking = i < numXSamples && isWaveBreaking(wave, depth);
+                const energyAtPoint = i < numXSamples ? Math.abs(getHeightAt(energyField, normalizedX, foamProgress)) : 0;
+                const breaking = i < numXSamples && isWaveBreakingWithEnergy(wave, depth, energyAtPoint);
 
                 if (breaking) {
                     if (spanStart === null) {

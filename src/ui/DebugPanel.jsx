@@ -2,7 +2,7 @@ import './DebugPanel.css';
 import { Tooltip } from 'react-tooltip';
 
 // Pure component - receives all data as props, rendered from game loop via requestAnimationFrame
-export function DebugPanel({ setLullState, gameTime, displayWaves, foamCount, energyTransferCount, timeScale, onTimeScaleChange, toggles, onToggle, fps, playerConfig, onPlayerConfigChange, aiMode, onAIModeChange }) {
+export function DebugPanel({ setLullState, gameTime, displayWaves, foamCount, energyTransferCount, timeScale, onTimeScaleChange, toggles, onToggle, onSettingChange, fps, playerConfig, onPlayerConfigChange, aiMode, onAIModeChange }) {
   const sls = setLullState;
   const setWaves = displayWaves.filter(w => w.wave.type === 'set');
   const bgWaves = displayWaves.filter(w => w.wave.type === 'background');
@@ -30,6 +30,7 @@ export function DebugPanel({ setLullState, gameTime, displayWaves, foamCount, en
       <FPSCounter fps={fps} />
       <Tooltip id="debug-tooltip" place="left" />
       <Section title="View Layers">
+        <p className="layer-order-note">Order: source → transfer → foam (top to bottom here; back to front on canvas).</p>
         <Toggle
           label="Bathymetry"
           checked={toggles.showBathymetry}
@@ -55,16 +56,16 @@ export function DebugPanel({ setLullState, gameTime, displayWaves, foamCount, en
           hotkey="E"
         />
         <Toggle
+          label="Energy Transfer Samples"
+          checked={toggles.showFoamSamples}
+          onChange={() => onToggle('showFoamSamples')}
+          hotkey="D"
+        />
+        <Toggle
           label="Energy Transfer (contours)"
           checked={toggles.showFoamZones}
           onChange={() => onToggle('showFoamZones')}
           hotkey="F"
-        />
-        <Toggle
-          label="Foam Grid Debug"
-          checked={toggles.showFoamSamples}
-          onChange={() => onToggle('showFoamSamples')}
-          hotkey="D"
         />
         <Toggle
           label="Player"
@@ -119,6 +120,24 @@ export function DebugPanel({ setLullState, gameTime, displayWaves, foamCount, en
           options={[1, 2, 4, 8]}
           onChange={onTimeScaleChange}
           hotkey="T"
+        />
+        <Slider
+          label="Depth Damping"
+          tooltip="Energy decay in shallow water. Higher = faster fade before shore."
+          value={toggles.depthDampingCoefficient}
+          min={0}
+          max={0.2}
+          step={0.01}
+          onChange={(v) => onSettingChange('depthDampingCoefficient', v)}
+        />
+        <Slider
+          label="Damping Exponent"
+          tooltip="How sharply decay ramps as depth→0 (higher = more cliff near shore)."
+          value={toggles.depthDampingExponent}
+          min={1}
+          max={4}
+          step={0.1}
+          onChange={(v) => onSettingChange('depthDampingExponent', v)}
         />
       </Section>
 
@@ -287,7 +306,8 @@ function FPSCounter({ fps }) {
   );
 }
 
-function Slider({ label, value, min, max, onChange, suffix = '', tooltip }) {
+function Slider({ label, value, min, max, step = 1, onChange, suffix = '', tooltip }) {
+  const decimals = step < 0.1 ? 2 : 1;
   return (
     <div className="slider-control">
       <div className="slider-header">
@@ -303,12 +323,13 @@ function Slider({ label, value, min, max, onChange, suffix = '', tooltip }) {
             </span>
           )}
         </span>
-        <span className="slider-value">{Math.round(value)}{suffix}</span>
+        <span className="slider-value">{Number(value).toFixed(decimals)}{suffix}</span>
       </div>
       <input
         type="range"
         min={min}
         max={max}
+        step={step}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
         className="slider"

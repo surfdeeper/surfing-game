@@ -56,6 +56,8 @@ export const DEFAULT_BATHYMETRY = {
  * @returns {number} Water depth in meters
  */
 export function getDepth(normalizedX, config = DEFAULT_BATHYMETRY, progress = 0) {
+    const MIN_DEPTH = 0.01; // small epsilon to allow near-zero depth toward shore
+
     // Base depth: linear interpolation from deep (horizon) to shallow (shore)
     const baseDepth = config.deepDepth - (config.deepDepth - config.shoreDepth) * progress;
 
@@ -116,7 +118,7 @@ export function getDepth(normalizedX, config = DEFAULT_BATHYMETRY, progress = 0)
     }
 
     // Final depth = base depth minus bonuses (shallower where bonuses apply)
-    return Math.max(0.1, baseDepth - totalBonus);
+    return Math.max(MIN_DEPTH, baseDepth - totalBonus);
 }
 
 /**

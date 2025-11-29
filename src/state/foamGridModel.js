@@ -16,8 +16,12 @@ function createLayer(width = FOAM_GRID_WIDTH, height = FOAM_GRID_HEIGHT) {
 }
 
 export function createFoamGrids() {
+    const energyTransfer = createLayer();
+    // Snapshot of the most recent transfer frame for rendering/debugging
+    energyTransfer.lastFrame = new Float32Array(energyTransfer.data.length);
+
     return {
-        energyTransfer: createLayer(),
+        energyTransfer,
         foam: createLayer(),
     };
 }

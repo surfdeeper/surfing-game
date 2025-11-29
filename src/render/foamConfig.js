@@ -45,18 +45,23 @@ export const FOAM_THRESHOLDS_C = [
  * @param {object} toggles - Visibility toggles
  * @param {object} renderers - Render functions {base, optionA, optionB, optionC}
  */
-export function renderFoamContours(ctx, foamGrid, gridDims, w, h, gameTime, oceanBottom, toggles, renderers) {
-    if (!foamGrid || !foamGrid.length) return;
+export function renderFoamContours(ctx, grids, gridDims, w, h, gameTime, oceanBottom, toggles, renderers) {
+    const { transferGrid, foamGrid } = grids;
+    // Prefer the accumulated foam field for the base view; fall back to transfer snapshot if needed
+    const baseLayer = foamGrid && foamGrid.length ? foamGrid : transferGrid;
+
+    if (!baseLayer && !foamGrid) return;
+
     if (toggles.showFoamZones) {
-        renderers.base(ctx, foamGrid, gridDims.width, gridDims.height, w, h, { thresholds: FOAM_THRESHOLDS_BASE, oceanBottom });
+        renderers.base(ctx, baseLayer, gridDims.width, gridDims.height, w, h, { thresholds: FOAM_THRESHOLDS_BASE, oceanBottom });
     }
-    if (toggles.showFoamOptionA) {
+    if (toggles.showFoamOptionA && foamGrid && foamGrid.length) {
         renderers.optionA(ctx, foamGrid, gridDims.width, gridDims.height, w, h, gameTime, { thresholds: FOAM_THRESHOLDS_A, oceanBottom });
     }
-    if (toggles.showFoamOptionB) {
+    if (toggles.showFoamOptionB && foamGrid && foamGrid.length) {
         renderers.optionB(ctx, foamGrid, gridDims.width, gridDims.height, w, h, gameTime, { thresholds: FOAM_THRESHOLDS_B, oceanBottom });
     }
-    if (toggles.showFoamOptionC) {
+    if (toggles.showFoamOptionC && foamGrid && foamGrid.length) {
         renderers.optionC(ctx, foamGrid, gridDims.width, gridDims.height, w, h, gameTime, { thresholds: FOAM_THRESHOLDS_C, oceanBottom });
     }
 }

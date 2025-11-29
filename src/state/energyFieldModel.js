@@ -81,15 +81,21 @@ export function resetRowAccumulator() {
     // No-op now, kept for test compatibility
 }
 
-export function updateEnergyField(field, getDepthFn, dt, travelDuration = 12) {
+export function updateEnergyField(field, getDepthFn, dt, travelDuration = 12, options = {}) {
     const { height, width, gridHeight } = field;
-    void getDepthFn; // unused for now - could add subtle refraction later
+    const {
+        depthDampingCoefficient = 1.5, // higher = stronger damping in shallow water
+        depthDampingExponent = 2.0,    // >1 makes decay ramp sharply as depth→0
+    } = options;
 
     // Smooth blending - how much of the row above to blend in per second
     // If travelDuration is 12s and we have 40 rows, each row should take 12/40 = 0.3s to cross
     // So blend rate per second = 1 / 0.3 = 3.33
     const blendPerSecond = gridHeight / travelDuration;
     const blend = Math.min(1, blendPerSecond * dt);
+
+    // Depth-based damping: shallower water dissipates energy faster so it fades before the shoreline
+    const MIN_DEPTH = 0.01; // avoid divide-by-zero while allowing near-zero depths
 
     // Work from bottom to top so we don't overwrite data we need
     for (let y = gridHeight - 1; y > 0; y--) {
@@ -99,6 +105,14 @@ export function updateEnergyField(field, getDepthFn, dt, travelDuration = 12) {
 
             // Blend current value with value from row above
             height[idx] = height[idx] * (1 - blend) + height[aboveIdx] * blend;
+
+            // Apply depth-based damping (energy decays faster in shallow water)
+            const normalizedX = (x + 0.5) / width;
+            const normalizedY = y / (gridHeight - 1);
+            const depth = Math.max(MIN_DEPTH, getDepthFn(normalizedX, normalizedY));
+            const depthTerm = Math.pow(depth, depthDampingExponent);
+            const damping = Math.exp(-depthDampingCoefficient * dt / depthTerm);
+            height[idx] *= damping;
         }
     }
 
@@ -223,8 +237,14 @@ export function drainEnergyAt(field, normalizedX, normalizedY, amount) {
 
     const idx = y * width + x;
     const currentEnergy = height[idx];
-    const drained = Math.min(currentEnergy, amount);
-    height[idx] = currentEnergy - drained;
+
+    // Treat negative heights as zero energy for dissipation purposes
+    const available = Math.max(0, currentEnergy);
+    const drained = Math.min(available, amount);
+
+    // Reduce positive energy; leave negative components untouched (they don't contribute to dissipation)
+    const remaining = currentEnergy - drained;
+    height[idx] = remaining < 0 ? 0 : remaining;
     return drained;
 }
 
