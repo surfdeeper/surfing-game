@@ -4,44 +4,363 @@ import { ThemeContext, Theme, ThemeColors, darkColors, lightColors } from './The
 // Dynamically import all MDX files matching the numbered pattern
 const mdxModules = import.meta.glob<{ default: React.ComponentType }>('./**/*.mdx');
 
-// Extract metadata from MDX file path
-function parseFileName(path: string): { id: string; number: number; label: string } | null {
-  // Match pattern like "./01-bathymetry.mdx" or "./02-energy-field.mdx"
-  const match = path.match(/\.\/(?:.+\/)?(\d+)-(.+)\.mdx$/);
-  if (!match) return null;
+// Tree node for hierarchical navigation
+interface TreeNode {
+  id: string; // Full path id like "01-bathymetry/01-depth-profiles/01-linear-slope"
+  slug: string; // Just the slug part like "01-linear-slope"
+  label: string; // Display label like "Linear Slope"
+  number: string; // Hierarchical number like "1.1.1"
+  path: string; // Original file path
+  children: TreeNode[];
+  isLeaf: boolean; // True if this node has an MDX file
+}
 
+// Parse a path segment like "01-linear-slope" into { num, slug, label }
+function parseSegment(segment: string): { num: number; slug: string; label: string } | null {
+  const match = segment.match(/^(\d+)-(.+)$/);
+  if (!match) return null;
   const [, numStr, slug] = match;
-  const number = parseInt(numStr, 10);
-  // Convert slug to label: "energy-field" -> "Energy Field"
   const label = slug
     .split('-')
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
-
-  return {
-    id: `${numStr}-${slug}`,
-    number,
-    label: `${number}. ${label}`,
-  };
+  return { num: parseInt(numStr, 10), slug, label };
 }
 
-// Build sorted page list from discovered MDX files
-const pageEntries = Object.keys(mdxModules)
-  .map((path) => {
-    const meta = parseFileName(path);
-    if (!meta) return null;
-    return { path, ...meta };
-  })
-  .filter((entry): entry is NonNullable<typeof entry> => entry !== null)
-  .sort((a, b) => a.number - b.number);
+// Build hierarchical tree from file paths
+function buildNavigationTree(paths: string[]): TreeNode[] {
+  const root: TreeNode[] = [];
 
-// Create lazy-loaded components for each page
+  for (const filePath of paths) {
+    // Remove "./" prefix and ".mdx" suffix
+    const cleanPath = filePath.replace(/^\.\//, '').replace(/\.mdx$/, '');
+    const segments = cleanPath.split('/');
+
+    let currentLevel = root;
+    let currentId = '';
+    const numbers: number[] = [];
+
+    for (let i = 0; i < segments.length; i++) {
+      const segment = segments[i];
+      const parsed = parseSegment(segment);
+      if (!parsed) continue;
+
+      numbers.push(parsed.num);
+      currentId = currentId ? `${currentId}/${segment}` : segment;
+      const isLastSegment = i === segments.length - 1;
+
+      // Find existing node at this level
+      let node = currentLevel.find((n) => n.slug === segment);
+
+      if (!node) {
+        node = {
+          id: currentId,
+          slug: segment,
+          label: parsed.label,
+          number: numbers.join('.'),
+          path: isLastSegment ? filePath : '',
+          children: [],
+          isLeaf: false,
+        };
+        currentLevel.push(node);
+        // Sort by number
+        currentLevel.sort((a, b) => {
+          const aNum = parseSegment(a.slug)?.num ?? 0;
+          const bNum = parseSegment(b.slug)?.num ?? 0;
+          return aNum - bNum;
+        });
+      }
+
+      // If this is the MDX file, mark as leaf and store path
+      if (isLastSegment) {
+        node.path = filePath;
+        node.isLeaf = true;
+      }
+
+      currentLevel = node.children;
+    }
+  }
+
+  return root;
+}
+
+// Get all leaf nodes in depth-first order
+function getLeaves(nodes: TreeNode[]): TreeNode[] {
+  const leaves: TreeNode[] = [];
+  function traverse(node: TreeNode) {
+    if (node.isLeaf && node.children.length === 0) {
+      leaves.push(node);
+    }
+    for (const child of node.children) {
+      traverse(child);
+    }
+  }
+  for (const node of nodes) {
+    traverse(node);
+  }
+  return leaves;
+}
+
+// Find a node by id in the tree
+function findNode(nodes: TreeNode[], id: string): TreeNode | null {
+  for (const node of nodes) {
+    if (node.id === id) return node;
+    const found = findNode(node.children, id);
+    if (found) return found;
+  }
+  return null;
+}
+
+// Get first leaf node from a subtree (depth-first)
+function getFirstLeaf(node: TreeNode): TreeNode | null {
+  if (node.isLeaf && node.children.length === 0) return node;
+  for (const child of node.children) {
+    const leaf = getFirstLeaf(child);
+    if (leaf) return leaf;
+  }
+  return null;
+}
+
+// Get ancestor IDs for a given node ID
+function getAncestorIds(targetId: string): string[] {
+  const parts = targetId.split('/');
+  const ancestors: string[] = [];
+  for (let i = 1; i < parts.length; i++) {
+    ancestors.push(parts.slice(0, i).join('/'));
+  }
+  return ancestors;
+}
+
+// Get breadcrumb trail for a node id
+function getBreadcrumbs(nodes: TreeNode[], targetId: string): TreeNode[] {
+  const trail: TreeNode[] = [];
+  function search(node: TreeNode, path: TreeNode[]): boolean {
+    const currentPath = [...path, node];
+    if (node.id === targetId) {
+      trail.push(...currentPath);
+      return true;
+    }
+    for (const child of node.children) {
+      if (search(child, currentPath)) return true;
+    }
+    return false;
+  }
+  for (const node of nodes) {
+    if (search(node, [])) break;
+  }
+  return trail;
+}
+
+// Build the navigation tree from discovered files
+const navigationTree = buildNavigationTree(Object.keys(mdxModules));
+const allLeaves = getLeaves(navigationTree);
+
+// Create lazy-loaded components for each leaf
 const pageComponents: Record<string, React.LazyExoticComponent<React.ComponentType>> = {};
-for (const entry of pageEntries) {
-  pageComponents[entry.id] = React.lazy(mdxModules[entry.path]);
+for (const leaf of allLeaves) {
+  pageComponents[leaf.id] = React.lazy(mdxModules[leaf.path]);
 }
+
+// Get all nodes (both leaves and branches) for page support
+function getAllNodes(nodes: TreeNode[]): TreeNode[] {
+  const result: TreeNode[] = [];
+  function traverse(node: TreeNode) {
+    result.push(node);
+    for (const child of node.children) {
+      traverse(child);
+    }
+  }
+  for (const node of nodes) {
+    traverse(node);
+  }
+  return result;
+}
+
+const allNodes = getAllNodes(navigationTree);
+
+// Check if a page ID is a branch (has children)
+function isBranchPage(pageId: string): boolean {
+  const node = findNode(navigationTree, pageId);
+  return node !== null && node.children.length > 0;
+}
+
+// Component to render all children of a branch node assembled together
+interface AssembledPageProps {
+  node: TreeNode;
+  colors: ThemeColors;
+}
+
+function AssembledPage({ node, colors }: AssembledPageProps) {
+  // Get all leaf descendants to render
+  const leaves = getLeaves([node]);
+
+  return (
+    <div className="assembled-page">
+      <h1 style={{ color: colors.textBright, marginBottom: '0.5em' }}>
+        {node.number}. {node.label}
+      </h1>
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '2em',
+        }}
+      >
+        {leaves.map((leaf, index) => {
+          const LeafComponent = pageComponents[leaf.id];
+          if (!LeafComponent) return null;
+
+          return (
+            <section
+              key={leaf.id}
+              style={{
+                borderLeft: `3px solid ${colors.borderLight}`,
+                paddingLeft: '1.5em',
+              }}
+            >
+              <Suspense
+                fallback={<div style={{ color: colors.textMuted, padding: '1em' }}>Loading...</div>}
+              >
+                <LeafComponent />
+              </Suspense>
+            </section>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// Legacy: flat page entries for backward compatibility during transition
+const pageEntries = allLeaves.map((leaf) => ({
+  id: leaf.id,
+  number: parseInt(leaf.number.split('.')[0], 10),
+  label: `${leaf.number}. ${leaf.label}`,
+  path: leaf.path,
+}));
 
 type ViewMode = 'normal' | 'presentation';
+
+// Props for recursive tree navigation component
+interface TreeNavigationProps {
+  nodes: TreeNode[];
+  depth: number;
+  expandedNodes: Set<string>;
+  onToggleExpand: (nodeId: string) => void;
+  currentPage: string;
+  onSelectPage: (pageId: string) => void;
+  colors: ThemeColors;
+}
+
+// Recursive component to render navigation tree
+function TreeNavigation({
+  nodes,
+  depth,
+  expandedNodes,
+  onToggleExpand,
+  currentPage,
+  onSelectPage,
+  colors,
+}: TreeNavigationProps) {
+  return (
+    <ul style={{ listStyle: 'none', padding: 0, margin: 0, paddingLeft: depth > 0 ? 12 : 0 }}>
+      {nodes.map((node) => {
+        const hasChildren = node.children.length > 0;
+        const isExpanded = expandedNodes.has(node.id);
+        const isCurrentPage = currentPage === node.id;
+        // Check if this branch contains the current page
+        const containsCurrentPage = currentPage.startsWith(node.id + '/');
+
+        return (
+          <li key={node.id} style={{ marginBottom: 2 }}>
+            <button
+              onClick={() => {
+                if (hasChildren) {
+                  // Branch node: navigate to assembled page and expand
+                  onSelectPage(node.id);
+                  if (!isExpanded) {
+                    onToggleExpand(node.id);
+                  }
+                } else if (node.isLeaf) {
+                  // Leaf node: navigate to it
+                  onSelectPage(node.id);
+                }
+              }}
+              style={{
+                background: isCurrentPage ? colors.buttonBg : 'transparent',
+                border: 'none',
+                color: isCurrentPage
+                  ? colors.textBright
+                  : containsCurrentPage
+                    ? colors.text
+                    : colors.textMuted,
+                padding: '8px 10px',
+                width: '100%',
+                textAlign: 'left',
+                cursor: 'pointer',
+                borderRadius: 6,
+                fontSize: depth === 0 ? 13 : 12,
+                fontFamily: 'inherit',
+                transition: 'all 0.15s ease',
+                borderLeft: isCurrentPage
+                  ? `3px solid ${colors.accent}`
+                  : containsCurrentPage
+                    ? `3px solid ${colors.borderLight}`
+                    : '3px solid transparent',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+              }}
+              onMouseEnter={(e) => {
+                if (!isCurrentPage) {
+                  e.currentTarget.style.background = colors.bgSection;
+                  e.currentTarget.style.color = colors.text;
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!isCurrentPage) {
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.color = containsCurrentPage
+                    ? colors.text
+                    : colors.textMuted;
+                }
+              }}
+            >
+              {hasChildren && (
+                <span
+                  style={{
+                    fontSize: 10,
+                    color: colors.textDim,
+                    width: 12,
+                    flexShrink: 0,
+                  }}
+                >
+                  {isExpanded ? '▼' : '▶'}
+                </span>
+              )}
+              <span>
+                {node.number}. {node.label}
+              </span>
+            </button>
+
+            {/* Render children if expanded */}
+            {hasChildren && isExpanded && (
+              <TreeNavigation
+                nodes={node.children}
+                depth={depth + 1}
+                expandedNodes={expandedNodes}
+                onToggleExpand={onToggleExpand}
+                currentPage={currentPage}
+                onSelectPage={onSelectPage}
+                colors={colors}
+              />
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
 
 interface AppProps {
   MDXWrapper?: React.ComponentType<{ children: React.ReactNode }>;
@@ -57,7 +376,11 @@ interface SectionInfo {
 function getInitialPage(): string {
   const params = new URLSearchParams(window.location.search);
   const page = params.get('page');
-  if (page && pageComponents[page]) return page;
+  // Accept both leaf pages (with components) and branch pages (with children)
+  if (page) {
+    const node = findNode(navigationTree, page);
+    if (node) return page;
+  }
   return pageEntries[0]?.id ?? '';
 }
 
@@ -91,6 +414,12 @@ export default function App({ MDXWrapper = React.Fragment }: AppProps) {
   const [currentReadingIndex, setCurrentReadingIndex] = useState(-1); // Index of element being read
   const [playbackSpeed, setPlaybackSpeed] = useState(1.0);
   const [theme, setTheme] = useState<Theme>(getInitialTheme);
+  // Tree navigation state - track which branches are expanded
+  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(() => {
+    // Auto-expand ancestors of initial page
+    const initial = getInitialPage();
+    return new Set(getAncestorIds(initial));
+  });
   const contentRef = useRef<HTMLDivElement>(null);
   const readableElementsRef = useRef<Element[]>([]);
 
@@ -171,6 +500,29 @@ export default function App({ MDXWrapper = React.Fragment }: AppProps) {
     }
   }, []);
 
+  // Auto-expand ancestors when current page changes
+  useEffect(() => {
+    const ancestors = getAncestorIds(currentPage);
+    setExpandedNodes((prev) => {
+      const next = new Set(prev);
+      ancestors.forEach((id) => next.add(id));
+      return next;
+    });
+  }, [currentPage]);
+
+  // Toggle expand/collapse for a branch node
+  const toggleExpand = useCallback((nodeId: string) => {
+    setExpandedNodes((prev) => {
+      const next = new Set(prev);
+      if (next.has(nodeId)) {
+        next.delete(nodeId);
+      } else {
+        next.add(nodeId);
+      }
+      return next;
+    });
+  }, []);
+
   // preserveAutoPlay: if true, don't stop auto-play mode (used for automatic advancement)
   const handlePageChange = useCallback(
     (pageId: string, sectionId?: string, preserveAutoPlay = false) => {
@@ -234,7 +586,13 @@ export default function App({ MDXWrapper = React.Fragment }: AppProps) {
   // preserveAutoPlay: if true, don't stop auto-play mode (used for automatic advancement)
   const goToNextSection = useCallback(
     (preserveAutoPlay = false) => {
-      if (sections.length === 0) return;
+      // If no sections on this page, advance to next file directly
+      if (sections.length === 0) {
+        if (currentPageIndex < totalPages - 1) {
+          handlePageChange(pageEntries[currentPageIndex + 1].id, undefined, preserveAutoPlay);
+        }
+        return;
+      }
 
       const nextSectionIndex = effectiveSectionIndex + 1;
       if (nextSectionIndex < sections.length) {
@@ -250,7 +608,13 @@ export default function App({ MDXWrapper = React.Fragment }: AppProps) {
 
   // Navigate to previous section (may cross to previous file)
   const goToPrevSection = useCallback(() => {
-    if (sections.length === 0) return;
+    // If no sections on this page, go to previous file directly
+    if (sections.length === 0) {
+      if (currentPageIndex > 0) {
+        handlePageChange(pageEntries[currentPageIndex - 1].id, '__last__');
+      }
+      return;
+    }
 
     const prevSectionIndex = effectiveSectionIndex - 1;
     if (prevSectionIndex >= 0) {
@@ -316,18 +680,27 @@ export default function App({ MDXWrapper = React.Fragment }: AppProps) {
   // Theme colors from shared context
   const colors: ThemeColors = theme === 'dark' ? darkColors : lightColors;
 
-  // Get readable elements from current section
+  // Get readable elements from current section (or main content if no sections)
   const getReadableElements = useCallback((): Element[] => {
-    if (!contentRef.current || !currentSectionId) return [];
-    const section = contentRef.current.querySelector(`section#${currentSectionId}`);
-    if (!section) return [];
+    if (!contentRef.current) return [];
+
+    // If there's a current section ID, get elements from that section
+    if (currentSectionId) {
+      const section = contentRef.current.querySelector(`section#${currentSectionId}`);
+      if (section) {
+        return Array.from(section.querySelectorAll('p, h1, h2, h3, h4, li, pre'));
+      }
+    }
+
+    // Fallback: no sections on this page, get elements from main content directly
     // Select paragraphs, headings, list items, and code blocks
-    return Array.from(section.querySelectorAll('p, h1, h2, h3, h4, li, pre'));
+    return Array.from(contentRef.current.querySelectorAll('p, h1, h2, h3, h4, li, pre'));
   }, [currentSectionId]);
 
   // Check if we're at the last section of the last file
-  const isAtEnd =
-    currentPageIndex === totalPages - 1 && effectiveSectionIndex === sections.length - 1;
+  // For pages without sections, we're at the "end" of sections when we've read all content
+  const isAtLastSection = sections.length === 0 || effectiveSectionIndex === sections.length - 1;
+  const isAtEnd = currentPageIndex === totalPages - 1 && isAtLastSection;
 
   // Toggle auto-play mode
   const toggleAutoPlay = useCallback(() => {
@@ -849,7 +1222,13 @@ export default function App({ MDXWrapper = React.Fragment }: AppProps) {
                 </div>
               }
             >
-              <MDXWrapper>{PageComponent && <PageComponent />}</MDXWrapper>
+              <MDXWrapper>
+                {isBranchPage(currentPage) ? (
+                  <AssembledPage node={findNode(navigationTree, currentPage)!} colors={colors} />
+                ) : (
+                  PageComponent && <PageComponent />
+                )}
+              </MDXWrapper>
             </Suspense>
           </main>
 
@@ -1060,74 +1439,15 @@ export default function App({ MDXWrapper = React.Fragment }: AppProps) {
               </button>
             </div>
           </div>
-          <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-            {pageEntries.map(({ id, label }) => (
-              <li key={id} style={{ marginBottom: 2 }}>
-                <button
-                  onClick={() => handlePageChange(id)}
-                  style={{
-                    background: currentPage === id ? colors.buttonBg : 'transparent',
-                    border: 'none',
-                    color: currentPage === id ? colors.textBright : colors.textMuted,
-                    padding: '10px 12px',
-                    width: '100%',
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                    borderRadius: 6,
-                    fontSize: 13,
-                    fontFamily: 'inherit',
-                    transition: 'all 0.15s ease',
-                    borderLeft:
-                      currentPage === id ? `3px solid ${colors.accent}` : '3px solid transparent',
-                  }}
-                  onMouseEnter={(e) => {
-                    if (currentPage !== id) {
-                      e.currentTarget.style.background = colors.bgSection;
-                      e.currentTarget.style.color = colors.text;
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (currentPage !== id) {
-                      e.currentTarget.style.background = 'transparent';
-                      e.currentTarget.style.color = colors.textMuted;
-                    }
-                  }}
-                >
-                  {label}
-                </button>
-                {/* Nested section links for current page */}
-                {currentPage === id && sections.length > 0 && (
-                  <ul style={{ listStyle: 'none', padding: '4px 0 8px 16px', margin: 0 }}>
-                    {sections.map((section) => (
-                      <li key={section.id}>
-                        <a
-                          href={`#${section.id}`}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            handleSectionClick(section.id);
-                          }}
-                          style={{
-                            display: 'block',
-                            color: activeSection === section.id ? colors.accent : colors.textDim,
-                            padding: '4px 8px',
-                            textDecoration: 'none',
-                            fontSize: 11,
-                            borderLeft:
-                              activeSection === section.id
-                                ? `2px solid ${colors.accent}`
-                                : `2px solid ${colors.borderLight}`,
-                            transition: 'color 0.15s ease',
-                          }}
-                        >
-                          {section.label}
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </li>
-            ))}
-          </ul>
+          <TreeNavigation
+            nodes={navigationTree}
+            depth={0}
+            expandedNodes={expandedNodes}
+            onToggleExpand={toggleExpand}
+            currentPage={currentPage}
+            onSelectPage={handlePageChange}
+            colors={colors}
+          />
         </nav>
 
         {/* Main content area */}
@@ -1154,7 +1474,13 @@ export default function App({ MDXWrapper = React.Fragment }: AppProps) {
               </div>
             }
           >
-            <MDXWrapper>{PageComponent && <PageComponent />}</MDXWrapper>
+            <MDXWrapper>
+              {isBranchPage(currentPage) ? (
+                <AssembledPage node={findNode(navigationTree, currentPage)!} colors={colors} />
+              ) : (
+                PageComponent && <PageComponent />
+              )}
+            </MDXWrapper>
           </Suspense>
         </main>
 
