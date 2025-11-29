@@ -182,47 +182,6 @@ describe('update/index', () => {
     });
   });
 
-  describe('performance', () => {
-    it('updateFoamLifecycle handles 20,000 segments under 16ms', () => {
-      // Create large foam array (simulates heavy foam accumulation)
-      const foamSegments = [];
-      for (let i = 0; i < 20000; i++) {
-        foamSegments.push({
-          id: `foam-${i}`,
-          spawnTime: i * 10,
-          x: Math.random(),
-          y: Math.random() * 500,
-          opacity: 0.5 + Math.random() * 0.5,
-          fadeJitter: (Math.random() - 0.5) * 10000,
-        });
-      }
-
-      const start = performance.now();
-      updateFoamLifecycle(foamSegments, 0.016, 50000);
-      const elapsed = performance.now() - start;
-
-      // Must complete within 16ms (one frame at 60fps)
-      expect(elapsed).toBeLessThan(16);
-    });
-
-    it('updateFoamRowLifecycle handles 500+ rows under 16ms', () => {
-      // Create large foam row array
-      const foamRows = [];
-      for (let i = 0; i < 600; i++) {
-        foamRows.push({
-          y: i * 2,
-          spawnTime: i * 10,
-          segments: [{ startX: 0, endX: 0.5, intensity: 0.8 }],
-          opacity: 1,
-        });
-      }
-
-      const start = performance.now();
-      updateFoamRowLifecycle(foamRows, 50000);
-      const elapsed = performance.now() - start;
-
-      // Must complete within 16ms (one frame at 60fps)
-      expect(elapsed).toBeLessThan(16);
-    });
-  });
+  // Performance tests moved to index.perf.test.ts
+  // Run with: npm run test:perf
 });

@@ -6,8 +6,8 @@ export default defineConfig({
   test: {
     // Only include tests in src/ directory
     include: ['src/**/*.test.{ts,tsx}'],
-    // Exclude Playwright tests in tests/ directory
-    exclude: ['tests/**', 'node_modules/**'],
+    // Exclude Playwright tests and performance tests
+    exclude: ['tests/**', 'node_modules/**', 'src/**/*.perf.test.{ts,tsx}'],
     environment: 'jsdom',
     setupFiles: ['./src/test-setup.ts'],
   },

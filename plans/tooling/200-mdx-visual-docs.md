@@ -1,6 +1,6 @@
 # Plan 200: MDX-Based Visual Documentation System
 
-Status: in-progress (Phase 1 complete)
+Status: in-progress (Phase 1 complete, Phase 2 on hold)
 Owner: agents
 Depends on: none
 Supersedes: Ladle/Storybook for component visualization
@@ -448,16 +448,106 @@ npx vitest run src/test-utils/   # 53 tests pass
 npx vitest run src/state/energyFieldPropagation.test.js  # 9 tests pass
 ```
 
-### Phase 2: Visual Regression Infrastructure
+### Phase 1.5: Matrix Data Verification ⬚ TODO
 
-| Step | Task | Complexity |
-|------|------|------------|
-| 5 | Create visual test runner script (discovers defineProgression exports) | Medium |
-| 6 | Add unit test gate (run vitest first, short-circuit on failure) | Low |
-| 7 | Implement GIF encoding for progression frames | Medium |
-| 8 | Implement GIF decoding + frame-by-frame comparison | Medium |
-| 9 | Terminal output with file paths to baseline/current/diff | Low |
-| 10 | Add baseline update commands (full and selective) | Medium |
+**Why this phase is needed:**
+
+Phase 1 tests the progression *framework* (defineProgression, captureSnapshots, etc.).
+But it doesn't verify that the *actual progression matrices* exported from test files
+are correct. The current unit tests only spot-check a few cells (e.g., `matrix[2][2] > 0.2`).
+
+When Phase 2 attempted GIF encoding, corrupt output could have been caused by:
+1. GIF encoding bugs (encoding layer)
+2. Canvas rendering bugs (render layer)
+3. Wrong matrix data (data layer)
+
+Without verifying the exact matrices, we can't isolate which layer failed.
+
+**The fix:** Add snapshot tests that capture the full matrix output for each
+progression. This creates a clear data correctness gate before any rendering.
+
+| Step | Task | Status |
+|------|------|--------|
+| 5a | Add matrix snapshot tests for PROGRESSION_NO_DAMPING | ⬚ Todo |
+| 5b | Add matrix snapshot tests for PROGRESSION_WITH_DAMPING | ⬚ Todo |
+| 5c | Add matrix snapshot tests for PROGRESSION_HIGH_DAMPING | ⬚ Todo |
+| 5d | Add matrix snapshot tests for PROGRESSION_WITH_DRAIN | ⬚ Todo |
+
+**Implementation:**
+
+```typescript
+// In energyFieldPropagation.test.ts
+
+describe('Matrix data verification (visual test prerequisites)', () => {
+  it('PROGRESSION_NO_DAMPING produces expected matrices', () => {
+    // Snapshot the entire progression output - all frames, all cells
+    expect(PROGRESSION_NO_DAMPING.snapshots).toMatchSnapshot();
+  });
+
+  it('PROGRESSION_WITH_DAMPING produces expected matrices', () => {
+    expect(PROGRESSION_WITH_DAMPING.snapshots).toMatchSnapshot();
+  });
+
+  it('PROGRESSION_HIGH_DAMPING produces expected matrices', () => {
+    expect(PROGRESSION_HIGH_DAMPING.snapshots).toMatchSnapshot();
+  });
+
+  it('PROGRESSION_WITH_DRAIN produces expected matrices', () => {
+    expect(PROGRESSION_WITH_DRAIN.snapshots).toMatchSnapshot();
+  });
+});
+```
+
+**Verification workflow:**
+
+```
+$ npx vitest run src/state/energyFieldPropagation.test.ts
+
+  ✓ Matrix data verification
+    ✓ PROGRESSION_NO_DAMPING produces expected matrices
+    ✓ PROGRESSION_WITH_DAMPING produces expected matrices
+    ...
+
+Snapshots: 4 passed
+```
+
+If matrix data changes:
+1. Review the snapshot diff to verify the change is intentional
+2. Update snapshot: `npx vitest run -u src/state/energyFieldPropagation.test.ts`
+3. Visual tests will then verify the *rendering* of the new data
+
+**Why snapshots over spot-checks:**
+
+- Spot-checks (`matrix[2][2] > 0.2`) can pass while other cells are wildly wrong
+- Snapshots capture the entire output - any drift is detected
+- When visual tests fail, we know the data was correct (snapshot passed)
+- Isolates bugs: snapshot fails = data bug, snapshot passes + visual fails = render bug
+
+### Phase 2: Visual Regression Infrastructure ⏸️ ON HOLD
+
+**Prerequisite:** Phase 1.5 must be complete before resuming Phase 2.
+
+| Step | Task | Status |
+|------|------|--------|
+| 6 | Create visual test runner script (discovers defineProgression exports) | ⏸️ On hold |
+| 7 | Add unit test gate (run vitest first, short-circuit on failure) | ⏸️ On hold |
+| 8 | Implement GIF encoding for progression frames | ⏸️ On hold |
+| 9 | Implement GIF decoding + frame-by-frame comparison | ⏸️ On hold |
+| 10 | Terminal output with file paths to baseline/current/diff | ⏸️ On hold |
+| 11 | Add baseline update commands (full and selective) | ⏸️ On hold |
+
+**Reason paused:** Initial GIF implementation produced corrupt output. Need to revisit
+with a different approach - possibly browser-based rendering with Playwright
+screenshots instead of Node.js GIF encoding.
+
+**Root cause analysis:** We jumped to GIF encoding without first verifying the
+matrix data was correct. Phase 1.5 addresses this gap - once matrix snapshots
+are in place, we can isolate whether corruption is in data, rendering, or encoding.
+
+**Related work completed:** Performance test separation (perf-test-separation.md)
+- Created `vitest.perf.config.ts` for isolated perf tests
+- Moved flaky timing tests to `*.perf.test.ts` files
+- Added `npm run test:perf` command
 
 ### Phase 3: MDX Documentation + Playback
 
