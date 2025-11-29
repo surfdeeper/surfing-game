@@ -16,8 +16,8 @@
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,css}\"",
     "test:e2e": "playwright test",
     "check:no-js": "bash scripts/check-no-js.sh",
-    "ladle": "ladle serve",
-    "ladle:build": "ladle build",
+    "stories": "vite --config vite.stories.config.ts",
+    "stories:build": "vite build --config vite.stories.config.ts",
     "test:visual:headless": "playwright test --config=playwright.visual.config.js",
     "test:visual:headed": "playwright test --config=playwright.visual.config.js --headed",
     "test:visual:update:headless": "playwright test --config=playwright.visual.config.js --update-snapshots",
@@ -31,7 +31,6 @@
   "license": "ISC",
   "devDependencies": {
     "@eslint/js": "^9.39.1",
-    "@ladle/react": "^5.1.1",
     "@playwright/test": "^1.57.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",
@@ -59,6 +58,8 @@
     "vitest": "^4.0.14"
   },
   "dependencies": {
+    "@mdx-js/react": "^3.1.1",
+    "@mdx-js/rollup": "^3.1.1",
     "@vitejs/plugin-react": "^5.1.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
