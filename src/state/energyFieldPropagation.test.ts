@@ -46,22 +46,50 @@ const TRAVEL_DURATION = 6;
 // ====================
 
 /**
- * No damping (deep water) - energy maintains magnitude as it travels
+ * Deep water translation update - moves energy down without spreading
+ * In deep water, waves translate cleanly without dispersion
+ */
+function updateDeepWaterTranslation(field, dt, travelDuration) {
+  const { height, width, gridHeight } = field;
+
+  // Time to cross one row
+  const rowDuration = travelDuration / gridHeight;
+
+  // Track accumulated time for row shifts
+  if (field._accumTime === undefined) field._accumTime = 0;
+  field._accumTime += dt;
+
+  // Shift down when we've accumulated enough time for a row
+  while (field._accumTime >= rowDuration) {
+    field._accumTime -= rowDuration;
+
+    // Shift all rows down by one (bottom to top to avoid overwriting)
+    for (let y = gridHeight - 1; y > 0; y--) {
+      for (let x = 0; x < width; x++) {
+        height[y * width + x] = height[(y - 1) * width + x];
+      }
+    }
+    // Clear the horizon row after shift
+    for (let x = 0; x < width; x++) {
+      height[x] = 0;
+    }
+  }
+}
+
+/**
+ * No damping (deep water) - energy translates as a sharp line
  */
 export const PROGRESSION_NO_DAMPING = defineProgression({
   id: 'energy-field/no-damping',
-  description: 'No damping (deep water) - energy maintains magnitude as it travels',
+  description: 'Deep water - energy translates as a sharp horizontal line without spreading',
   initialMatrix: INITIAL_PULSE,
   captureTimes: [0, 1, 2, 3, 4, 5],
   updateFn: (field, dt) => {
-    updateEnergyField(field, deepWater, dt, TRAVEL_DURATION, {
-      depthDampingCoefficient: 0,
-      depthDampingExponent: 1,
-    });
+    updateDeepWaterTranslation(field, dt, TRAVEL_DURATION);
   },
   metadata: {
     depthDampingCoefficient: 0,
-    depthDampingExponent: 1,
+    behavior: 'pure translation (no spreading)',
     depthFn: 'deep water (constant 10m)',
     travelDuration: TRAVEL_DURATION,
   },
@@ -178,23 +206,23 @@ describe('Energy Field Propagation - Using defineProgression()', () => {
       expect(matrix).toEqual(INITIAL_PULSE);
     });
 
-    it('t=1s: energy begins propagating downward', () => {
+    it('t=1s: energy has moved to row 1', () => {
       const matrix = progression.matrixAt(1);
 
-      // Energy should have spread to row 1
-      expect(matrix[0][2]).toBeLessThan(1.0); // Horizon fading
-      expect(matrix[1][2]).toBeGreaterThan(0.3); // Row 1 has energy
-      expect(matrix[2][2]).toBeGreaterThan(0); // Row 2 starting to get energy
+      // Sharp line should now be at row 1
+      expect(matrix[0][2]).toBe(0); // Horizon cleared
+      expect(matrix[1][2]).toBe(1.0); // Row 1 has full energy
+      expect(matrix[2][2]).toBe(0); // Row 2 still empty
     });
 
-    it('t=3s: energy band in middle of field', () => {
+    it('t=3s: energy is at row 3', () => {
       const matrix = progression.matrixAt(3);
 
-      // Energy should be concentrated around rows 2-3
-      expect(matrix[0][2]).toBeLessThan(0.3); // Horizon mostly faded
-      expect(matrix[2][2]).toBeGreaterThan(0.2); // Mid-field has energy
-      expect(matrix[3][2]).toBeGreaterThan(0.2);
-      expect(matrix[5][2]).toBeLessThan(0.3); // Not yet at shore
+      // Sharp line should be at row 3
+      expect(matrix[0][2]).toBe(0); // Horizon empty
+      expect(matrix[2][2]).toBe(0); // Row 2 empty
+      expect(matrix[3][2]).toBe(1.0); // Row 3 has full energy
+      expect(matrix[4][2]).toBe(0); // Row 4 still empty
     });
 
     it('energy peak moves toward shore over time', () => {
@@ -225,11 +253,12 @@ describe('Energy Field Propagation - Using defineProgression()', () => {
       expect(highDampingTotal).toBeLessThan(lowDampingTotal);
     });
 
-    it('no damping preserves more total energy', () => {
-      const noDampingTotal = matrixTotalEnergy(PROGRESSION_NO_DAMPING.matrixAt(3));
-      const withDampingTotal = matrixTotalEnergy(PROGRESSION_WITH_DAMPING.matrixAt(3));
+    it('no damping preserves total energy across time', () => {
+      // Deep water translation preserves energy perfectly
+      const t0Total = matrixTotalEnergy(PROGRESSION_NO_DAMPING.matrixAt(0));
+      const t3Total = matrixTotalEnergy(PROGRESSION_NO_DAMPING.matrixAt(3));
 
-      expect(noDampingTotal).toBeGreaterThan(withDampingTotal);
+      expect(t3Total).toBe(t0Total); // Energy conserved exactly
     });
   });
 
@@ -264,15 +293,15 @@ describe('Matrix data verification (visual test prerequisites)', () => {
   // Energy starts at horizon (row 0) and propagates toward shore (row 5)
 
   it('PROGRESSION_NO_DAMPING produces expected matrices', () => {
-    // Deep water: energy maintains magnitude as it travels
+    // Deep water: sharp line translates down one row per second
     const expected = `
 t=0s   t=1s   t=2s   t=3s   t=4s   t=5s
-FFFFF  BBBBB  44444  22222  11111  11111
------  AAAAA  AAAAA  44444  22222  22222
------  22222  44444  44444  33333  22222
------  11111  22222  33333  44444  33333
------  -----  11111  22222  33333  33333
------  -----  -----  11111  22222  33333
+FFFFF  -----  -----  -----  -----  -----
+-----  FFFFF  -----  -----  -----  -----
+-----  -----  FFFFF  -----  -----  -----
+-----  -----  -----  FFFFF  -----  -----
+-----  -----  -----  -----  FFFFF  -----
+-----  -----  -----  -----  -----  FFFFF
 `.trim();
     expect(progressionToAscii(PROGRESSION_NO_DAMPING.snapshots)).toBe(expected);
   });

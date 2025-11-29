@@ -16,18 +16,17 @@ import {
 
 ## No Damping (Deep Water)
 
-In deep water with `depthDampingCoefficient=0`, energy maintains its
-magnitude as it travels. The pulse spreads vertically due to blending
-but total energy is conserved.
+In deep water, waves translate without spreading or losing energy.
+The pulse moves as a sharp horizontal line from horizon toward shore.
 
 <ProgressionPlayer snapshots={PROGRESSION_NO_DAMPING.snapshots} />
 
 <ProgressionStrip snapshots={PROGRESSION_NO_DAMPING.snapshots} testId="strip-no-damping" />
 
 **Key observations:**
-- Row 0 starts at 1.0 (white), fades as energy moves down
-- By t=3s, energy band is centered around rows 2-3
-- Total energy remains roughly constant across frames
+- Energy moves down one row per second as a sharp line
+- No vertical spreading - the line stays crisp
+- Total energy is conserved (1.0 at all times)
 
 </section>
 
