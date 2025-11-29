@@ -3,3 +3,6 @@ dist/
 .DS_Store
 test-results/
 .venv/
+
+# cypress videos webm:
+tests/visual
