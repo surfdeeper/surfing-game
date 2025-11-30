@@ -2,7 +2,11 @@ import React, { useState, useEffect, Suspense, useCallback, useRef } from 'react
 import { ThemeContext, Theme, ThemeColors, darkColors, lightColors } from './ThemeContext';
 
 // Dynamically import all MDX files matching the numbered pattern
-const mdxModules = import.meta.glob<{ default: React.ComponentType }>('./**/*.mdx');
+// Include both stories/ directory and layer-colocated stories
+const mdxModules = import.meta.glob<{ default: React.ComponentType }>([
+  './**/*.mdx',
+  '../src/layers/**/stories/*.mdx',
+]);
 
 // Tree node for hierarchical navigation
 interface TreeNode {

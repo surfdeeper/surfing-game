@@ -1,10 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import {
-  depthToColor,
-  buildBathymetryCache,
-  createBathymetryCacheManager,
-} from './bathymetryRenderer.js';
-import { DEFAULT_BATHYMETRY } from '../state/bathymetryModel.js';
+import { depthToColor, buildBathymetryCache, createBathymetryCacheManager } from './renderer';
+import { DEFAULT_BATHYMETRY } from './model';
 
 describe('bathymetryRenderer', () => {
   describe('depthToColor', () => {

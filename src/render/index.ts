@@ -4,12 +4,12 @@
  * Re-exports all rendering functions for clean imports in main.jsx
  */
 
-// Bathymetry rendering
+// Bathymetry rendering (re-exported from layer for backwards compatibility)
 export {
   buildBathymetryCache,
   depthToColor,
   createBathymetryCacheManager,
-} from './bathymetryRenderer.js';
+} from '@layers/01-bathymetry';
 
 // Wave rendering
 export { WAVE_COLORS, getWaveColors, renderWave, renderWaves } from './waveRenderer.js';

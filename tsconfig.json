@@ -17,6 +17,7 @@
     "types": ["vite/client", "node"],
     "baseUrl": ".",
     "paths": {
+      "@layers/*": ["src/layers/*"],
       "@src/*": ["src/*"],
       "@stories/*": ["stories/*"]
     }

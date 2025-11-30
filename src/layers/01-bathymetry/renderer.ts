@@ -2,8 +2,8 @@
 // Renders ocean floor depth as a color-coded heat map
 // Uses caching for performance - builds once, blits each frame
 
-import { getDepth } from '../state/bathymetryModel.js';
-import { viridisToRgb } from './colorScales';
+import { getDepth } from './model';
+import { viridisToRgb } from '../../render/colorScales';
 
 /**
  * Build bathymetry heat map to an offscreen canvas

@@ -6,7 +6,8 @@ import {
   getPeakX,
   shouldBreak,
   amplitudeToHeight,
-} from './bathymetryModel.js';
+} from './model';
+import { matrixToAscii } from '../../test-utils';
 
 describe('bathymetryModel', () => {
   describe('DEFAULT_BATHYMETRY', () => {
@@ -162,10 +163,10 @@ describe('bathymetryModel', () => {
     });
   });
 
-  describe('depth matrix snapshot', () => {
-    // This test captures the expected depth values at a 5x5 grid
-    // If the bathymetry shape changes, update snapshot with: npx vitest run -u
-    it('matches expected depth matrix', () => {
+  describe('depth matrix ASCII snapshot', () => {
+    // ASCII matrix format provides human-readable depth snapshots
+    // Characters: - = 0, 1-4 = 0.1-0.4, A-B = 0.5-0.6, C-F = 0.7-1.0
+    it('matches expected depth matrix in ASCII format', () => {
       const gridSize = 5;
       const matrix = [];
 
@@ -175,13 +176,23 @@ describe('bathymetryModel', () => {
         for (let px = 0; px < gridSize; px++) {
           const x = px / (gridSize - 1); // 0, 0.25, 0.5, 0.75, 1
           const depth = getDepth(x, DEFAULT_BATHYMETRY, progress);
-          row.push(Math.round(depth * 10) / 10); // Round to 1 decimal
+          // Normalize to 0-1 range for ASCII encoding
+          const normalized = depth / DEFAULT_BATHYMETRY.deepDepth;
+          row.push(normalized);
         }
         matrix.push(row);
       }
 
-      // Uses vitest snapshot - run with -u flag to update
-      expect(matrix).toMatchSnapshot();
+      // ASCII format is more readable and diff-friendly than JSON
+      const expected = `
+FFFFF
+FCFEF
+EFFEF
+DCDDD
+A----
+`.trim();
+
+      expect(matrixToAscii(matrix)).toBe(expected);
     });
 
     it('point is shallower than surrounding areas near shore', () => {

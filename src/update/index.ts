@@ -29,7 +29,7 @@ import {
   PLAYER_PROXY_CONFIG,
 } from '../state/playerProxyModel.js';
 import { updateAIPlayer, createAIState } from '../state/aiPlayerModel.js';
-import { getDepth } from '../state/bathymetryModel.js';
+import { getDepth } from '@layers/01-bathymetry';
 import { EventType } from '../state/eventStore.js';
 import {
   getOceanBounds,

@@ -16,8 +16,7 @@ declare global {
 // - Coordinates mapped: progress (0-1) → screen pixels at render time
 
 import { WAVE_TYPE } from './state/waveModel.js';
-import { getDepth } from './state/bathymetryModel.js';
-import { createBathymetryCacheManager } from './render/bathymetryRenderer.js';
+import { getDepth, createBathymetryCacheManager } from '@layers/01-bathymetry';
 import { getOceanBounds, calculateTravelDuration } from './render/coordinates.js';
 import { saveGameState, loadGameState, shouldAutoSave } from './state/gamePersistence.js';
 import './state/backgroundWaveModel.js'; // Needed by eventStore
