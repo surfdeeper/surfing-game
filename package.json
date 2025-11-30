@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "type": "module",
+  "packageManager": "npm@10.9.3",
   "workspaces": [
     "packages/*"
   ],
