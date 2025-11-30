@@ -26,15 +26,17 @@ function toProgression(id: string, label: string, description: string, buildMatr
   });
 }
 
-// Linear gradient from deep (1.0) at horizon to shallow (0.0) at shore
-export const PROGRESSION_LINEAR_SLOPE = toProgression(
-  'bathymetry/linear-slope',
-  'Linear Slope',
-  'Linear depth gradient from deep (horizon) to shore',
+// Gradual gradient from moderate depth (0.5) at horizon to shallow (0.0) at shore
+// Starts at 50% to contrast with Steep Slope (which starts at 100%)
+export const PROGRESSION_GRADUAL_SLOPE = toProgression(
+  'bathymetry/gradual-slope',
+  'Gradual Slope',
+  'Gentle depth gradient - moderate depth at horizon, gradual transition to shore',
   () => {
     const matrix = createMatrix();
+    const maxDepth = 0.5; // Start at 50% depth (vs steep which starts at 100%)
     for (let row = 0; row < GRID_HEIGHT; row++) {
-      const depth = 1 - row / (GRID_HEIGHT - 1); // 1.0 at top, 0 at bottom
+      const depth = maxDepth * (1 - row / (GRID_HEIGHT - 1)); // 0.5 at top, 0 at bottom
       for (let col = 0; col < GRID_WIDTH; col++) {
         matrix[row][col] = depth;
       }
@@ -43,11 +45,11 @@ export const PROGRESSION_LINEAR_SLOPE = toProgression(
   }
 );
 
-// Steep drop-off near shore (exponential curve)
-export const PROGRESSION_STEEP_SHORE = toProgression(
-  'bathymetry/steep-shore',
-  'Steep Shore',
-  'Deep water plateau with steep drop-off near shore',
+// Steep drop-off near shore (exponential curve) - starts at 100% depth
+export const PROGRESSION_STEEP_SLOPE = toProgression(
+  'bathymetry/steep-slope',
+  'Steep Slope',
+  'Deep water (100%) with steep drop-off near shore',
   () => {
     const matrix = createMatrix();
     for (let row = 0; row < GRID_HEIGHT; row++) {
@@ -152,8 +154,8 @@ export const PROGRESSION_FLAT = toProgression(
 
 // Export organized by category
 export const BATHYMETRY_PROGRESSIONS = {
-  linearSlope: PROGRESSION_LINEAR_SLOPE,
-  steepShore: PROGRESSION_STEEP_SHORE,
+  gradualSlope: PROGRESSION_GRADUAL_SLOPE,
+  steepSlope: PROGRESSION_STEEP_SLOPE,
   sandbar: PROGRESSION_SANDBAR,
   reef: PROGRESSION_REEF,
   channel: PROGRESSION_CHANNEL,
