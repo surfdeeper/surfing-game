@@ -1,7 +1,7 @@
 /**
- * @surf/render - Rendering utilities for canvas
+ * Render Module Index
  *
- * Re-exports from src/render
+ * Re-exports all rendering functions for clean imports in main.jsx
  */
 
 // Bathymetry rendering
@@ -9,13 +9,13 @@ export {
   buildBathymetryCache,
   depthToColor,
   createBathymetryCacheManager,
-} from '../../src/render/bathymetryRenderer';
+} from './bathymetryRenderer.js';
 
 // Wave rendering
-export { WAVE_COLORS, getWaveColors, renderWave, renderWaves } from '../../src/render/waveRenderer';
+export { WAVE_COLORS, getWaveColors, renderWave, renderWaves } from './waveRenderer.js';
 
 // Energy field rendering
-export { renderEnergyField } from '../../src/render/energyFieldRenderer';
+export { renderEnergyField } from './energyFieldRenderer.js';
 
 // Foam rendering (marching squares)
 export {
@@ -31,7 +31,7 @@ export {
   renderMultiContourOptionAFromGrid,
   renderMultiContourOptionBFromGrid,
   renderMultiContourOptionCFromGrid,
-} from '../../src/render/marchingSquares';
+} from './marchingSquares.js';
 
 // Coordinate utilities
 export {
@@ -39,10 +39,4 @@ export {
   screenYToProgress,
   getOceanBounds,
   calculateTravelDuration,
-} from '../../src/render/coordinates';
-
-// Color scales
-export * from '../../src/render/colorScales';
-
-// Foam config
-export * from '../../src/render/foamConfig';
+} from '@surf/core';
