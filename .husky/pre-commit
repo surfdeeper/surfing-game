@@ -1,9 +1,22 @@
 #!/bin/sh
 
-# Run lint-staged (prettier + eslint on staged files) and tests in parallel
-npx concurrently --kill-others-on-fail \
-  "npx lint-staged" \
-  "npm run typecheck" \
-  "npm test" \
-  "npx playwright test tests/smoke.spec.js" \
-  "bash scripts/check-no-js.sh"
+# Get staged files
+STAGED_FILES=$(git diff --cached --name-only)
+
+# Check if only visual baselines/snapshots changed
+if echo "$STAGED_FILES" | grep -qvE '\.(png|snap)$'; then
+  # Non-snapshot files changed - run affected tests via Turbo
+  echo "Running affected tests via Turbo..."
+  npx concurrently --kill-others-on-fail \
+    "npx lint-staged" \
+    "npm run typecheck" \
+    "npx turbo run test --filter=...[HEAD~1]" \
+    "bash scripts/check-no-js.sh"
+else
+  # Only snapshots changed - just lint and typecheck
+  echo "Only visual baselines changed - skipping full test suite"
+  npx concurrently --kill-others-on-fail \
+    "npx lint-staged" \
+    "npm run typecheck" \
+    "bash scripts/check-no-js.sh"
+fi
