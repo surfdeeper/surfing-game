@@ -18,7 +18,7 @@ export const PROGRESSION_ORBITAL_FLATTENING = defineProgression({
     }
     return matrix;
   })(),
-  captureTimes: [0],
+  captureTimes: [0, 1, 2, 3, 4, 5],
   updateFn: () => {},
   metadata: { label: 'Orbital Flattening' },
 });
@@ -38,7 +38,7 @@ export const PROGRESSION_SPEED_GRADIENT = defineProgression({
     }
     return matrix;
   })(),
-  captureTimes: [0],
+  captureTimes: [0, 1, 2, 3, 4, 5],
   updateFn: () => {},
   metadata: { label: 'Speed vs Depth' },
 });

@@ -30,7 +30,7 @@ export const PROGRESSION_SINGLE_BREAK = defineProgression({
     matrix[6][5] = 0.2;
     return matrix;
   })(),
-  captureTimes: [0],
+  captureTimes: [0, 1, 2, 3, 4, 5],
   updateFn: () => {},
   metadata: { label: 'Single Break' },
 });
@@ -53,7 +53,7 @@ export const PROGRESSION_LINE_BREAK = defineProgression({
     }
     return matrix;
   })(),
-  captureTimes: [0],
+  captureTimes: [0, 1, 2, 3, 4, 5],
   updateFn: () => {},
   metadata: { label: 'Line Break' },
 });
@@ -79,7 +79,7 @@ export const PROGRESSION_SCATTERED_BREAKS = defineProgression({
     }
     return matrix;
   })(),
-  captureTimes: [0],
+  captureTimes: [0, 1, 2, 3, 4, 5],
   updateFn: () => {},
   metadata: { label: 'Scattered Breaks' },
 });
@@ -94,7 +94,7 @@ export const PROGRESSION_NO_BLUR = defineProgression({
     matrix[5][5] = 1.0;
     return matrix;
   })(),
-  captureTimes: [0],
+  captureTimes: [0, 1, 2, 3, 4, 5],
   updateFn: () => {},
   metadata: { label: 'No Blur' },
 });
@@ -119,7 +119,7 @@ export const PROGRESSION_WITH_BLUR = defineProgression({
     }
     return matrix;
   })(),
-  captureTimes: [0],
+  captureTimes: [0, 1, 2, 3, 4, 5],
   updateFn: () => {},
   metadata: { label: 'With Blur' },
 });
@@ -142,7 +142,7 @@ export const PROGRESSION_HIGH_BLUR = defineProgression({
     }
     return matrix;
   })(),
-  captureTimes: [0],
+  captureTimes: [0, 1, 2, 3, 4, 5],
   updateFn: () => {},
   metadata: { label: 'High Blur' },
 });
