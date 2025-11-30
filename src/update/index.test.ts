@@ -13,7 +13,7 @@ import {
 import { createWave, WAVE_TYPE } from '../state/waveModel.js';
 import { createInitialState as createSetLullState, DEFAULT_CONFIG } from '../state/setLullModel.js';
 import { createInitialBackgroundState, BACKGROUND_CONFIG } from '../state/backgroundWaveModel.js';
-import { DEFAULT_BATHYMETRY } from '@layers/01-bathymetry';
+import { DEFAULT_BATHYMETRY } from '@layers/01-bottom-depth';
 
 describe('update/index', () => {
   describe('getOceanBounds', () => {

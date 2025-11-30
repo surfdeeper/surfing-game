@@ -9,13 +9,13 @@ export {
   buildBathymetryCache,
   depthToColor,
   createBathymetryCacheManager,
-} from '@layers/01-bathymetry';
+} from '@layers/01-bottom-depth';
 
 // Wave rendering
 export { WAVE_COLORS, getWaveColors, renderWave, renderWaves } from './waveRenderer.js';
 
 // Energy field rendering
-export { renderEnergyField } from '@layers/02-energy-field';
+export { renderEnergyField } from '@layers/03-energy-field';
 
 // Foam rendering (marching squares)
 export {

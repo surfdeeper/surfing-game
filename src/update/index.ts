@@ -21,7 +21,7 @@ import {
   getHeightAt,
   drainEnergyAt,
   injectWavePulse,
-} from '@layers/02-energy-field';
+} from '@layers/03-energy-field';
 import { accumulateEnergyTransfer, updateFoamLayer } from '../state/foamGridModel.js';
 import {
   updatePlayerProxy,
@@ -29,7 +29,7 @@ import {
   PLAYER_PROXY_CONFIG,
 } from '../state/playerProxyModel.js';
 import { updateAIPlayer, createAIState } from '../state/aiPlayerModel.js';
-import { getDepth } from '@layers/01-bathymetry';
+import { getDepth } from '@layers/01-bottom-depth';
 import { EventType } from '../state/eventStore.js';
 import {
   getOceanBounds,

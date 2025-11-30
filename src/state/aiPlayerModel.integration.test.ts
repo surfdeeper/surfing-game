@@ -5,7 +5,7 @@ import { describe, it, expect } from 'vitest';
 import { createAIState, updateAIPlayer, AI_MODE, AI_STATE } from './aiPlayerModel.js';
 // Note: AI_STATE.SEEKING replaces PADDLE_OUT, AI starts by actively looking for foam
 import { createPlayerProxy, updatePlayerProxy } from './playerProxyModel.js';
-import { DEFAULT_BATHYMETRY } from '@layers/01-bathymetry';
+import { DEFAULT_BATHYMETRY } from '@layers/01-bottom-depth';
 import { getOceanBounds, calculateTravelDuration } from '../render/coordinates.js';
 import { createFoamGrids } from './foamGridModel.js';
 

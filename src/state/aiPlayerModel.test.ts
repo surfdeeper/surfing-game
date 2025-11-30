@@ -2,7 +2,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { createAIState, updateAIPlayer, AI_STATE, AI_MODE } from './aiPlayerModel.js';
-import { DEFAULT_BATHYMETRY } from '@layers/01-bathymetry';
+import { DEFAULT_BATHYMETRY } from '@layers/01-bottom-depth';
 import { createFoamGrids } from './foamGridModel.js';
 
 // Use real bathymetry config - same as the game
