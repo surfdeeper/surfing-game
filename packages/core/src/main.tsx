@@ -16,8 +16,7 @@ declare global {
 // - Coordinates mapped: progress (0-1) → screen pixels at render time
 
 import { WAVE_TYPE } from './state/waveModel.js';
-import { getDepth } from './state/bathymetryModel.js';
-import { createBathymetryCacheManager } from './render/bathymetryRenderer.js';
+import { getDepth, createBathymetryCacheManager } from './layers/01-bottom-depth/index.js';
 import { getOceanBounds, calculateTravelDuration } from './render/coordinates.js';
 import { saveGameState, loadGameState, shouldAutoSave } from './state/gamePersistence.js';
 import './state/backgroundWaveModel.js'; // Needed by eventStore
@@ -37,9 +36,12 @@ import {
   drawPlayerProxy,
 } from './state/playerProxyModel.js';
 import { createAIState, drawAIKeyIndicator, AI_MODE } from './state/aiPlayerModel.js';
-import { updateEnergyField, injectWavePulse } from './state/energyFieldModel.js';
+import {
+  updateEnergyField,
+  injectWavePulse,
+  renderEnergyField,
+} from './layers/03-energy-field/index.js';
 import { FOAM_GRID_HEIGHT, FOAM_GRID_WIDTH, sampleFoamGrid } from './state/foamGridModel.js';
-import { renderEnergyField } from './render/energyFieldRenderer.js';
 import { renderWaves } from './render/waveRenderer.js';
 import { KeyboardInput } from './input/keyboard.js';
 import { createDebugPanelManager } from './ui/debugPanelManager.js';
