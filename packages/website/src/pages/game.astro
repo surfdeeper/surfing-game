@@ -1,0 +1,67 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import GamePlaceholder from '../components/GamePlaceholder';
+---
+
+<BaseLayout title="Play Game" description="Play the Surfing Game in your browser">
+  <h1>Play the Game</h1>
+  <p class="intro">
+    Experience realistic wave physics in this browser-based surfing simulation.
+  </p>
+
+  <div class="game-container">
+    <GamePlaceholder client:load />
+  </div>
+
+  <section class="controls">
+    <h2>Controls</h2>
+    <ul>
+      <li><kbd>Arrow Keys</kbd> - Move the surfer</li>
+      <li><kbd>Space</kbd> - Jump / Perform trick</li>
+      <li><kbd>P</kbd> - Pause game</li>
+    </ul>
+  </section>
+</BaseLayout>
+
+<style>
+  h1 {
+    margin-bottom: 0.5rem;
+  }
+
+  .intro {
+    color: var(--color-text-muted);
+    margin-bottom: 2rem;
+  }
+
+  .game-container {
+    margin: 2rem 0;
+  }
+
+  .controls {
+    background: var(--color-bg-secondary);
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    margin-top: 2rem;
+  }
+
+  .controls h2 {
+    margin-bottom: 1rem;
+  }
+
+  .controls ul {
+    list-style: none;
+  }
+
+  .controls li {
+    margin-bottom: 0.5rem;
+  }
+
+  kbd {
+    background: #eee;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 0.2rem 0.5rem;
+    font-family: monospace;
+    font-size: 0.9em;
+  }
+</style>

@@ -1,0 +1,138 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Home">
+  <section class="hero">
+    <h1>Surfing Game</h1>
+    <p class="tagline">A browser-based wave simulation exploring realistic ocean physics</p>
+    <div class="cta-buttons">
+      <a href="/game" class="btn btn-primary">Play Now</a>
+      <a href="/blog" class="btn btn-secondary">Read the Blog</a>
+    </div>
+  </section>
+
+  <section class="about">
+    <h2>About the Project</h2>
+    <p>
+      This is an open-source experiment in simulating realistic wave behavior in the browser.
+      We model wave energy propagation, shoaling (waves steepening as they approach shore),
+      breaking waves, and foam dynamics—all rendered at 60fps on an HTML5 Canvas.
+    </p>
+    <p>
+      The project serves as both a playable game and a learning resource for understanding
+      wave physics, canvas rendering techniques, and visual regression testing strategies.
+    </p>
+  </section>
+
+  <section class="features">
+    <h2>Technical Highlights</h2>
+    <div class="feature-grid">
+      <div class="feature">
+        <h3>Wave Energy Model</h3>
+        <p>Energy fields propagate from the horizon, transforming through shoaling and breaking phases based on bathymetry (ocean floor depth).</p>
+      </div>
+      <div class="feature">
+        <h3>ASCII Matrix Testing</h3>
+        <p>Inspired by RxJS marble diagrams, we test physics simulations using human-readable ASCII snapshots that show how matrices evolve over time.</p>
+      </div>
+      <div class="feature">
+        <h3>Visual Regression</h3>
+        <p>Automated screenshot comparisons catch rendering bugs before they ship, with Docker-based CI ensuring consistent baselines across environments.</p>
+      </div>
+      <div class="feature">
+        <h3>Turborepo Monorepo</h3>
+        <p>Organized as a monorepo with separate packages for core physics, visual testing viewer, and this website—all sharing types and utilities.</p>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .hero {
+    text-align: center;
+    padding: 4rem 1rem;
+  }
+
+  .hero h1 {
+    font-size: 3rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .tagline {
+    font-size: 1.25rem;
+    color: var(--color-text-muted);
+    margin-bottom: 2rem;
+  }
+
+  .cta-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background-color 0.2s;
+  }
+
+  .btn-primary {
+    background: var(--color-primary);
+    color: white;
+  }
+
+  .btn-primary:hover {
+    background: var(--color-primary-dark);
+    text-decoration: none;
+  }
+
+  .btn-secondary {
+    background: var(--color-bg-secondary);
+    color: var(--color-text);
+    border: 1px solid #ddd;
+  }
+
+  .btn-secondary:hover {
+    background: #eee;
+    text-decoration: none;
+  }
+
+  .about {
+    max-width: 720px;
+    margin: 0 auto 3rem;
+    padding: 0 1rem;
+  }
+
+  .about h2 {
+    margin-bottom: 1rem;
+  }
+
+  .features {
+    padding: 2rem 0;
+  }
+
+  .features h2 {
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+
+  .feature-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 2rem;
+  }
+
+  .feature {
+    padding: 1.5rem;
+    background: var(--color-bg-secondary);
+    border-radius: 0.5rem;
+  }
+
+  .feature h3 {
+    color: var(--color-primary);
+  }
+</style>

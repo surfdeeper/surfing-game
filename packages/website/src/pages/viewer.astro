@@ -1,0 +1,63 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import ViewerPlaceholder from '../components/ViewerPlaceholder';
+---
+
+<BaseLayout title="Dev Docs Viewer" description="Visual development documentation and component stories">
+  <h1>Visual Dev Docs Viewer</h1>
+  <p class="intro">
+    Browse visual regression tests, component stories, and development documentation.
+  </p>
+
+  <div class="viewer-container">
+    <ViewerPlaceholder client:load />
+  </div>
+
+  <section class="about">
+    <h2>About This Viewer</h2>
+    <p>
+      This viewer displays the visual regression testing documentation from the
+      @surf/visual-regression-testing-viewer-react-application package. It includes:
+    </p>
+    <ul>
+      <li>Component stories for UI elements</li>
+      <li>Visual regression test baselines</li>
+      <li>Wave physics visualizations</li>
+      <li>Rendering pipeline documentation</li>
+    </ul>
+  </section>
+</BaseLayout>
+
+<style>
+  h1 {
+    margin-bottom: 0.5rem;
+  }
+
+  .intro {
+    color: var(--color-text-muted);
+    margin-bottom: 2rem;
+  }
+
+  .viewer-container {
+    margin: 2rem 0;
+  }
+
+  .about {
+    background: var(--color-bg-secondary);
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    margin-top: 2rem;
+  }
+
+  .about h2 {
+    margin-bottom: 1rem;
+  }
+
+  .about ul {
+    margin-left: 1.5rem;
+  }
+
+  .about li {
+    margin-bottom: 0.5rem;
+  }
+</style>
