@@ -166,12 +166,13 @@ describe('bathymetryModel', () => {
   describe('depth matrix ASCII snapshot', () => {
     // ASCII matrix format provides human-readable depth snapshots
     // Characters: - = 0, 1-4 = 0.1-0.4, A-B = 0.5-0.6, C-F = 0.7-1.0
+    // Uses Vitest inline snapshots - run `npx vitest -u` to update
     it('matches expected depth matrix in ASCII format', () => {
       const gridSize = 5;
-      const matrix = [];
+      const matrix: number[][] = [];
 
       for (let py = 0; py < gridSize; py++) {
-        const row = [];
+        const row: number[] = [];
         const progress = py / (gridSize - 1); // 0, 0.25, 0.5, 0.75, 1
         for (let px = 0; px < gridSize; px++) {
           const x = px / (gridSize - 1); // 0, 0.25, 0.5, 0.75, 1
@@ -183,16 +184,13 @@ describe('bathymetryModel', () => {
         matrix.push(row);
       }
 
-      // ASCII format is more readable and diff-friendly than JSON
-      const expected = `
-FFFFF
-FCFEF
-EFFEF
-DCDDD
-A----
-`.trim();
-
-      expect(matrixToAscii(matrix)).toBe(expected);
+      expect(matrixToAscii(matrix)).toMatchInlineSnapshot(`
+        "FFFFF
+        D4CAD
+        AAAAA
+        32333
+        -----"
+      `);
     });
 
     it('point is shallower than surrounding areas near shore', () => {

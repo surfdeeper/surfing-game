@@ -75,14 +75,17 @@ describe('progression framework', () => {
       ).toThrow('requires an initialMatrix');
     });
 
-    it('throws if updateFn is missing', () => {
-      expect(() =>
-        defineProgression({
-          id: 'test/no-update',
-          description: 'No update function',
-          initialMatrix: [[1]],
-        })
-      ).toThrow('requires an updateFn');
+    it('allows optional updateFn for static progressions', () => {
+      const progression = defineProgression({
+        id: 'test/static',
+        description: 'Static progression with no update function',
+        initialMatrix: [[1]],
+        captureTimes: [0],
+      });
+
+      // Static progressions should still capture at t=0
+      expect(progression.snapshots).toHaveLength(1);
+      expect(progression.snapshots[0].matrix).toEqual([[1]]);
     });
 
     it('registers progression in global registry', () => {

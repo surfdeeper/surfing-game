@@ -1,14 +1,10 @@
-import { defineProgression } from '../../../test-utils';
-
-type Matrix = number[][];
-
-const GRID_WIDTH = 8;
-const GRID_HEIGHT = 10;
-const STATIC_CAPTURE = [0];
-
-function createMatrix(): Matrix {
-  return Array.from({ length: GRID_HEIGHT }, () => Array(GRID_WIDTH).fill(0));
-}
+import {
+  defineProgression,
+  GRID_WIDTH,
+  GRID_HEIGHT,
+  STATIC_CAPTURE,
+  createMatrix,
+} from '../../../test-utils';
 
 /**
  * Sandbar - Shallow sandbar in mid-water creates secondary breaking zone
@@ -37,6 +33,5 @@ export const PROGRESSION_SANDBAR = defineProgression({
     return matrix;
   })(),
   captureTimes: STATIC_CAPTURE,
-  updateFn: () => {},
   metadata: { label: 'Sandbar' },
 });

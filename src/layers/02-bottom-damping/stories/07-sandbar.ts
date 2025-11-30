@@ -4,11 +4,9 @@
  * Input: Sandbar depth (shallow feature in mid-water) from Layer 1
  * Output: Localized high damping zone (secondary breaking/energy loss area)
  */
-import { defineProgression } from '../../../test-utils';
+import { defineProgression, STATIC_CAPTURE, createStrip } from '../../../test-utils';
 import { PROGRESSION_SANDBAR as DEPTH_SANDBAR } from '@layers/01-bottom-depth';
 import { depthMatrixToDamping } from '../index';
-
-const STATIC_CAPTURE = [0];
 
 // Get depth matrix from Layer 1 and compute damping
 const depthMatrix = DEPTH_SANDBAR.snapshots[0].matrix;
@@ -19,7 +17,6 @@ export const PROGRESSION_SANDBAR = defineProgression({
   description: 'Localized high damping zone - secondary breaking area over sandbar',
   initialMatrix: dampingMatrix,
   captureTimes: STATIC_CAPTURE,
-  updateFn: () => {},
   metadata: {
     label: 'Sandbar Damping',
     inputLayer: 'bottom-depth/sandbar',
@@ -27,8 +24,7 @@ export const PROGRESSION_SANDBAR = defineProgression({
   },
 });
 
-export const DAMPING_STRIP_SANDBAR = {
-  testId: 'strip-damping-sandbar',
-  pageId: '02-bottom-damping/07-sandbar',
-  snapshots: PROGRESSION_SANDBAR.snapshots,
-};
+export const DAMPING_STRIP_SANDBAR = createStrip(
+  PROGRESSION_SANDBAR,
+  '02-bottom-damping/07-sandbar'
+);

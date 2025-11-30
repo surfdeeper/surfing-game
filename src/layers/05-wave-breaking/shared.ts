@@ -1,7 +1,16 @@
+/**
+ * Shared constants and utilities for Wave Breaking layer
+ *
+ * Uses 8x8 grid for this layer's specific visualization needs.
+ */
+
+import { createMatrixWithSize, Matrix } from '../../test-utils';
+
 export const GRID_WIDTH = 8;
 export const GRID_HEIGHT = 8;
-export type Matrix = number[][];
+
+export type { Matrix };
 
 export function createMatrix(): Matrix {
-  return Array.from({ length: GRID_HEIGHT }, () => Array(GRID_WIDTH).fill(0));
+  return createMatrixWithSize(GRID_WIDTH, GRID_HEIGHT);
 }

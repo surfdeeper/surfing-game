@@ -1,12 +1,8 @@
 /**
  * Shared constants and utilities for Shoaling layer
+ *
+ * Re-exports centralized utilities from test-utils for backward compatibility.
  */
 
-export const GRID_WIDTH = 8;
-export const GRID_HEIGHT = 10;
-
-export type Matrix = number[][];
-
-export function createMatrix(): Matrix {
-  return Array.from({ length: GRID_HEIGHT }, () => Array(GRID_WIDTH).fill(0));
-}
+export { GRID_WIDTH, GRID_HEIGHT, createMatrix } from '../../test-utils';
+export type { Matrix } from '../../test-utils';

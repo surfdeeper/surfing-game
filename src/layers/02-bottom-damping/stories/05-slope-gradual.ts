@@ -4,11 +4,9 @@
  * Input: Gradual slope depth from Layer 1
  * Output: Moderate damping gradient (progressive energy dissipation)
  */
-import { defineProgression } from '../../../test-utils';
+import { defineProgression, STATIC_CAPTURE, createStrip } from '../../../test-utils';
 import { PROGRESSION_SLOPE_GRADUAL as DEPTH_SLOPE_GRADUAL } from '@layers/01-bottom-depth';
 import { depthMatrixToDamping } from '../index';
-
-const STATIC_CAPTURE = [0];
 
 // Get depth matrix from Layer 1 and compute damping
 const depthMatrix = DEPTH_SLOPE_GRADUAL.snapshots[0].matrix;
@@ -19,7 +17,6 @@ export const PROGRESSION_SLOPE_GRADUAL = defineProgression({
   description: 'Moderate damping gradient - progressive energy dissipation',
   initialMatrix: dampingMatrix,
   captureTimes: STATIC_CAPTURE,
-  updateFn: () => {},
   metadata: {
     label: 'Gradual Slope Damping',
     inputLayer: 'bottom-depth/slope-gradual',
@@ -27,8 +24,7 @@ export const PROGRESSION_SLOPE_GRADUAL = defineProgression({
   },
 });
 
-export const DAMPING_STRIP_SLOPE_GRADUAL = {
-  testId: 'strip-damping-slope-gradual',
-  pageId: '02-bottom-damping/05-slope-gradual',
-  snapshots: PROGRESSION_SLOPE_GRADUAL.snapshots,
-};
+export const DAMPING_STRIP_SLOPE_GRADUAL = createStrip(
+  PROGRESSION_SLOPE_GRADUAL,
+  '02-bottom-damping/05-slope-gradual'
+);

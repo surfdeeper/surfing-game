@@ -1,11 +1,19 @@
-import { defineProgression } from '../../test-utils';
+/**
+ * Shared constants and utilities for Foam Contours layer
+ *
+ * Uses 16x16 grid for detailed contour visualization.
+ * Includes custom drawing utilities for foam patterns.
+ */
+
+import { defineProgression, createMatrixWithSize, Matrix, STATIC_CAPTURE } from '../../test-utils';
 
 export const GRID_SIZE = 16;
-export const STATIC_CAPTURE = [0];
-export type Matrix = number[][];
+
+export type { Matrix };
+export { STATIC_CAPTURE };
 
 export function createMatrix(): Matrix {
-  return Array.from({ length: GRID_SIZE }, () => Array(GRID_SIZE).fill(0));
+  return createMatrixWithSize(GRID_SIZE, GRID_SIZE);
 }
 
 export function setCell(matrix: Matrix, x: number, y: number, value: number) {
@@ -58,7 +66,6 @@ export function toProgression(
     description,
     initialMatrix: buildMatrix(),
     captureTimes: STATIC_CAPTURE,
-    updateFn: () => {},
     metadata: { label },
   });
 }

@@ -4,11 +4,9 @@
  * Input: Steep slope depth from Layer 1
  * Output: Sharp damping transition (sudden energy loss)
  */
-import { defineProgression } from '../../../test-utils';
+import { defineProgression, STATIC_CAPTURE, createStrip } from '../../../test-utils';
 import { PROGRESSION_SLOPE_STEEP as DEPTH_SLOPE_STEEP } from '@layers/01-bottom-depth';
 import { depthMatrixToDamping } from '../index';
-
-const STATIC_CAPTURE = [0];
 
 // Get depth matrix from Layer 1 and compute damping
 const depthMatrix = DEPTH_SLOPE_STEEP.snapshots[0].matrix;
@@ -19,7 +17,6 @@ export const PROGRESSION_SLOPE_STEEP = defineProgression({
   description: 'Sharp damping transition - sudden energy loss at steep slope',
   initialMatrix: dampingMatrix,
   captureTimes: STATIC_CAPTURE,
-  updateFn: () => {},
   metadata: {
     label: 'Steep Slope Damping',
     inputLayer: 'bottom-depth/slope-steep',
@@ -27,8 +24,7 @@ export const PROGRESSION_SLOPE_STEEP = defineProgression({
   },
 });
 
-export const DAMPING_STRIP_SLOPE_STEEP = {
-  testId: 'strip-damping-slope-steep',
-  pageId: '02-bottom-damping/06-slope-steep',
-  snapshots: PROGRESSION_SLOPE_STEEP.snapshots,
-};
+export const DAMPING_STRIP_SLOPE_STEEP = createStrip(
+  PROGRESSION_SLOPE_STEEP,
+  '02-bottom-damping/06-slope-steep'
+);

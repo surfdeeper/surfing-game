@@ -1,14 +1,10 @@
-import { defineProgression } from '../../../test-utils';
-
-type Matrix = number[][];
-
-const GRID_WIDTH = 8;
-const GRID_HEIGHT = 10;
-const STATIC_CAPTURE = [0];
-
-function createMatrix(): Matrix {
-  return Array.from({ length: GRID_HEIGHT }, () => Array(GRID_WIDTH).fill(0));
-}
+import {
+  defineProgression,
+  GRID_WIDTH,
+  GRID_HEIGHT,
+  STATIC_CAPTURE,
+  createMatrix,
+} from '../../../test-utils';
 
 /**
  * Channel - Deep channel between shallow areas (river mouth pattern)
@@ -35,6 +31,5 @@ export const PROGRESSION_CHANNEL = defineProgression({
     return matrix;
   })(),
   captureTimes: STATIC_CAPTURE,
-  updateFn: () => {},
   metadata: { label: 'Channel' },
 });

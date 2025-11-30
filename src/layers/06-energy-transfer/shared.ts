@@ -1,7 +1,16 @@
+/**
+ * Shared constants and utilities for Energy Transfer layer
+ *
+ * Uses 10x10 grid for this layer's visualization needs.
+ */
+
+import { createMatrixWithSize, Matrix } from '../../test-utils';
+
 export const GRID_WIDTH = 10;
 export const GRID_HEIGHT = 10;
-export type Matrix = number[][];
+
+export type { Matrix };
 
 export function createMatrix(): Matrix {
-  return Array.from({ length: GRID_HEIGHT }, () => Array(GRID_WIDTH).fill(0));
+  return createMatrixWithSize(GRID_WIDTH, GRID_HEIGHT);
 }
