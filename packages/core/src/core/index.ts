@@ -1,4 +1,5 @@
 /**
- * Core math utilities
+ * Core Math Utilities Index
  */
+
 export * from './math.js';

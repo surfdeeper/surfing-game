@@ -1,8 +1,7 @@
 /**
- * @surf/core - Core game logic
+ * @surf/core - Core game module
  *
- * Pure game state, update logic, and coordinate utilities.
- * No rendering dependencies.
+ * Game state, update logic, rendering, and utilities.
  */
 
 // State models
@@ -14,8 +13,8 @@ export * from './update/index.js';
 // Core math utilities
 export * from './core/index.js';
 
-// Coordinate utilities
-export * from './coordinates.js';
+// Rendering
+export * from './render/index.js';
 
-// Test utilities (for other packages' tests)
+// Test utilities
 export * from './test-utils/index.js';

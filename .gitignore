@@ -18,3 +18,4 @@ dist-stories
 .turbo/
 .npm/
 .config/
+.nx/

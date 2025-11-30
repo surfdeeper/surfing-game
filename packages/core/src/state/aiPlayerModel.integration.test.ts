@@ -6,7 +6,7 @@ import { createAIState, updateAIPlayer, AI_MODE, AI_STATE } from './aiPlayerMode
 // Note: AI_STATE.SEEKING replaces PADDLE_OUT, AI starts by actively looking for foam
 import { createPlayerProxy, updatePlayerProxy } from './playerProxyModel.js';
 import { DEFAULT_BATHYMETRY } from './bathymetryModel.js';
-import { getOceanBounds, calculateTravelDuration } from '../coordinates.js';
+import { getOceanBounds, calculateTravelDuration } from '../render/coordinates.js';
 import { createFoamGrids } from './foamGridModel.js';
 
 // Simulate real game dimensions

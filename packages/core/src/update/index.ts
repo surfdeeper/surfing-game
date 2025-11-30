@@ -36,7 +36,7 @@ import {
   calculateTravelDuration,
   progressToScreenY,
   screenYToProgress,
-} from '../coordinates.js';
+} from '../render/coordinates.js';
 
 // Re-export coordinate utilities for consumers who import from update/index.js
 export { getOceanBounds, calculateTravelDuration, progressToScreenY, screenYToProgress };
