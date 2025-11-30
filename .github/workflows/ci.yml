@@ -52,7 +52,15 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Build and run visual tests in Docker
-        run: docker compose run --rm visual-tests
+        run: docker compose run --rm visual-tests -- --update-snapshots
+
+      - name: Upload updated baselines
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: visual-baselines
+          path: stories/**/*.png
+          retention-days: 7
 
       - name: Upload test results on failure
         uses: actions/upload-artifact@v4
