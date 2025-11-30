@@ -3,6 +3,9 @@
 
 let nextWaveId = 1;
 
+// INTENTIONAL BUG: Testing CI catches TypeScript errors
+const testCIFailure: string = 42;
+
 // Number of X samples for per-X progress tracking
 export const WAVE_X_SAMPLES = 40;
 
