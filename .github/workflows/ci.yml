@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [master, feature/*]  # feature/* for testing, remove after merge
+    branches: [master]
   pull_request:
     branches: [master]
 
@@ -20,7 +20,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
 
       - name: Install dependencies
