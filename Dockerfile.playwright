@@ -1,6 +1,6 @@
 # Use official Playwright image with all browsers pre-installed
-# Using v1.49.1 (noble = Ubuntu 24.04) which includes Node.js 22 LTS
-FROM mcr.microsoft.com/playwright:v1.49.1-noble
+# Version must match @playwright/test in package.json
+FROM mcr.microsoft.com/playwright:v1.57.0-noble
 
 WORKDIR /app
 
