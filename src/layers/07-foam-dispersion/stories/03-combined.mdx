@@ -1,0 +1,15 @@
+# Combined Effects
+
+import { ProgressionPlayer } from '@stories/components/ProgressionPlayer';
+import { Filmstrip, renderMatrixToCanvas } from '@stories/components/Filmstrip';
+import { energyToColor } from '@src/render/colorScales';
+import { PROGRESSION_DECAY_AND_SPREAD, FOAM_DISPERSION_STRIP_COMBINED } from './03-combined';
+
+export const renderEnergy = (snap, ctx, w, h) =>
+  renderMatrixToCanvas(ctx, snap.matrix, energyToColor, w, h);
+
+<ProgressionPlayer snapshots={PROGRESSION_DECAY_AND_SPREAD.snapshots} />
+
+<Filmstrip snapshots={FOAM_DISPERSION_STRIP_COMBINED.snapshots} renderSnapshot={renderEnergy} testId={FOAM_DISPERSION_STRIP_COMBINED.testId} />
+
+Foam decays and spreads simultaneously as bubbles pop and diffuse.

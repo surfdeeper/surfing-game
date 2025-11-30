@@ -1,0 +1,12 @@
+# Spatial Spread
+
+import { Filmstrip, renderMatrixToCanvas } from '@stories/components/Filmstrip';
+import { energyToColor } from '@src/render/colorScales';
+import { ENERGY_TRANSFER_STRIP_SPREAD } from './02-spatial-spread';
+
+export const renderEnergy = (snap, ctx, w, h) =>
+  renderMatrixToCanvas(ctx, snap.matrix, energyToColor, w, h);
+
+<Filmstrip snapshots={ENERGY_TRANSFER_STRIP_SPREAD.snapshots} renderSnapshot={renderEnergy} testId={ENERGY_TRANSFER_STRIP_SPREAD.testId} />
+
+Blur spreads energy release over a wider area for smoother foam deposits.

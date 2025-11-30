@@ -1,0 +1,23 @@
+# Breaking Types
+
+import { ProgressionPlayer } from '@stories/components/ProgressionPlayer';
+import { Filmstrip, renderMatrixToCanvas } from '@stories/components/Filmstrip';
+import { energyToColor } from '@src/render/colorScales';
+import { PROGRESSION_SPILLING, PROGRESSION_PLUNGING, PROGRESSION_SURGING, WAVE_BREAKING_STRIP_TYPES } from './02-breaking-types';
+
+export const renderEnergy = (snap, ctx, w, h) =>
+  renderMatrixToCanvas(ctx, snap.matrix, energyToColor, w, h);
+
+<Filmstrip snapshots={WAVE_BREAKING_STRIP_TYPES.snapshots} renderSnapshot={renderEnergy} testId={WAVE_BREAKING_STRIP_TYPES.testId} />
+
+**Spilling** (gentle slope): Foam cascades down wave face.
+
+<ProgressionPlayer snapshots={PROGRESSION_SPILLING.snapshots} />
+
+**Plunging** (medium slope): Dramatic barrel formation.
+
+<ProgressionPlayer snapshots={PROGRESSION_PLUNGING.snapshots} />
+
+**Surging** (steep slope): Wave surges up beach.
+
+<ProgressionPlayer snapshots={PROGRESSION_SURGING.snapshots} />

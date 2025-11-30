@@ -1,0 +1,15 @@
+# High Damping
+
+import { ProgressionPlayer } from '@stories/components/ProgressionPlayer';
+import { Filmstrip, renderMatrixToCanvas } from '@stories/components/Filmstrip';
+import { energyToColor } from '@src/render/colorScales';
+import { PROGRESSION_HIGH_DAMPING, ENERGY_FIELD_STRIP_HIGH_DAMPING } from './03-high-damping';
+
+export const renderEnergy = (snap, ctx, w, h) =>
+  renderMatrixToCanvas(ctx, snap.matrix, energyToColor, w, h);
+
+<ProgressionPlayer snapshots={PROGRESSION_HIGH_DAMPING.snapshots} />
+
+<Filmstrip snapshots={ENERGY_FIELD_STRIP_HIGH_DAMPING.snapshots} renderSnapshot={renderEnergy} testId={ENERGY_FIELD_STRIP_HIGH_DAMPING.testId} />
+
+Coefficient `2.0` — energy mostly gone before reaching shore.

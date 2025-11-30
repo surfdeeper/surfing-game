@@ -1,0 +1,12 @@
+# Speed vs Depth
+
+import { Filmstrip, renderMatrixToCanvas } from '@stories/components/Filmstrip';
+import { energyToColor } from '@src/render/colorScales';
+import { SHOALING_STRIP_STATIC } from './03-speed-vs-depth';
+
+export const renderEnergy = (snap, ctx, w, h) =>
+  renderMatrixToCanvas(ctx, snap.matrix, energyToColor, w, h);
+
+<Filmstrip snapshots={SHOALING_STRIP_STATIC.snapshots} renderSnapshot={renderEnergy} testId={SHOALING_STRIP_STATIC.testId} />
+
+Wave celerity follows `c = sqrt(g * d)`. Bright = fast, dark = slow.

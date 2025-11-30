@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { getProgression } from '../../test-utils';
-import { PROGRESSION_SINGLE_CIRCLE, FOAM_STRIP_EDGE_CASES, FOAM_STRIP_BASIC } from './progressions';
+import { PROGRESSION_SINGLE_CIRCLE, FOAM_STRIP_BASIC } from './stories/01-basic-shapes';
+import { FOAM_STRIP_EDGE_CASES } from './stories/03-edge-cases';
 
 describe('foamContoursProgressions', () => {
   it('registers foam contour progressions for discovery', () => {

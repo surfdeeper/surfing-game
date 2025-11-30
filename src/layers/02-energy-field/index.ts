@@ -20,12 +20,44 @@ export {
 // Renderer exports - production rendering
 export { renderEnergyField, renderEnergyFieldFast } from './renderer';
 
-// Progression exports - test fixtures and strips
+// Shared constants
 export {
-  ENERGY_FIELD_PROGRESSIONS,
-  ENERGY_FIELD_STRIPS,
-  PROGRESSION_NO_DAMPING,
-  PROGRESSION_LOW_DAMPING,
+  SMALL_HEIGHT,
+  TRAVEL_DURATION,
+  INITIAL_PULSE,
+  deepWater,
+  shallowGradient,
+  updateDeepWaterTranslation,
+} from './shared';
+
+// Individual story exports
+export { PROGRESSION_NO_DAMPING, ENERGY_FIELD_STRIP_NO_DAMPING } from './stories/01-no-damping';
+export { PROGRESSION_LOW_DAMPING, ENERGY_FIELD_STRIP_LOW_DAMPING } from './stories/02-low-damping';
+export {
   PROGRESSION_HIGH_DAMPING,
-  PROGRESSION_WITH_DRAIN,
-} from './progressions';
+  ENERGY_FIELD_STRIP_HIGH_DAMPING,
+} from './stories/03-high-damping';
+export { PROGRESSION_WITH_DRAIN, ENERGY_FIELD_STRIP_WITH_DRAIN } from './stories/04-with-drain';
+
+// Aggregated exports for convenience
+import { PROGRESSION_NO_DAMPING, ENERGY_FIELD_STRIP_NO_DAMPING } from './stories/01-no-damping';
+import { PROGRESSION_LOW_DAMPING, ENERGY_FIELD_STRIP_LOW_DAMPING } from './stories/02-low-damping';
+import {
+  PROGRESSION_HIGH_DAMPING,
+  ENERGY_FIELD_STRIP_HIGH_DAMPING,
+} from './stories/03-high-damping';
+import { PROGRESSION_WITH_DRAIN, ENERGY_FIELD_STRIP_WITH_DRAIN } from './stories/04-with-drain';
+
+export const ENERGY_FIELD_PROGRESSIONS = {
+  noDamping: PROGRESSION_NO_DAMPING,
+  lowDamping: PROGRESSION_LOW_DAMPING,
+  highDamping: PROGRESSION_HIGH_DAMPING,
+  withDrain: PROGRESSION_WITH_DRAIN,
+};
+
+export const ENERGY_FIELD_STRIPS = [
+  ENERGY_FIELD_STRIP_NO_DAMPING,
+  ENERGY_FIELD_STRIP_LOW_DAMPING,
+  ENERGY_FIELD_STRIP_HIGH_DAMPING,
+  ENERGY_FIELD_STRIP_WITH_DRAIN,
+];

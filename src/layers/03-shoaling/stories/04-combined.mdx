@@ -1,0 +1,15 @@
+# Combined Shoaling Effects
+
+import { ProgressionPlayer } from '@stories/components/ProgressionPlayer';
+import { Filmstrip, renderMatrixToCanvas } from '@stories/components/Filmstrip';
+import { energyToColor } from '@src/render/colorScales';
+import { PROGRESSION_SHOALING_COMBINED, SHOALING_STRIP_COMBINED } from './04-combined';
+
+export const renderEnergy = (snap, ctx, w, h) =>
+  renderMatrixToCanvas(ctx, snap.matrix, energyToColor, w, h);
+
+<ProgressionPlayer snapshots={PROGRESSION_SHOALING_COMBINED.snapshots} />
+
+<Filmstrip snapshots={SHOALING_STRIP_COMBINED.snapshots} renderSnapshot={renderEnergy} testId={SHOALING_STRIP_COMBINED.testId} />
+
+Speed decrease, height increase, and compression occur simultaneously.

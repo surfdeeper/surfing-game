@@ -1,0 +1,15 @@
+# Energy to Foam
+
+import { ProgressionPlayer } from '@stories/components/ProgressionPlayer';
+import { Filmstrip, renderMatrixToCanvas } from '@stories/components/Filmstrip';
+import { energyToColor } from '@src/render/colorScales';
+import { PROGRESSION_ENERGY_TO_FOAM, WAVE_BREAKING_STRIP_ENERGY } from './03-energy-to-foam';
+
+export const renderEnergy = (snap, ctx, w, h) =>
+  renderMatrixToCanvas(ctx, snap.matrix, energyToColor, w, h);
+
+<ProgressionPlayer snapshots={PROGRESSION_ENERGY_TO_FOAM.snapshots} />
+
+<Filmstrip snapshots={WAVE_BREAKING_STRIP_ENERGY.snapshots} renderSnapshot={renderEnergy} testId={WAVE_BREAKING_STRIP_ENERGY.testId} />
+
+Breaking drains wave energy and converts it to foam.

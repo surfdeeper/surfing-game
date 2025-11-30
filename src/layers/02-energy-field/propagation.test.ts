@@ -13,13 +13,11 @@ import {
   progressionToAscii,
 } from '../../test-utils/index.js';
 
-// Import progressions from the dedicated progressions file
-import {
-  PROGRESSION_NO_DAMPING,
-  PROGRESSION_LOW_DAMPING,
-  PROGRESSION_HIGH_DAMPING,
-  PROGRESSION_WITH_DRAIN,
-} from './progressions';
+// Import progressions from individual story files
+import { PROGRESSION_NO_DAMPING } from './stories/01-no-damping';
+import { PROGRESSION_LOW_DAMPING } from './stories/02-low-damping';
+import { PROGRESSION_HIGH_DAMPING } from './stories/03-high-damping';
+import { PROGRESSION_WITH_DRAIN } from './stories/04-with-drain';
 
 // Standard initial state for legacy tests
 const INITIAL_PULSE = [
@@ -265,4 +263,4 @@ export {
   PROGRESSION_LOW_DAMPING,
   PROGRESSION_HIGH_DAMPING,
   PROGRESSION_WITH_DRAIN,
-} from './progressions';
+};

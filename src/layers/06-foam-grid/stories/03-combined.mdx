@@ -1,0 +1,15 @@
+# Combined Behavior
+
+import { ProgressionPlayer } from '@stories/components/ProgressionPlayer';
+import { Filmstrip, renderMatrixToCanvas } from '@stories/components/Filmstrip';
+import { energyToColor } from '@src/render/colorScales';
+import { PROGRESSION_COMBINED, FOAM_GRID_STRIP_COMBINED } from './03-combined';
+
+export const renderEnergy = (snap, ctx, w, h) =>
+  renderMatrixToCanvas(ctx, snap.matrix, energyToColor, w, h);
+
+<ProgressionPlayer snapshots={PROGRESSION_COMBINED.snapshots} />
+
+<Filmstrip snapshots={FOAM_GRID_STRIP_COMBINED.snapshots} renderSnapshot={renderEnergy} testId={FOAM_GRID_STRIP_COMBINED.testId} />
+
+Foam accumulates at the breaking zone and advects shoreward simultaneously.

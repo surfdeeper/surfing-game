@@ -1,0 +1,15 @@
+# Foam Accumulation
+
+import { ProgressionPlayer } from '@stories/components/ProgressionPlayer';
+import { Filmstrip, renderMatrixToCanvas } from '@stories/components/Filmstrip';
+import { energyToColor } from '@src/render/colorScales';
+import { PROGRESSION_ACCUMULATION, FOAM_GRID_STRIP_ACCUMULATION } from './01-accumulation';
+
+export const renderEnergy = (snap, ctx, w, h) =>
+  renderMatrixToCanvas(ctx, snap.matrix, energyToColor, w, h);
+
+<ProgressionPlayer snapshots={PROGRESSION_ACCUMULATION.snapshots} />
+
+<Filmstrip snapshots={FOAM_GRID_STRIP_ACCUMULATION.snapshots} renderSnapshot={renderEnergy} testId={FOAM_GRID_STRIP_ACCUMULATION.testId} />
+
+Energy from the transfer grid deposits into the foam grid each frame.
