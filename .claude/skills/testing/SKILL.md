@@ -1,142 +1,178 @@
 ---
 name: testing
-description: Apply testing best practices when writing or modifying tests. Use when creating unit tests (Vitest), visual tests (Playwright), or discussing test strategy. Auto-apply when editing files in tests/ or *.test.ts files.
+description: Testing strategy orchestrator. Use when discussing test types, test order, or choosing how to test something. Auto-apply for general testing questions.
 ---
 
 # Testing Skill (Orchestrator)
 
-This skill coordinates testing strategy. For specific test types, see:
+This skill coordinates testing strategy across all test types. Tests are **colocated** with the code they test - when viewing a module, you see all its tests nearby.
 
-- **`unit-testing`** - Vitest unit tests, physics testing, test utilities
-- **`visual-testing`** - Ladle stories, Playwright visual regression
+## Test Type Index
 
-## The Testing Pyramid
+```
+Testing
+│
+├── Static Analysis
+│   └── Linting ─────────────────── ESLint syntax/import checks
+│
+├── Data Model Tests (Vitest)
+│   ├── Pure Logic Tests ────────── Single functions, math, state transitions
+│   └── Matrix Progression Tests ── 2D grid evolution over time (ASCII diagrams)
+│
+├── Component Tests (Vitest + Testing Library)
+│   └── React Component Tests ───── Behavior, state, user interactions
+│
+├── Visual Regression (Playwright)
+│   ├── Component Screenshots ───── React component pixel comparison
+│   └── Canvas Filmstrip Tests ──── Matrix-to-canvas rendered progressions
+│
+└── Integration / E2E (Playwright)
+    └── Smoke Tests ─────────────── App loads without JS errors
+```
+
+## Test Types, Files, and Colocation
+
+All tests are colocated with their source. When you open a folder, you see the code and all its tests together.
+
+### Data Model Tests
+
+| Test Type | File Pattern | Colocated With | Skill |
+|-----------|--------------|----------------|-------|
+| Pure logic | `*.test.ts` | `src/**/*.ts` | `logic-testing` |
+| Matrix progression | `*Progressions.test.ts` | `src/render/*Progressions.ts` | `matrix-data-model-progression-testing` |
+
+```
+src/state/
+  waveModel.ts              ← Source
+  waveModel.test.ts         ← Logic test (colocated)
+
+src/render/
+  bathymetryProgressions.ts      ← Matrix definitions
+  bathymetryProgressions.test.ts ← ASCII progression test (colocated)
+```
+
+### Component Tests
+
+| Test Type | File Pattern | Colocated With | Skill |
+|-----------|--------------|----------------|-------|
+| React behavior | `*.test.tsx` | `src/**/*.tsx` | `logic-testing` (same patterns) |
+
+```
+src/ui/
+  WaveControls.tsx          ← Component
+  WaveControls.test.tsx     ← Behavior test (colocated)
+```
+
+### Visual Regression Tests
+
+| Test Type | File Pattern | Colocated With | Skill |
+|-----------|--------------|----------------|-------|
+| Component screenshots | `*.visual.spec.ts` | `stories/**/` | `component-screenshot-testing` |
+| Canvas filmstrips | `*.visual.spec.ts` | `stories/**/` | `canvas-filmstrip-testing` |
+
+```
+stories/01-bathymetry/
+  01-bathymetry.mdx              ← Story documentation
+  01-bathymetry.visual.spec.ts   ← Visual test (colocated)
+  strip-bathymetry-basic.png     ← Baseline screenshot (colocated)
+  strip-bathymetry-features.png  ← Baseline screenshot (colocated)
+```
+
+### Integration Tests
+
+| Test Type | File Pattern | Location | Skill |
+|-----------|--------------|----------|-------|
+| Smoke test | `smoke.spec.js` | `tests/` | (this skill) |
+| E2E tests | `*.spec.js` | `tests/` | (this skill) |
+
+## Choosing the Right Test Type
+
+| What you're testing | Test type | File to create |
+|---------------------|-----------|----------------|
+| Pure function returns correct value | Logic test | `myModule.test.ts` next to `myModule.ts` |
+| Matrix evolves correctly over time | Progression test | `*Progressions.test.ts` with ASCII assertions |
+| React component behavior/state | Component test | `MyComponent.test.tsx` next to `MyComponent.tsx` |
+| Rendered pixels match baseline | Visual regression | `*.visual.spec.ts` in `stories/` folder |
+| App loads without crashing | Smoke test | `tests/smoke.spec.js` |
+
+## Test Order (Fastest First)
 
 Run cheap tests first to catch issues early:
 
 ```
-                    ┌─────────────┐
-                    │   Visual    │  Slowest, most expensive
-                    │  Regression │  Only run when unit tests pass
-                    ├─────────────┤
-                    │    E2E      │  Smoke test: does app load?
-                    │   Smoke     │
-                    ├─────────────┤
-                    │    Unit     │  Fast, isolated logic tests
-                    │   Tests     │  Run specific files first
-                    ├─────────────┤
-                    │    Lint     │  Fastest - syntax/import errors
-                    └─────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│ 1. Lint                    ~1s    npm run lint              │
+├─────────────────────────────────────────────────────────────┤
+│ 2. Smoke                   ~3s    npx playwright test       │
+│                                   tests/smoke.spec.js       │
+├─────────────────────────────────────────────────────────────┤
+│ 3. Logic/Progression      ~secs   npx vitest run <file>     │
+├─────────────────────────────────────────────────────────────┤
+│ 4. Component Tests        ~secs   npx vitest run <file>     │
+├─────────────────────────────────────────────────────────────┤
+│ 5. Visual Regression      ~mins   npm run test:visual:      │
+│                                   headless                  │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-## Test Order (Always Follow This)
-
-After making changes, run tests in this order:
-
-```bash
-# 1. Lint (~1 second) - catches syntax/import errors
-npm run lint
-
-# 2. Smoke test (~3 seconds) - verifies app loads without JS errors
-npx playwright test tests/smoke.spec.js:3
-
-# 3. Specific unit tests (~seconds) - test files related to changes
-npx vitest run src/path/changed-file.test.ts
-
-# 4. Visual tests (if relevant) - only after unit tests pass
-npm run test:visual:headless
-
-# 5. Full suite (rarely needed) - only for major changes
-npm test
-```
-
-**Why this order matters:**
-
-| Step | Catches | Time |
-|------|---------|------|
-| Lint | Syntax errors, bad imports | 1s |
-| Smoke | App crashes, broken imports not in unit tests | 3s |
-| Unit | Logic bugs in changed code | seconds |
-| Visual | Rendering regressions | minutes |
-
-If lint fails, don't bother running tests. If smoke fails, the app is broken - fix that first. If unit tests fail, don't run visual tests (you'll waste time debugging render issues when the data is wrong).
-
-## Critical Principles
-
-### 1. Tests Must Exercise Production Code
-
-```
-❌ Anti-pattern:
-   Helper (tested) → Used by Storybook only
-   Inline copy     → Used by main.tsx (production)
-
-   Tests pass, production runs different code.
-
-✅ Correct:
-   Helper (tested) → Used by BOTH stories AND main.tsx
-```
-
-### 2. Unit Tests Gate Visual Tests
-
-Don't run visual tests when unit tests are failing:
-
-```bash
-# Unit tests fail
-$ npx vitest run src/state/energyField.test.ts
-FAIL - energy should reach row 3 by t=3s
-
-# DON'T run visual tests yet - fix the data first
-# Visual tests would give misleading results
-```
-
-Visual tests are expensive. If the underlying data/logic is wrong, you'll waste time looking at broken renders trying to debug "visual issues" when the real bug is in the model.
-
-### 3. Test Utilities Must Be Tested
-
-`src/test-utils/` contains foundational code. A bug there corrupts all tests:
-
-```bash
-# Run after modifying test utilities
-npx vitest run src/test-utils/
-```
-
-## Choosing the Right Test Type
-
-| Scenario | Test Type | Skill |
-|----------|-----------|-------|
-| Logic/math/physics | Unit test | `unit-testing` |
-| "Does X render correctly?" | Visual test | `visual-testing` |
-| "Does the app load?" | Smoke test | (this skill) |
-| "Did imports break?" | Lint | (this skill) |
-| Time progression behavior | Unit + Visual | both |
+**Stop and fix** at the first failure. Don't run expensive visual tests when data tests are failing.
 
 ## Quick Reference
 
 ```bash
-# Linting
-npm run lint
+# Static analysis
+npm run lint                              # ~1s
 
 # Smoke test
-npx playwright test tests/smoke.spec.js:3
+npx playwright test tests/smoke.spec.js   # ~3s
 
-# Unit tests
-npx vitest run src/path/file.test.ts    # Specific file
-npm test                                  # All unit tests
+# Data model tests (Vitest)
+npx vitest run src/path/file.test.ts      # Specific file
+npx vitest run src/render/*Progressions*  # All progression tests
+npm test                                   # All Vitest tests
 
-# Visual tests
-npm run ladle:build                       # Verify stories compile
-npm run test:visual:headless              # Run visual regression
-npm run test:visual:update:headless       # Update baselines
-
-# Reset
-npm run reset:visual                      # Clear results
-npm run reset:visual:all                  # Clear results + baselines
+# Visual regression (Playwright)
+npm run stories:build                      # Verify stories compile
+npm run test:visual:headless               # Run visual regression
+npm run test:visual:update:headless        # Update baselines
+npm run reset:visual                       # Clear results
+npm run reset:visual:all                   # Clear results + baselines
 ```
 
-## Debugging: CSS vs Logic Bugs
+## Debugging by Symptom
 
-| Symptom | Likely Cause | Next Step |
-|---------|--------------|-----------|
-| Unit test fails | Logic bug | Debug with `unit-testing` skill |
-| Unit passes, visual fails | Rendering bug | Check `visual-testing` skill |
-| Both pass, browser looks wrong | CSS conflict | Check for transitions on 60fps elements |
+| Symptom | Likely cause | Which test to check |
+|---------|--------------|---------------------|
+| Logic test fails | Bug in function | `*.test.ts` colocated with source |
+| ASCII progression differs | Data model bug | `*Progressions.test.ts` |
+| Component test fails | React behavior bug | `*.test.tsx` colocated with component |
+| Visual test fails, data correct | Rendering/CSS bug | `*.visual.spec.ts` in stories |
+| All pass, browser wrong | CSS transition conflict | Check 60fps element transitions |
+
+## Skill Index
+
+| Skill | What it tests | Key files |
+|-------|---------------|-----------|
+| `logic-testing` | Pure functions, math, state | `*.test.ts` |
+| `matrix-data-model-progression-testing` | 2D grid evolution (ASCII) | `*Progressions.test.ts` |
+| `component-screenshot-testing` | React component pixels | UI component `*.visual.spec.ts` |
+| `canvas-filmstrip-testing` | Canvas-rendered matrix strips | Progression `*.visual.spec.ts` |
+| `visual-regression` | Shared visual test infrastructure | All `*.visual.spec.ts` |
+
+## Critical Principles
+
+### 1. Colocation
+
+Tests live next to what they test. Don't hunt for tests in a separate `tests/` tree.
+
+### 2. Data Gates Visual
+
+Never run visual tests when data tests fail. The matrix is the source of truth - if the numbers are wrong, the pixels will be wrong too.
+
+### 3. Test Utilities Must Be Tested
+
+`src/test-utils/` is foundational. A bug there corrupts all tests:
+
+```bash
+npx vitest run src/test-utils/
+```
