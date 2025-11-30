@@ -41,7 +41,7 @@ export const PROGRESSION_EDGE = toProgression(
 
 export const FOAM_STRIP_ADVANCED = {
   testId: 'strip-foam-advanced',
-  pageId: '08-foam-contours/02-advanced-patterns',
+  pageId: '09-foam-contours/02-advanced-patterns',
   snapshots: progressionsToStrip([
     { progression: PROGRESSION_NESTED },
     { progression: PROGRESSION_SCATTERED },

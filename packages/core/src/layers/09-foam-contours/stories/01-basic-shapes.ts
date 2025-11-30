@@ -36,7 +36,7 @@ export const PROGRESSION_WAVE_LINE = toProgression(
 
 export const FOAM_STRIP_BASIC = {
   testId: 'strip-foam-basic',
-  pageId: '08-foam-contours/01-basic-shapes',
+  pageId: '09-foam-contours/01-basic-shapes',
   snapshots: progressionsToStrip([
     { progression: PROGRESSION_SINGLE_CIRCLE },
     { progression: PROGRESSION_OVERLAPPING },

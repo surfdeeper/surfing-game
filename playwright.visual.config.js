@@ -2,7 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: '.',
-  testMatch: '**/visual-regression-testing-viewer-react-application/**/visual.spec.ts',
+  testMatch: '**/visual-regression-testing-viewer-react-application/**/*.visual.spec.ts',
   outputDir: './tests/visual/results',
 
   fullyParallel: true,

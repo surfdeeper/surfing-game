@@ -24,7 +24,7 @@ export const PROGRESSION_FULL = toProgression(
 
 export const FOAM_STRIP_EDGE_CASES = {
   testId: 'strip-foam-edge-cases',
-  pageId: '08-foam-contours/03-edge-cases',
+  pageId: '09-foam-contours/03-edge-cases',
   snapshots: progressionsToStrip([
     { progression: PROGRESSION_EMPTY },
     { progression: PROGRESSION_FULL },
