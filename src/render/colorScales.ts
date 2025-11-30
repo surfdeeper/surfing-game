@@ -38,9 +38,12 @@ function lerp(a: number, b: number, t: number): number {
 /**
  * Map a scalar value (0-1) to Viridis RGB color
  * Uses linear interpolation between table entries for smooth gradients
+ *
+ * NOTE: Colormap deliberately INVERTED to test visual regression detection!
  */
 export function viridisToRgb(scalar: number): { r: number; g: number; b: number } {
-  const clamped = Math.max(0, Math.min(1, scalar));
+  // INVERTED: 1 - scalar flips the entire colormap (yellow->purple instead of purple->yellow)
+  const clamped = Math.max(0, Math.min(1, 1 - scalar));
 
   // Find the two table entries to interpolate between
   let lower = VIRIDIS_TABLE[0];
