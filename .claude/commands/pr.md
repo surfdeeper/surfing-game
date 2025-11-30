@@ -17,17 +17,17 @@ $ARGUMENTS - Optional PR title. If omitted, infer from branch name.
    - `feature/shoaling-physics` → "feat: shoaling physics"
    - `feature/fix-wave-timing` → "fix: wave timing"
 3. Gather context for PR body:
-   - Run `git log main..HEAD --oneline` to see commits
+   - Run `git log master..HEAD --oneline` to see commits
    - Summarize the changes
 4. Create PR using GitHub MCP:
 
 ```
 mcp__github__create_pull_request(
-  owner: "joshribakoff",
+  owner: "surfdeeper",
   repo: "surfing-game",
   title: "<title>",
   head: "<current-branch>",
-  base: "main",
+  base: "master",
   body: "## Summary\n<bullet points>\n\n## Test Plan\n<how to verify>\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)"
 )
 ```
@@ -36,6 +36,6 @@ mcp__github__create_pull_request(
 
 ## Notes
 
-- Always targets `main` branch
+- Always targets `master` branch
 - PR body follows project template with Summary and Test Plan sections
 - Check PR status later with: `mcp__github__pull_request_read(method="get_status", ...)`
