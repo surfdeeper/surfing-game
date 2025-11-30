@@ -1,4 +1,4 @@
-import { defineStripVisualTests } from '../../../../../../stories/visual-test-helpers';
+import { defineStripVisualTests } from '../../../../../../packages/visual-regression-testing-viewer-react-application/src/visual-test-helpers';
 import { FOAM_STRIP_BASIC } from './01-basic-shapes';
 import { FOAM_STRIP_ADVANCED } from './02-advanced-patterns';
 import { FOAM_STRIP_EDGE_CASES } from './03-edge-cases';

@@ -1,9 +1,10 @@
-import { defineProgression } from '../../../test-utils';
+import { defineStory } from '../../../test-utils';
 import { createMatrix } from '../shared';
 
-export const PROGRESSION_ACCUMULATION = defineProgression({
+const story = defineStory({
   id: 'foam-grid/accumulation',
-  description: 'Foam density accumulates from repeated energy deposits',
+  title: 'Accumulation',
+  prose: 'Foam density accumulates from repeated energy deposits.',
   initialMatrix: (() => {
     const matrix = createMatrix();
     matrix[4][5] = 0.2;
@@ -29,11 +30,26 @@ export const PROGRESSION_ACCUMULATION = defineProgression({
       data[i] *= Math.exp(-decayRate * dt);
     }
   },
-  metadata: { label: 'Accumulation' },
+  expectedAscii: `
+    t=0s        t=1s        t=2s        t=3s        t=4s        t=5s
+    ----------  ----------  ----------  ----------  ----------  ----------
+    ----------  ----------  ----------  ----------  ----------  ----------
+    ----------  ----------  ----------  ----------  ----------  ----------
+    ----------  ----------  ----------  ----------  ----------  ----------
+    ----121---  ---1232---  ---34A4---  ---4ABA---  ---ABCB---  ---CCDC---
+    ----------  ----------  ----------  ----------  ----------  ----------
+    ----------  ----------  ----------  ----------  ----------  ----------
+    ----------  ----------  ----------  ----------  ----------  ----------
+    ----------  ----------  ----------  ----------  ----------  ----------
+    ----------  ----------  ----------  ----------  ----------  ----------
+  `,
 });
+
+export default story;
+export const PROGRESSION_ACCUMULATION = story.progression;
 
 export const FOAM_GRID_STRIP_ACCUMULATION = {
   testId: 'strip-foam-grid-accumulation',
   pageId: '06-foam-grid/01-accumulation',
-  snapshots: PROGRESSION_ACCUMULATION.snapshots,
+  snapshots: story.progression.snapshots,
 };

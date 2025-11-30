@@ -1,27 +1,36 @@
-/**
- * Reef Damping - Abrupt damping transition
- *
- * Input: Reef depth (abrupt shelf) from Layer 1
- * Output: Sharp damping transition (sudden energy loss at reef edge)
- */
-import { defineProgression, STATIC_CAPTURE, createStrip } from '../../../test-utils';
+import { defineStory } from '../../../test-utils';
 import { PROGRESSION_REEF as DEPTH_REEF } from '../../01-bottom-depth/index.js';
-import { depthMatrixToDamping } from '../index';
+import { depthMatrixToDamping } from '../model.js';
 
-// Get depth matrix from Layer 1 and compute damping
 const depthMatrix = DEPTH_REEF.snapshots[0].matrix;
 const dampingMatrix = depthMatrixToDamping(depthMatrix);
 
-export const PROGRESSION_REEF = defineProgression({
+const story = defineStory({
   id: 'bottom-damping/reef',
-  description: 'Sharp damping transition - sudden energy loss at reef edge',
+  title: 'Reef Damping',
+  prose: 'Circular high-damping zone at reef creates localized wave breaking.',
   initialMatrix: dampingMatrix,
-  captureTimes: STATIC_CAPTURE,
-  metadata: {
-    label: 'Reef Damping',
-    inputLayer: 'bottom-depth/reef',
-    dampingRange: 'abrupt transition',
-  },
+  captureTimes: [0],
+  expectedAscii: `
+    t=0s
+    11111111
+    11111111
+    11111111
+    33333333
+    444BDB44
+    BBBFFFBB
+    DDDFFFDD
+    EEEEEEEE
+    FFFFFFFF
+    FFFFFFFF
+  `,
 });
 
-export const DAMPING_STRIP_REEF = createStrip(PROGRESSION_REEF, '02-bottom-damping/08-reef');
+export default story;
+export const PROGRESSION_REEF = story.progression;
+
+export const DAMPING_STRIP_REEF = {
+  testId: 'strip-bottom-damping-reef',
+  pageId: '02-bottom-damping/08-reef',
+  snapshots: story.progression.snapshots,
+};

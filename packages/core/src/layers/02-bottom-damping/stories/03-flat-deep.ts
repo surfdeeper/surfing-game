@@ -1,30 +1,36 @@
-/**
- * Flat Deep Damping - Uniform low damping from deep water
- *
- * Input: Flat deep depth (0.75 uniform) from Layer 1
- * Output: Uniform low damping (waves propagate further)
- */
-import { defineProgression, STATIC_CAPTURE, createStrip } from '../../../test-utils';
+import { defineStory } from '../../../test-utils';
 import { PROGRESSION_FLAT_DEEP as DEPTH_FLAT_DEEP } from '../../01-bottom-depth/index.js';
-import { depthMatrixToDamping } from '../index';
+import { depthMatrixToDamping } from '../model.js';
 
-// Get depth matrix from Layer 1 and compute damping
 const depthMatrix = DEPTH_FLAT_DEEP.snapshots[0].matrix;
 const dampingMatrix = depthMatrixToDamping(depthMatrix);
 
-export const PROGRESSION_FLAT_DEEP = defineProgression({
+const story = defineStory({
   id: 'bottom-damping/flat-deep',
-  description: 'Uniform low damping from deep water - waves propagate further',
+  title: 'Flat Deep Damping',
+  prose: 'Uniform low damping from deep water - waves propagate further.',
   initialMatrix: dampingMatrix,
-  captureTimes: STATIC_CAPTURE,
-  metadata: {
-    label: 'Flat Deep Damping',
-    inputLayer: 'bottom-depth/flat-deep',
-    dampingRange: 'low (uniform)',
-  },
+  captureTimes: [0],
+  expectedAscii: `
+    t=0s
+    11111111
+    11111111
+    11111111
+    11111111
+    11111111
+    11111111
+    11111111
+    11111111
+    11111111
+    11111111
+  `,
 });
 
-export const DAMPING_STRIP_FLAT_DEEP = createStrip(
-  PROGRESSION_FLAT_DEEP,
-  '02-bottom-damping/03-flat-deep'
-);
+export default story;
+export const PROGRESSION_FLAT_DEEP = story.progression;
+
+export const DAMPING_STRIP_FLAT_DEEP = {
+  testId: 'strip-bottom-damping-flat-deep',
+  pageId: '02-bottom-damping/03-flat-deep',
+  snapshots: story.progression.snapshots,
+};

@@ -1,14 +1,25 @@
-import { defineProgression, STATIC_CAPTURE, createFilledMatrix } from '../../../test-utils';
+import { defineStory, createFilledMatrix } from '../../../test-utils';
 
-/**
- * Flat Bottom (Medium) - Constant medium depth (50%)
- *
- * Moderate wave-bottom interaction across the entire grid.
- */
-export const PROGRESSION_FLAT_MEDIUM = defineProgression({
+const story = defineStory({
   id: 'bathymetry/flat-medium',
-  description: 'Constant medium depth (50%) - moderate wave-bottom interaction',
+  title: 'Flat Bottom (Medium)',
+  prose: 'Constant medium depth (50%) - moderate wave-bottom interaction.',
   initialMatrix: createFilledMatrix(0.5),
-  captureTimes: STATIC_CAPTURE,
-  metadata: { label: 'Flat Bottom (Medium)' },
+  captureTimes: [0],
+  expectedAscii: `
+    t=0s
+    AAAAAAAA
+    AAAAAAAA
+    AAAAAAAA
+    AAAAAAAA
+    AAAAAAAA
+    AAAAAAAA
+    AAAAAAAA
+    AAAAAAAA
+    AAAAAAAA
+    AAAAAAAA
+  `,
 });
+
+export default story;
+export const PROGRESSION_FLAT_MEDIUM = story.progression;

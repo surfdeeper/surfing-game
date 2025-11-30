@@ -1,19 +1,9 @@
-import {
-  defineProgression,
-  GRID_WIDTH,
-  GRID_HEIGHT,
-  STATIC_CAPTURE,
-  createMatrix,
-} from '../../../test-utils';
+import { defineStory, GRID_WIDTH, GRID_HEIGHT, createMatrix } from '../../../test-utils';
 
-/**
- * Channel - Deep channel between shallow areas (river mouth pattern)
- *
- * Vertical channel creates variable depth across horizontal axis.
- */
-export const PROGRESSION_CHANNEL = defineProgression({
+const story = defineStory({
   id: 'bathymetry/channel',
-  description: 'Deep channel between shallow areas (river mouth pattern)',
+  title: 'Channel',
+  prose: 'Deep channel between shallow areas (river mouth pattern).',
   initialMatrix: (() => {
     const matrix = createMatrix();
     const channelCol = Math.floor(GRID_WIDTH / 2);
@@ -23,13 +13,27 @@ export const PROGRESSION_CHANNEL = defineProgression({
 
       for (let col = 0; col < GRID_WIDTH; col++) {
         const distFromChannel = Math.abs(col - channelCol);
-        // Channel is deeper, sides are shallower
         const channelEffect = distFromChannel <= 1 ? 0.3 : distFromChannel <= 2 ? -0.2 : 0;
         matrix[row][col] = Math.max(0, Math.min(1, baseDepth + channelEffect));
       }
     }
     return matrix;
   })(),
-  captureTimes: STATIC_CAPTURE,
-  metadata: { label: 'Channel' },
+  captureTimes: [0],
+  expectedAscii: `
+    t=0s
+    FFDFFFDF
+    EECFFFCE
+    DDBFFFBD
+    CCAFFFAC
+    BB4EEE4B
+    442CCC24
+    331BBB13
+    22-AAA-2
+    11-444-1
+    ---333--
+  `,
 });
+
+export default story;
+export const PROGRESSION_CHANNEL = story.progression;

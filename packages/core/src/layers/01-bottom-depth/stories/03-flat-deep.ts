@@ -1,14 +1,25 @@
-import { defineProgression, STATIC_CAPTURE, createFilledMatrix } from '../../../test-utils';
+import { defineStory, createFilledMatrix } from '../../../test-utils';
 
-/**
- * Flat Bottom (Deep) - Constant deep water (100%)
- *
- * Waves travel unaffected by bottom - deep water conditions.
- */
-export const PROGRESSION_FLAT_DEEP = defineProgression({
+const story = defineStory({
   id: 'bathymetry/flat-deep',
-  description: 'Constant deep water (100%) - waves travel unaffected by bottom',
+  title: 'Flat Bottom (Deep)',
+  prose: 'Constant deep water (100%) - waves travel unaffected by bottom.',
   initialMatrix: createFilledMatrix(1.0),
-  captureTimes: STATIC_CAPTURE,
-  metadata: { label: 'Flat Bottom (Deep)' },
+  captureTimes: [0],
+  expectedAscii: `
+    t=0s
+    FFFFFFFF
+    FFFFFFFF
+    FFFFFFFF
+    FFFFFFFF
+    FFFFFFFF
+    FFFFFFFF
+    FFFFFFFF
+    FFFFFFFF
+    FFFFFFFF
+    FFFFFFFF
+  `,
 });
+
+export default story;
+export const PROGRESSION_FLAT_DEEP = story.progression;

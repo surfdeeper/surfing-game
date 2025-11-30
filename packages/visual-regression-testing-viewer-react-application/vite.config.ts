@@ -1,11 +1,10 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import mdx from '@mdx-js/rollup';
 import path from 'path';
 
 export default defineConfig({
   root: 'src',
-  plugins: [{ enforce: 'pre', ...mdx({ providerImportSource: '@mdx-js/react' }) }, react()],
+  plugins: [react()],
   resolve: {
     alias: {
       '@src': path.resolve(__dirname, '../core/src'),

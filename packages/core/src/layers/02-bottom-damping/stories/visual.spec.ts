@@ -1,4 +1,4 @@
-import { defineStripVisualTests } from '../../../../../../stories/visual-test-helpers';
+import { defineStripVisualTests } from '../../../../../../packages/visual-regression-testing-viewer-react-application/src/visual-test-helpers';
 import { DAMPING_STRIP_FLAT_SHALLOW } from './01-flat-shallow';
 import { DAMPING_STRIP_FLAT_MEDIUM } from './02-flat-medium';
 import { DAMPING_STRIP_FLAT_DEEP } from './03-flat-deep';

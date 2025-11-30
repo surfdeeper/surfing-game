@@ -1,19 +1,9 @@
-import {
-  defineProgression,
-  GRID_WIDTH,
-  GRID_HEIGHT,
-  STATIC_CAPTURE,
-  createMatrix,
-} from '../../../test-utils';
+import { defineStory, GRID_WIDTH, GRID_HEIGHT, createMatrix } from '../../../test-utils';
 
-/**
- * Reef - Localized reef creates circular shallow zone
- *
- * Circular feature creates distinct breaking pattern.
- */
-export const PROGRESSION_REEF = defineProgression({
+const story = defineStory({
   id: 'bathymetry/reef',
-  description: 'Localized reef creates circular shallow zone',
+  title: 'Reef',
+  prose: 'Localized reef creates circular shallow zone.',
   initialMatrix: (() => {
     const matrix = createMatrix();
     const reefRow = Math.floor(GRID_HEIGHT * 0.5);
@@ -31,6 +21,21 @@ export const PROGRESSION_REEF = defineProgression({
     }
     return matrix;
   })(),
-  captureTimes: STATIC_CAPTURE,
-  metadata: { label: 'Reef' },
+  captureTimes: [0],
+  expectedAscii: `
+    t=0s
+    FFFFFFFF
+    EEEEEEEE
+    DDDDDDDD
+    CCCCCCCC
+    BBB434BB
+    4442-244
+    33321233
+    22222222
+    11111111
+    --------
+  `,
 });
+
+export default story;
+export const PROGRESSION_REEF = story.progression;

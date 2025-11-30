@@ -1,10 +1,11 @@
-import { defineProgression } from '../../../test-utils';
+import { defineStory } from '../../../test-utils';
 import { createMatrix } from '../shared';
 
-export const PROGRESSION_COMBINED = defineProgression({
+const story = defineStory({
   id: 'foam-grid/combined',
-  description: 'Foam accumulates at breaking zone and drifts shoreward',
-  initialMatrix: createMatrix,
+  title: 'Combined',
+  prose: 'Foam accumulates at breaking zone and drifts shoreward.',
+  initialMatrix: createMatrix(),
   captureTimes: [0, 1, 2, 3, 4, 5],
   updateFn: (field, dt) => {
     const rows = field.gridHeight;
@@ -36,11 +37,26 @@ export const PROGRESSION_COMBINED = defineProgression({
       data[i] *= Math.exp(-decayRate * dt);
     }
   },
-  metadata: { label: 'Combined' },
+  expectedAscii: `
+    t=0s        t=1s        t=2s        t=3s        t=4s        t=5s
+    ----------  ----------  ----------  ----------  ----------  ----------
+    ----------  ----------  ----------  ----------  ----------  ----------
+    ----------  ----------  ----------  ----------  ----------  ----------
+    ----------  --234443--  --234443--  --234443--  --234443--  --234443--
+    ----------  --122221--  --344443--  --455554--  --455554--  --455554--
+    ----------  ----------  --122221--  --233332--  --344443--  --344443--
+    ----------  ----------  ----------  --111111--  --122221--  --233332--
+    ----------  ----------  ----------  ----------  --111111--  --111111--
+    ----------  ----------  ----------  ----------  ----------  ----------
+    ----------  ----------  ----------  ----------  ----------  ----------
+  `,
 });
+
+export default story;
+export const PROGRESSION_COMBINED = story.progression;
 
 export const FOAM_GRID_STRIP_COMBINED = {
   testId: 'strip-foam-grid-combined',
   pageId: '06-foam-grid/03-combined',
-  snapshots: PROGRESSION_COMBINED.snapshots,
+  snapshots: story.progression.snapshots,
 };

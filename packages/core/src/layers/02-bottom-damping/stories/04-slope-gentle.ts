@@ -1,30 +1,36 @@
-/**
- * Gentle Slope Damping - Gradual damping gradient from deep to shallow
- *
- * Input: Gentle slope depth (deep at horizon, shallow at shore) from Layer 1
- * Output: Damping gradient (low damping offshore, high damping nearshore)
- */
-import { defineProgression, STATIC_CAPTURE, createStrip } from '../../../test-utils';
+import { defineStory } from '../../../test-utils';
 import { PROGRESSION_SLOPE_GENTLE as DEPTH_SLOPE_GENTLE } from '../../01-bottom-depth/index.js';
-import { depthMatrixToDamping } from '../index';
+import { depthMatrixToDamping } from '../model.js';
 
-// Get depth matrix from Layer 1 and compute damping
 const depthMatrix = DEPTH_SLOPE_GENTLE.snapshots[0].matrix;
 const dampingMatrix = depthMatrixToDamping(depthMatrix);
 
-export const PROGRESSION_SLOPE_GENTLE = defineProgression({
+const story = defineStory({
   id: 'bottom-damping/slope-gentle',
-  description: 'Gradual damping gradient - low offshore, high nearshore',
+  title: 'Gentle Slope Damping',
+  prose: 'Gradual damping gradient - low offshore, high nearshore.',
   initialMatrix: dampingMatrix,
-  captureTimes: STATIC_CAPTURE,
-  metadata: {
-    label: 'Gentle Slope Damping',
-    inputLayer: 'bottom-depth/slope-gentle',
-    dampingRange: 'gradient (low to high)',
-  },
+  captureTimes: [0],
+  expectedAscii: `
+    t=0s
+    EEEEEEEE
+    EEEEEEEE
+    FFFFFFFF
+    FFFFFFFF
+    FFFFFFFF
+    FFFFFFFF
+    FFFFFFFF
+    FFFFFFFF
+    FFFFFFFF
+    FFFFFFFF
+  `,
 });
 
-export const DAMPING_STRIP_SLOPE_GENTLE = createStrip(
-  PROGRESSION_SLOPE_GENTLE,
-  '02-bottom-damping/04-slope-gentle'
-);
+export default story;
+export const PROGRESSION_SLOPE_GENTLE = story.progression;
+
+export const DAMPING_STRIP_SLOPE_GENTLE = {
+  testId: 'strip-bottom-damping-slope-gentle',
+  pageId: '02-bottom-damping/04-slope-gentle',
+  snapshots: story.progression.snapshots,
+};

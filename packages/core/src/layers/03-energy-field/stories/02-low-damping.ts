@@ -1,13 +1,11 @@
-/**
- * Low Damping - Subtle decay in shallow water
- */
-import { defineProgression } from '../../../test-utils';
+import { defineStory } from '../../../test-utils';
 import { updateEnergyField } from '../model';
 import { INITIAL_PULSE, TRAVEL_DURATION, shallowGradient } from '../shared';
 
-export const PROGRESSION_LOW_DAMPING = defineProgression({
+const story = defineStory({
   id: 'energy-field/low-damping',
-  description: 'Low damping - subtle decay near shore',
+  title: 'Low Damping',
+  prose: 'Low damping - subtle decay near shore.',
   initialMatrix: INITIAL_PULSE,
   captureTimes: [0, 1, 2, 3, 4, 5],
   updateFn: (field, dt) => {
@@ -16,17 +14,22 @@ export const PROGRESSION_LOW_DAMPING = defineProgression({
       depthDampingExponent: 2.0,
     });
   },
-  metadata: {
-    depthDampingCoefficient: 0.05,
-    depthDampingExponent: 2.0,
-    depthFn: 'shallow gradient (10m horizon to 0.5m shore)',
-    travelDuration: TRAVEL_DURATION,
-    label: 'Low Damping',
-  },
+  expectedAscii: `
+    t=0s   t=1s   t=2s   t=3s   t=4s   t=5s
+    FFFFF  BBBBB  44444  22222  11111  11111
+    -----  AAAAA  AAAAA  44444  22222  22222
+    -----  22222  44444  44444  33333  22222
+    -----  11111  22222  33333  44444  33333
+    -----  -----  11111  22222  33333  33333
+    -----  -----  -----  11111  22222  33333
+  `,
 });
+
+export default story;
+export const PROGRESSION_LOW_DAMPING = story.progression;
 
 export const ENERGY_FIELD_STRIP_LOW_DAMPING = {
   testId: 'strip-low-damping',
   pageId: '02-energy-field/02-low-damping',
-  snapshots: PROGRESSION_LOW_DAMPING.snapshots,
+  snapshots: story.progression.snapshots,
 };

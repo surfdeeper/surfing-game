@@ -1,19 +1,9 @@
-import {
-  defineProgression,
-  GRID_WIDTH,
-  GRID_HEIGHT,
-  STATIC_CAPTURE,
-  createMatrix,
-} from '../../../test-utils';
+import { defineStory, GRID_WIDTH, GRID_HEIGHT, createMatrix } from '../../../test-utils';
 
-/**
- * Linear Slope (Steep) - Steep gradient from deep (100%) at horizon to shore
- *
- * Maximum depth change creates strong shoaling effects.
- */
-export const PROGRESSION_SLOPE_STEEP = defineProgression({
+const story = defineStory({
   id: 'bathymetry/slope-steep',
-  description: 'Steep gradient from deep (100%) at horizon to shore - maximum depth change',
+  title: 'Linear Slope (Steep)',
+  prose: 'Steep gradient from deep (100%) at horizon to shore - maximum depth change.',
   initialMatrix: (() => {
     const matrix = createMatrix();
     const maxDepth = 1.0;
@@ -25,6 +15,21 @@ export const PROGRESSION_SLOPE_STEEP = defineProgression({
     }
     return matrix;
   })(),
-  captureTimes: STATIC_CAPTURE,
-  metadata: { label: 'Linear Slope (Steep)' },
+  captureTimes: [0],
+  expectedAscii: `
+    t=0s
+    FFFFFFFF
+    EEEEEEEE
+    DDDDDDDD
+    CCCCCCCC
+    BBBBBBBB
+    44444444
+    33333333
+    22222222
+    11111111
+    --------
+  `,
 });
+
+export default story;
+export const PROGRESSION_SLOPE_STEEP = story.progression;

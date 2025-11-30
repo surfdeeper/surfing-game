@@ -1,9 +1,10 @@
-import { defineProgression } from '../../../test-utils';
+import { defineStory } from '../../../test-utils';
 import { GRID_WIDTH, GRID_HEIGHT, createMatrix } from '../shared';
 
-export const PROGRESSION_BREAKING_CRITERION = defineProgression({
+const story = defineStory({
   id: 'wave-breaking/criterion',
-  description: 'Wave breaks when H/d > 0.78',
+  title: 'H/d Threshold',
+  prose: 'Wave breaks when H/d > 0.78.',
   initialMatrix: (() => {
     const matrix = createMatrix();
     for (let row = 0; row < GRID_HEIGHT; row++) {
@@ -16,12 +17,24 @@ export const PROGRESSION_BREAKING_CRITERION = defineProgression({
     return matrix;
   })(),
   captureTimes: [0],
-  updateFn: () => {},
-  metadata: { label: 'H/d Threshold' },
+  expectedAscii: `
+    t=0s
+    AAAAAAAA
+    AAAAAAAA
+    AAAAAAAA
+    AAAAAAAA
+    AAAAAAAA
+    AAAAAAAA
+    FFFFFFFF
+    FFFFFFFF
+  `,
 });
+
+export default story;
+export const PROGRESSION_BREAKING_CRITERION = story.progression;
 
 export const WAVE_BREAKING_STRIP_CRITERION = {
   testId: 'strip-breaking-criterion',
   pageId: '04-wave-breaking/01-breaking-criterion',
-  snapshots: PROGRESSION_BREAKING_CRITERION.snapshots,
+  snapshots: story.progression.snapshots,
 };

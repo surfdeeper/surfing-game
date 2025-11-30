@@ -1,19 +1,9 @@
-import {
-  defineProgression,
-  GRID_WIDTH,
-  GRID_HEIGHT,
-  STATIC_CAPTURE,
-  createMatrix,
-} from '../../../test-utils';
+import { defineStory, GRID_WIDTH, GRID_HEIGHT, createMatrix } from '../../../test-utils';
 
-/**
- * Linear Slope (Gradual) - Gradual gradient from medium depth (50%) at horizon to shore
- *
- * Medium-depth gradient creates progressive shoaling.
- */
-export const PROGRESSION_SLOPE_GRADUAL = defineProgression({
+const story = defineStory({
   id: 'bathymetry/slope-gradual',
-  description: 'Gradual gradient from medium depth (50%) at horizon to shore',
+  title: 'Linear Slope (Gradual)',
+  prose: 'Gradual gradient from medium depth (50%) at horizon to shore.',
   initialMatrix: (() => {
     const matrix = createMatrix();
     const maxDepth = 0.5;
@@ -25,6 +15,21 @@ export const PROGRESSION_SLOPE_GRADUAL = defineProgression({
     }
     return matrix;
   })(),
-  captureTimes: STATIC_CAPTURE,
-  metadata: { label: 'Linear Slope (Gradual)' },
+  captureTimes: [0],
+  expectedAscii: `
+    t=0s
+    AAAAAAAA
+    44444444
+    44444444
+    33333333
+    33333333
+    22222222
+    22222222
+    11111111
+    11111111
+    --------
+  `,
 });
+
+export default story;
+export const PROGRESSION_SLOPE_GRADUAL = story.progression;

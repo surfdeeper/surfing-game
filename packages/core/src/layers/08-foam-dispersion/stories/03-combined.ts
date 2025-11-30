@@ -1,9 +1,10 @@
-import { defineProgression } from '../../../test-utils';
+import { defineStory } from '../../../test-utils';
 import { createMatrix } from '../shared';
 
-export const PROGRESSION_DECAY_AND_SPREAD = defineProgression({
+const story = defineStory({
   id: 'foam-dispersion/combined',
-  description: 'Foam decays while spreading outward',
+  title: 'Decay + Spread',
+  prose: 'Foam decays while spreading outward.',
   initialMatrix: (() => {
     const matrix = createMatrix();
     for (let row = 4; row <= 5; row++) {
@@ -35,11 +36,26 @@ export const PROGRESSION_DECAY_AND_SPREAD = defineProgression({
       data[i] = Math.max(0, data[i] * Math.exp(-decayRate * dt));
     }
   },
-  metadata: { label: 'Decay + Spread' },
+  expectedAscii: `
+    t=0s        t=1s        t=2s        t=3s        t=4s        t=5s
+    ----------  ----------  ----------  ----------  ----------  ----------
+    ----------  ----------  ----------  ----------  ----------  ----------
+    ----------  ----------  ----------  ----------  ----------  ----------
+    ----------  ----11----  ----11----  ----11----  ----11----  ----------
+    ----FF----  ---1AA1---  ---1331---  ---1111---  ---1111---  ----11----
+    ----FF----  ---1AA1---  ---1331---  ---1111---  ---1111---  ----11----
+    ----------  ----11----  ----11----  ----11----  ----11----  ----------
+    ----------  ----------  ----------  ----------  ----------  ----------
+    ----------  ----------  ----------  ----------  ----------  ----------
+    ----------  ----------  ----------  ----------  ----------  ----------
+  `,
 });
+
+export default story;
+export const PROGRESSION_DECAY_AND_SPREAD = story.progression;
 
 export const FOAM_DISPERSION_STRIP_COMBINED = {
   testId: 'strip-foam-combined',
   pageId: '07-foam-dispersion/03-combined',
-  snapshots: PROGRESSION_DECAY_AND_SPREAD.snapshots,
+  snapshots: story.progression.snapshots,
 };

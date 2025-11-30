@@ -1,12 +1,10 @@
-/**
- * Wave Transformation - Height increases as depth decreases
- */
-import { defineProgression } from '../../../test-utils';
+import { defineStory } from '../../../test-utils';
 import { GRID_WIDTH, createMatrix } from '../shared';
 
-export const PROGRESSION_WAVE_SHOALING = defineProgression({
+const story = defineStory({
   id: 'shoaling/wave-transformation',
-  description: 'Wave height increases as depth decreases',
+  title: 'Wave Transformation',
+  prose: 'Wave height increases as depth decreases.',
   initialMatrix: (() => {
     const matrix = createMatrix();
     // Initial wave pulse at horizon (row 0-1) with moderate height
@@ -39,11 +37,26 @@ export const PROGRESSION_WAVE_SHOALING = defineProgression({
       data[col] *= 0.5;
     }
   },
-  metadata: { label: 'Wave Transformation' },
+  expectedAscii: `
+    t=0s      t=1s      t=2s      t=3s      t=4s      t=5s
+    44444444  --------  --------  --------  --------  --------
+    22222222  --------  --------  --------  --------  --------
+    --------  --------  --------  --------  --------  --------
+    --------  --------  --------  --------  --------  --------
+    --------  --------  --------  --------  --------  --------
+    --------  --------  --------  --------  --------  --------
+    --------  --------  --------  --------  --------  --------
+    --------  --------  --------  --------  --------  --------
+    --------  --------  --------  --------  --------  --------
+    --------  --------  --------  --------  --------  --------
+  `,
 });
+
+export default story;
+export const PROGRESSION_WAVE_SHOALING = story.progression;
 
 export const SHOALING_STRIP_HEIGHT = {
   testId: 'strip-shoaling-height',
   pageId: '03-shoaling/01-wave-transformation',
-  snapshots: PROGRESSION_WAVE_SHOALING.snapshots,
+  snapshots: story.progression.snapshots,
 };

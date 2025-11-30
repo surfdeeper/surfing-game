@@ -1,30 +1,36 @@
-/**
- * Flat Medium Damping - Uniform medium damping from medium depth
- *
- * Input: Flat medium depth (0.50 uniform) from Layer 1
- * Output: Uniform medium damping (moderate wave energy loss)
- */
-import { defineProgression, STATIC_CAPTURE, createStrip } from '../../../test-utils';
+import { defineStory } from '../../../test-utils';
 import { PROGRESSION_FLAT_MEDIUM as DEPTH_FLAT_MEDIUM } from '../../01-bottom-depth/index.js';
-import { depthMatrixToDamping } from '../index';
+import { depthMatrixToDamping } from '../model.js';
 
-// Get depth matrix from Layer 1 and compute damping
 const depthMatrix = DEPTH_FLAT_MEDIUM.snapshots[0].matrix;
 const dampingMatrix = depthMatrixToDamping(depthMatrix);
 
-export const PROGRESSION_FLAT_MEDIUM = defineProgression({
+const story = defineStory({
   id: 'bottom-damping/flat-medium',
-  description: 'Uniform medium damping from medium depth - moderate wave energy loss',
+  title: 'Flat Medium Damping',
+  prose: 'Uniform medium damping from medium depth - moderate wave energy loss.',
   initialMatrix: dampingMatrix,
-  captureTimes: STATIC_CAPTURE,
-  metadata: {
-    label: 'Flat Medium Damping',
-    inputLayer: 'bottom-depth/flat-medium',
-    dampingRange: 'medium (uniform)',
-  },
+  captureTimes: [0],
+  expectedAscii: `
+    t=0s
+    AAAAAAAA
+    AAAAAAAA
+    AAAAAAAA
+    AAAAAAAA
+    AAAAAAAA
+    AAAAAAAA
+    AAAAAAAA
+    AAAAAAAA
+    AAAAAAAA
+    AAAAAAAA
+  `,
 });
 
-export const DAMPING_STRIP_FLAT_MEDIUM = createStrip(
-  PROGRESSION_FLAT_MEDIUM,
-  '02-bottom-damping/02-flat-medium'
-);
+export default story;
+export const PROGRESSION_FLAT_MEDIUM = story.progression;
+
+export const DAMPING_STRIP_FLAT_MEDIUM = {
+  testId: 'strip-bottom-damping-flat-medium',
+  pageId: '02-bottom-damping/02-flat-medium',
+  snapshots: story.progression.snapshots,
+};

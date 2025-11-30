@@ -1,22 +1,12 @@
-import {
-  defineProgression,
-  GRID_WIDTH,
-  GRID_HEIGHT,
-  STATIC_CAPTURE,
-  createMatrix,
-} from '../../../test-utils';
+import { defineStory, GRID_WIDTH, GRID_HEIGHT, createMatrix } from '../../../test-utils';
 
-/**
- * Linear Slope (Gentle) - Gentle gradient from shallow (25%) at horizon to shore
- *
- * Minimal depth change creates subtle shoaling effects.
- */
-export const PROGRESSION_SLOPE_GENTLE = defineProgression({
+const story = defineStory({
   id: 'bathymetry/slope-gentle',
-  description: 'Gentle gradient from shallow (25%) at horizon to shore - minimal depth change',
+  title: 'Linear Slope (Gentle)',
+  prose: 'Gentle gradient from shallow (25%) at horizon to shore - minimal depth change.',
   initialMatrix: (() => {
     const matrix = createMatrix();
-    const maxDepth = 0.25; // Starts shallow
+    const maxDepth = 0.25;
     for (let row = 0; row < GRID_HEIGHT; row++) {
       const depth = maxDepth * (1 - row / (GRID_HEIGHT - 1));
       for (let col = 0; col < GRID_WIDTH; col++) {
@@ -25,6 +15,21 @@ export const PROGRESSION_SLOPE_GENTLE = defineProgression({
     }
     return matrix;
   })(),
-  captureTimes: STATIC_CAPTURE,
-  metadata: { label: 'Linear Slope (Gentle)' },
+  captureTimes: [0],
+  expectedAscii: `
+    t=0s
+    33333333
+    22222222
+    22222222
+    22222222
+    11111111
+    11111111
+    11111111
+    11111111
+    --------
+    --------
+  `,
 });
+
+export default story;
+export const PROGRESSION_SLOPE_GENTLE = story.progression;

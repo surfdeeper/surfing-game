@@ -1,12 +1,10 @@
-/**
- * Wavelength Compression - Waves "stack up" as they slow
- */
-import { defineProgression } from '../../../test-utils';
+import { defineStory } from '../../../test-utils';
 import { GRID_WIDTH, createMatrix } from '../shared';
 
-export const PROGRESSION_WAVELENGTH_COMPRESSION = defineProgression({
+const story = defineStory({
   id: 'shoaling/wavelength-compression',
-  description: 'Wavelength shortens as waves enter shallow water',
+  title: 'Wavelength Compression',
+  prose: 'Wavelength shortens as waves enter shallow water.',
   initialMatrix: (() => {
     const matrix = createMatrix();
     // Two wave peaks in deep water, spread apart
@@ -38,11 +36,26 @@ export const PROGRESSION_WAVELENGTH_COMPRESSION = defineProgression({
       data[col] *= 0.9;
     }
   },
-  metadata: { label: 'Wavelength Compression' },
+  expectedAscii: `
+    t=0s      t=1s      t=2s      t=3s      t=4s      t=5s
+    BBBBBBBB  --------  --------  --------  --------  --------
+    --------  --------  --------  --------  --------  --------
+    --------  11111111  --------  --------  --------  --------
+    BBBBBBBB  22222222  11111111  --------  --------  --------
+    --------  22222222  11111111  --------  --------  --------
+    --------  22222222  22222222  11111111  --------  --------
+    --------  11111111  11111111  11111111  11111111  --------
+    --------  --------  11111111  11111111  11111111  11111111
+    --------  --------  11111111  11111111  11111111  11111111
+    --------  --------  --------  11111111  11111111  11111111
+  `,
 });
+
+export default story;
+export const PROGRESSION_WAVELENGTH_COMPRESSION = story.progression;
 
 export const SHOALING_STRIP_COMPRESSION = {
   testId: 'strip-shoaling-compression',
   pageId: '03-shoaling/02-wavelength-compression',
-  snapshots: PROGRESSION_WAVELENGTH_COMPRESSION.snapshots,
+  snapshots: story.progression.snapshots,
 };

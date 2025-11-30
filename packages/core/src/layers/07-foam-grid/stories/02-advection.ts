@@ -1,9 +1,10 @@
-import { defineProgression } from '../../../test-utils';
+import { defineStory } from '../../../test-utils';
 import { createMatrix } from '../shared';
 
-export const PROGRESSION_ADVECTION = defineProgression({
+const story = defineStory({
   id: 'foam-grid/advection',
-  description: 'Foam drifts shoreward via advection',
+  title: 'Advection',
+  prose: 'Foam drifts shoreward via advection.',
   initialMatrix: (() => {
     const matrix = createMatrix();
     for (let x = 3; x <= 6; x++) {
@@ -35,11 +36,26 @@ export const PROGRESSION_ADVECTION = defineProgression({
       data[i] *= Math.exp(-decayRate * dt);
     }
   },
-  metadata: { label: 'Advection' },
+  expectedAscii: `
+    t=0s        t=1s        t=2s        t=3s        t=4s        t=5s
+    ----------  ----------  ----------  ----------  ----------  ----------
+    ----------  ----------  ----------  ----------  ----------  ----------
+    ---DDDD---  ---AAAA---  ---3333---  ---2222---  ---1111---  ---1111---
+    ---4444---  ---4444---  ---4444---  ---3333---  ---2222---  ---1111---
+    ----------  ---1111---  ---2222---  ---2222---  ---2222---  ---2222---
+    ----------  ----------  ---1111---  ---1111---  ---1111---  ---1111---
+    ----------  ----------  ----------  ----------  ---1111---  ---1111---
+    ----------  ----------  ----------  ----------  ----------  ----------
+    ----------  ----------  ----------  ----------  ----------  ----------
+    ----------  ----------  ----------  ----------  ----------  ----------
+  `,
 });
+
+export default story;
+export const PROGRESSION_ADVECTION = story.progression;
 
 export const FOAM_GRID_STRIP_ADVECTION = {
   testId: 'strip-foam-grid-advection',
   pageId: '06-foam-grid/02-advection',
-  snapshots: PROGRESSION_ADVECTION.snapshots,
+  snapshots: story.progression.snapshots,
 };

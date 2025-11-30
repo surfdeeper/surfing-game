@@ -24,8 +24,8 @@
     "test:visual:viewer:force": "playwright test --config=playwright.stories.config.js",
     "lint": "eslint packages/",
     "lint:fix": "eslint packages/ --fix",
-    "lint:md": "markdownlint '**/*.{md,mdx}' --ignore node_modules",
-    "lint:md:fix": "markdownlint '**/*.{md,mdx}' --ignore node_modules --fix",
+    "lint:md": "markdownlint '**/*.md' --ignore node_modules",
+    "lint:md:fix": "markdownlint '**/*.md' --ignore node_modules --fix",
     "format": "prettier --write \"packages/**/*.{ts,tsx,js,jsx,json,css}\"",
     "format:check": "prettier --check \"packages/**/*.{ts,tsx,js,jsx,json,css}\"",
     "test:e2e": "playwright test",
@@ -82,8 +82,6 @@
     "vitest": "^4.0.14"
   },
   "dependencies": {
-    "@mdx-js/react": "^3.1.1",
-    "@mdx-js/rollup": "^3.1.1",
     "@vitejs/plugin-react": "^5.1.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",

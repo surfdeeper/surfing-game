@@ -1,9 +1,10 @@
-import { defineProgression } from '../../../test-utils';
-import { GRID_WIDTH, GRID_HEIGHT, createMatrix } from '../shared';
+import { defineStory } from '../../../test-utils';
+import { GRID_WIDTH, createMatrix } from '../shared';
 
-export const PROGRESSION_ENERGY_TO_FOAM = defineProgression({
+const story = defineStory({
   id: 'wave-breaking/energy-to-foam',
-  description: 'Breaking drains wave energy and deposits as foam',
+  title: 'Energy to Foam',
+  prose: 'Breaking drains wave energy and deposits as foam.',
   initialMatrix: (() => {
     const matrix = createMatrix();
     for (let col = 0; col < GRID_WIDTH; col++) {
@@ -43,11 +44,24 @@ export const PROGRESSION_ENERGY_TO_FOAM = defineProgression({
       data[col] *= 0.7;
     }
   },
-  metadata: { label: 'Energy to Foam' },
+  expectedAscii: `
+    t=0s      t=1s      t=2s      t=3s      t=4s      t=5s
+    FFFFFFFF  --------  --------  --------  --------  --------
+    DDDDDDDD  --------  --------  --------  --------  --------
+    --------  --------  --------  --------  --------  --------
+    --------  --------  --------  --------  --------  --------
+    --------  --------  --------  --------  --------  --------
+    --------  --------  --------  --------  --------  --------
+    --------  --------  --------  --------  --------  --------
+    --------  --------  --------  --------  --------  --------
+  `,
 });
+
+export default story;
+export const PROGRESSION_ENERGY_TO_FOAM = story.progression;
 
 export const WAVE_BREAKING_STRIP_ENERGY = {
   testId: 'strip-breaking-energy',
   pageId: '04-wave-breaking/03-energy-to-foam',
-  snapshots: PROGRESSION_ENERGY_TO_FOAM.snapshots,
+  snapshots: story.progression.snapshots,
 };
