@@ -6,9 +6,9 @@ After wave breaking deposits foam, the foam disperses over time:
 - Longshore currents push foam sideways
 - Eventually dissipates back to clear water
 
-import { ProgressionPlayer } from '../components/ProgressionPlayer';
-import { Filmstrip, renderMatrixToCanvas } from '../components/Filmstrip';
-import { energyToColor } from '../../src/render/colorScales';
+import { ProgressionPlayer } from '@stories/components/ProgressionPlayer';
+import { Filmstrip, renderMatrixToCanvas } from '@stories/components/Filmstrip';
+import { energyToColor } from '@src/render/colorScales';
 import {
   PROGRESSION_INTENSITY_DECAY,
   PROGRESSION_SPATIAL_SPREADING,
@@ -16,7 +16,7 @@ import {
   FOAM_DISPERSION_STRIP_DECAY,
   FOAM_DISPERSION_STRIP_SPATIAL,
   FOAM_DISPERSION_STRIP_COMBINED,
-} from '../../src/render/foamDispersionProgressions';
+} from '../progressions';
 
 export const renderEnergy = (snap, ctx, w, h) =>
   renderMatrixToCanvas(ctx, snap.matrix, energyToColor, w, h);

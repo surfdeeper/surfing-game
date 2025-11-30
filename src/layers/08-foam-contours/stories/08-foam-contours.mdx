@@ -6,16 +6,16 @@ from a 2D intensity grid. Multiple threshold levels create nested contour rings:
 - **Middle ring** (medium threshold) - moderate foam density
 - **Inner ring** (high threshold, thick line) - dense foam cores
 
-import { Filmstrip } from '../components/Filmstrip';
-import { extractLineSegments, boxBlur } from '../../src/render/marchingSquares';
-import { FOAM_THRESHOLDS_BASE } from '../../src/render/foamConfig';
+import { Filmstrip } from '@stories/components/Filmstrip';
+import { extractLineSegments, boxBlur } from '@src/render/marchingSquares';
+import { FOAM_THRESHOLDS_BASE } from '@src/render/foamConfig';
 import {
   FOAM_STRIP_BASIC,
   FOAM_STRIP_ADVANCED,
   FOAM_STRIP_EDGE_CASES,
   FOAM_STRIP_NO_BLUR,
   FOAM_STRIP_HIGH_BLUR,
-} from '../../src/render/foamContoursProgressions';
+} from '../progressions';
 
 export const BACKGROUND_COLOR = '#1a4a6e';
 

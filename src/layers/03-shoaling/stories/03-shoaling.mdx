@@ -6,9 +6,9 @@ As waves enter shallow water, they "feel the bottom" and undergo shoaling:
 - Wave height increases (energy conservation)
 - Circular orbits flatten into ellipses
 
-import { ProgressionPlayer } from '../components/ProgressionPlayer';
-import { Filmstrip, renderMatrixToCanvas } from '../components/Filmstrip';
-import { energyToColor } from '../../src/render/colorScales';
+import { ProgressionPlayer } from '@stories/components/ProgressionPlayer';
+import { Filmstrip, renderMatrixToCanvas } from '@stories/components/Filmstrip';
+import { energyToColor } from '@src/render/colorScales';
 import {
   PROGRESSION_WAVE_SHOALING,
   PROGRESSION_WAVELENGTH_COMPRESSION,
@@ -17,7 +17,7 @@ import {
   SHOALING_STRIP_COMPRESSION,
   SHOALING_STRIP_STATIC,
   SHOALING_STRIP_COMBINED,
-} from '../../src/render/shoalingProgressions';
+} from '../progressions';
 
 export const renderEnergy = (snap, ctx, w, h) =>
   renderMatrixToCanvas(ctx, snap.matrix, energyToColor, w, h);
