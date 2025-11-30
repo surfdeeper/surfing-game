@@ -1,5 +1,6 @@
 # Use official Playwright image with all browsers pre-installed
-FROM mcr.microsoft.com/playwright:v1.57.0-jammy
+# Using v1.40.0 for Node 18 compatibility with older Docker versions
+FROM mcr.microsoft.com/playwright:v1.40.0-jammy
 
 WORKDIR /app
 
