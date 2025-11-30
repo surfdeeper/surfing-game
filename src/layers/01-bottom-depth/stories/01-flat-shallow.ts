@@ -1,14 +1,25 @@
-import { defineProgression, STATIC_CAPTURE, createFilledMatrix } from '../../../test-utils';
+import { defineStory, createFilledMatrix } from '../../../test-utils';
 
-/**
- * Flat Bottom (Shallow) - Constant shallow depth (25%)
- *
- * Waves interact strongly with the bottom everywhere, causing uniform shoaling effects.
- */
-export const PROGRESSION_FLAT_SHALLOW = defineProgression({
+const story = defineStory({
   id: 'bathymetry/flat-shallow',
-  description: 'Constant shallow depth (25%) - waves interact strongly with bottom everywhere',
+  title: 'Flat Bottom (Shallow)',
+  prose: 'Constant shallow depth (25%) across the entire grid.',
   initialMatrix: createFilledMatrix(0.25),
-  captureTimes: STATIC_CAPTURE,
-  metadata: { label: 'Flat Bottom (Shallow)' },
+  captureTimes: [0, 1, 2, 3, 4, 5],
+  expectedAscii: `
+    t=0s      t=1s      t=2s      t=3s      t=4s      t=5s
+    33333333  33333333  33333333  33333333  33333333  33333333
+    33333333  33333333  33333333  33333333  33333333  33333333
+    33333333  33333333  33333333  33333333  33333333  33333333
+    33333333  33333333  33333333  33333333  33333333  33333333
+    33333333  33333333  33333333  33333333  33333333  33333333
+    33333333  33333333  33333333  33333333  33333333  33333333
+    33333333  33333333  33333333  33333333  33333333  33333333
+    33333333  33333333  33333333  33333333  33333333  33333333
+    33333333  33333333  33333333  33333333  33333333  33333333
+    33333333  33333333  33333333  33333333  33333333  33333333
+  `,
 });
+
+export default story;
+export const PROGRESSION_FLAT_SHALLOW = story.progression;
