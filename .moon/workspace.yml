@@ -1,0 +1,27 @@
+# Moon workspace configuration
+# https://moonrepo.dev/docs/config/workspace
+
+$schema: 'https://moonrepo.dev/schemas/workspace.json'
+
+# Projects in the monorepo
+projects:
+  - 'packages/*'
+
+# Version control settings
+vcs:
+  manager: git
+  defaultBranch: master
+  remoteCandidates:
+    - origin
+
+# Runner settings
+runner:
+  # Cache task outputs
+  cacheLifetime: '7 days'
+  # Log output for failed tasks
+  logRunningCommand: true
+
+# Affected detection settings
+# Moon traces file dependencies to determine what's affected
+hasher:
+  walkStrategy: vcs

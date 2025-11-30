@@ -1,0 +1,16 @@
+# Moon toolchain configuration
+# https://moonrepo.dev/docs/config/toolchain
+
+$schema: 'https://moonrepo.dev/schemas/toolchain.json'
+
+# Node.js configuration
+node:
+  # Use system Node.js version
+  version: 'system'
+
+  # Package manager
+  packageManager: npm
+
+# TypeScript configuration (for affected detection)
+typescript:
+  syncProjectReferences: false
