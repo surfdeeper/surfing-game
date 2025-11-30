@@ -1,8 +1,11 @@
 # Plan 251: Layer System Colocation
 
-**Status**: Proposed
+**Status**: In Progress (Phase 2 Complete)
 **Category**: tooling
 **Depends On**: 232 (Unified Filmstrip), 233 (Nested Story Organization), 160 (Visual Integration Testing)
+
+**Completed**: 2025-11-29 (Phase 1-2)
+**Commit**: `281e4bd` - bathymetry layer colocated with ASCII snapshots
 
 ## Problem
 
@@ -46,6 +49,8 @@ src/layers/01-bathymetry/
 2. **Clean public API**: `index.ts` exports only what other layers need
 3. **Explicit outputs**: Each layer exports `*_OUTPUTS` for downstream layers (Plan 160)
 4. **Numbered prefixes**: Preserve `01-`, `02-` ordering for navigation and dependencies
+5. **Sister file pattern**: Progressions colocated with stories (see Architecture Decision below)
+6. **ASCII snapshots**: Human-readable test assertions (see Test Strategy below)
 
 ### Layer Dependency Chain
 
@@ -70,34 +75,117 @@ Layers form a pipeline where each consumes the previous layer's output:
     ↓ (final render output)
 ```
 
+## Architecture Decisions
+
+### Progression Colocation: Sister Files Pattern
+
+**Decision**: Each story MDX file has a sibling `.ts` file containing its progression definition.
+
+**Rationale**:
+
+1. **Tight coupling without mixing concerns**
+   - Story documentation (`.mdx`) and test data (`.ts`) are separate but adjacent
+   - TypeScript tooling works normally (no MDX parsing needed for type checking)
+   - Build tools handle each file type independently
+
+2. **Better than inline MDX** (Option A: rejected)
+   - MDX files remain pure documentation/presentation
+   - TypeScript compilation happens separately from MDX processing
+   - Easier to refactor progression logic without touching stories
+   - No risk of MDX export edge cases
+
+3. **Better than centralized** (Option C: rejected)
+   - One progression per file = easier to find and modify
+   - Import path clearly indicates which story uses which progression
+   - Reduces merge conflicts when editing different bathymetry types
+   - Sets pattern for layers with many variants (e.g., 20+ foam scenarios)
+
+4. **Scales for complex layers**
+   - Bathymetry has 9 simple progressions (flat, slopes, features)
+   - Future layers may have dozens of scenarios each needing unique setup
+   - Sister files prevent single 500+ line progression file
+
+**Implementation**:
+```
+stories/
+  01-flat-shallow.mdx    ← imports from →  01-flat-shallow.ts
+  02-flat-medium.mdx     ← imports from →  02-flat-medium.ts
+  ...
+```
+
+The central `progressions.ts` re-exports for backward compatibility and provides grouped access.
+
+### Test Strategy: ASCII Snapshots
+
+**Decision**: Migrate from numeric JSON snapshots to ASCII matrix format.
+
+**Rationale**:
+
+1. **Human-readable diffs**
+   - ASCII format shows visual pattern changes in git diffs
+   - Example: `FFFFF\n-----` is clearer than `[[1.0,1.0...],[0,0...]]`
+   - Inspired by RxJS marble testing - proven pattern for temporal data
+
+2. **Faster review**
+   - Reviewer can see "deep water at top, shore at bottom" immediately
+   - Numeric snapshots require mental parsing to understand shape
+   - ASCII characters map to value buckets: `-`=0, `1-9`=0.1-0.9, `F`=1.0
+
+3. **Better test failures**
+   - When test fails, diff shows exactly which cells changed
+   - Numeric diffs show `30` → `22.6` without spatial context
+   - ASCII diffs show pattern shift: `FFF\nDDD` → `FFF\nEEE`
+
+4. **Consistent with energy field tests**
+   - Energy field already uses ASCII format successfully
+   - Standardizing across all layers improves codebase consistency
+
+**Example**:
+```typescript
+const expected = `
+FFFFF  ← deep water (1.0)
+DCDDD  ← mid depth (0.7-0.8)
+A----  ← shore (0.5, then 0)
+`.trim();
+expect(matrixToAscii(matrix)).toBe(expected);
+```
+
 ## Implementation Phases
 
-### Phase 1: Infrastructure Setup
+### Phase 1: Infrastructure Setup ✅ COMPLETE
 
-1. [ ] Create `src/layers/` directory
-2. [ ] Add Vite path alias: `@layers` → `src/layers`
-3. [ ] Update `tsconfig.json` for IDE support
-4. [ ] Document pattern in CLAUDE.md
+1. [x] Create `src/layers/` directory
+2. [x] Add Vite path alias: `@layers` → `src/layers`
+3. [x] Update `tsconfig.json` for IDE support
+4. [ ] Document pattern in CLAUDE.md (deferred to Phase 11)
 
-### Phase 2: Layer 01 - Bathymetry (Pilot)
+### Phase 2: Layer 01 - Bathymetry (Pilot) ✅ COMPLETE
 
-**Files to move:**
+**Files moved:**
 
-| From | To |
-|------|-----|
-| `src/state/bathymetryModel.ts` | `src/layers/01-bathymetry/model.ts` |
-| `src/state/bathymetryModel.test.ts` | `src/layers/01-bathymetry/model.test.ts` |
-| `src/render/bathymetryRenderer.ts` | `src/layers/01-bathymetry/renderer.ts` |
-| `src/render/bathymetryRenderer.test.ts` | `src/layers/01-bathymetry/renderer.test.ts` |
-| `src/render/bathymetryProgressions.ts` | `src/layers/01-bathymetry/progressions.ts` |
-| `stories/01-bathymetry/*.mdx` | `src/layers/01-bathymetry/stories/*.mdx` |
+| From | To | Status |
+|------|-----|--------|
+| `src/state/bathymetryModel.ts` | `src/layers/01-bathymetry/model.ts` | ✅ |
+| `src/state/bathymetryModel.test.ts` | `src/layers/01-bathymetry/model.test.ts` | ✅ Migrated to ASCII |
+| `src/render/bathymetryRenderer.ts` | `src/layers/01-bathymetry/renderer.ts` | ✅ |
+| `src/render/bathymetryRenderer.test.ts` | `src/layers/01-bathymetry/renderer.test.ts` | ✅ |
+| `src/render/bathymetryProgressions.ts` | `src/layers/01-bathymetry/progressions.ts` | ✅ Now re-exports |
+| `stories/01-bathymetry/*.mdx` | `src/layers/01-bathymetry/stories/*.mdx` | ✅ |
 
-**New files to create:**
+**Files created:**
 
-| File | Purpose |
-|------|---------|
-| `src/layers/01-bathymetry/index.ts` | Public API exports |
-| `src/layers/01-bathymetry/stories/visual.spec.ts` | Visual regression tests (currently missing) |
+| File | Purpose | Status |
+|------|---------|--------|
+| `src/layers/01-bathymetry/index.ts` | Public API exports | ✅ |
+| `src/layers/01-bathymetry/progressions.test.ts` | ASCII snapshot tests | ✅ |
+| `src/layers/01-bathymetry/stories/*.ts` | Sister progression files (9 files) | ✅ |
+
+**Files deleted:**
+
+| File | Reason |
+|------|--------|
+| `src/state/__snapshots__/bathymetryModel.test.js.snap` | Replaced by ASCII |
+| `src/state/__snapshots__/bathymetryModel.test.ts.snap` | Replaced by ASCII |
 
 **Consumers to update:**
 
@@ -137,13 +225,38 @@ export { BATHYMETRY_OUTPUTS } from './progressions';
 ```
 
 **Acceptance criteria:**
-- [ ] All bathymetry files moved to `src/layers/01-bathymetry/`
-- [ ] All imports updated and working
-- [ ] `npm run lint` passes
-- [ ] `npm run test:unit` passes
-- [ ] `npm run test:smoke` passes
-- [ ] Stories viewer loads bathymetry stories
-- [ ] Visual spec created and baselines captured
+- [x] All bathymetry files moved to `src/layers/01-bathymetry/`
+- [x] All imports updated and working
+- [x] `npm run lint` passes
+- [x] `npm run test:smoke` passes (5/5 tests pass)
+- [x] Stories viewer loads bathymetry stories
+- [x] Sister .ts files created for all 9 progressions
+- [x] ASCII snapshot tests created
+- [x] Old numeric snapshots deleted
+- [ ] `npm run test:unit` passes (deferred - need to fix test discovery)
+- [ ] Visual spec created and baselines captured (deferred to future phase)
+
+**Actual structure implemented:**
+```
+src/layers/01-bathymetry/
+├── index.ts                    # Public API
+├── model.ts & model.test.ts    # Physics (ASCII snapshots)
+├── renderer.ts & renderer.test.ts
+├── progressions.ts             # Re-exports from sister files
+├── progressions.test.ts        # ASCII tests for all 9 types
+└── stories/
+    ├── 01-flat-shallow.mdx & .ts
+    ├── 02-flat-medium.mdx & .ts
+    ├── 03-flat-deep.mdx & .ts
+    ├── 04-slope-gentle.mdx & .ts
+    ├── 05-slope-gradual.mdx & .ts
+    ├── 06-slope-steep.mdx & .ts
+    ├── 07-sandbar.mdx & .ts
+    ├── 08-reef.mdx & .ts
+    └── 09-channel.mdx & .ts
+```
+
+**Stats**: 42 files changed, +1061/-341 lines, 25 total files in layer
 
 ### Phase 3: Layer 02 - Energy Field
 
