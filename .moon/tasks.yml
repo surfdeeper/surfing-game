@@ -1,0 +1,17 @@
+# Global tasks available to all projects
+# https://moonrepo.dev/docs/config/tasks
+
+$schema: 'https://moonrepo.dev/schemas/tasks.json'
+
+# These tasks are inherited by all projects
+tasks:
+  typecheck:
+    command: 'tsc --noEmit'
+    inputs:
+      - '@globs(sources)'
+      - 'tsconfig.json'
+
+  lint:
+    command: 'eslint .'
+    inputs:
+      - '@globs(sources)'
