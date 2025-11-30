@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { energyToColor } from '../../src/render/colorScales';
+import { energyToColor } from '@surf/core/src/render/colorScales';
 import { useTheme } from '../ThemeContext';
 
 interface Snapshot {

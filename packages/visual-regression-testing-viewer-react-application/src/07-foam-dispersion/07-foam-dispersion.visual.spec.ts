@@ -1,4 +1,4 @@
 import { defineStripVisualTests } from '../visual-test-helpers';
-import { FOAM_DISPERSION_STRIPS } from '../../src/render/foamDispersionProgressions';
+import { FOAM_DISPERSION_STRIPS } from '@surf/core/src/render/foamDispersionProgressions';
 
 defineStripVisualTests(FOAM_DISPERSION_STRIPS);

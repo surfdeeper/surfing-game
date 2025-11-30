@@ -13,7 +13,7 @@ import {
 import {
   DEFAULT_CONFIG,
   STATE,
-  createInitialState,
+  createSetLullState,
   updateSetLullState,
 } from '../state/setLullModel.js';
 
@@ -37,7 +37,7 @@ function createGameState(config = DEFAULT_CONFIG, randomFn = fixedRandom(0.5)) {
   return {
     waves: [],
     gameTime: initialGameTime,
-    setLullState: createInitialState(config, randomFn, initialGameTime),
+    setLullState: createSetLullState(config, randomFn, initialGameTime),
     travelDuration,
     config,
   };

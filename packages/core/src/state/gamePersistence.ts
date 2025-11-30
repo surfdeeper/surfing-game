@@ -9,7 +9,7 @@
  */
 
 import { WAVE_X_SAMPLES } from './waveModel.js';
-import { DEFAULT_CONFIG, createInitialState as createSetLullState } from './setLullModel.js';
+import { DEFAULT_CONFIG, createSetLullState } from './setLullModel.js';
 
 const STORAGE_KEY = 'gameState';
 

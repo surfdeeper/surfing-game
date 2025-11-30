@@ -11,7 +11,7 @@ import {
   initializePlayer,
 } from './index.js';
 import { createWave, WAVE_TYPE } from '../state/waveModel.js';
-import { createInitialState as createSetLullState, DEFAULT_CONFIG } from '../state/setLullModel.js';
+import { createSetLullState, DEFAULT_CONFIG } from '../state/setLullModel.js';
 import { createInitialBackgroundState, BACKGROUND_CONFIG } from '../state/backgroundWaveModel.js';
 import { DEFAULT_BATHYMETRY } from '../state/bathymetryModel.js';
 

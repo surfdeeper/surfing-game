@@ -1,6 +1,6 @@
 # Plan 240: Agentic Workflow Architecture
 
-**Status**: Proposed
+**Status**: Complete
 **Category**: tooling
 **Depends On**: None
 
@@ -13,11 +13,23 @@ Current development uses a single working directory with manual branch switching
 3. **Manual GitHub workflow** - Branch creation, PRs, and status checks done outside agent context
 4. **No CI gating** - Merges not protected by automated checks
 
+## Completion Summary
+
+**Implemented in PR #1** (`feature/agentic-workflow`):
+
+- Added `/worktree` slash command for creating/listing/removing git worktrees
+- Added `/branch` slash command for creating feature branches via GitHub MCP
+- Added `/pr` slash command for creating pull requests via GitHub MCP
+- Updated CLAUDE.md with Git Worktrees section documenting the workflow
+- Documented critical requirement: always run `npm install` after creating worktree (sets up husky hooks)
+
+**Key discovery**: Worktrees that skip `npm install` bypass pre-commit hooks, which led to the `depthToViridis` type error reaching master.
+
 ## Goals
 
 1. Enable **concurrent development** across multiple branches/features via git worktrees
 2. Integrate **GitHub MCP** for branch/PR/status workflows within agent sessions
-3. Establish **CI pipeline** with gated merges (follow-up plan)
+3. Establish **CI pipeline** with gated merges (follow-up plan) → See Plan 241
 4. Keep **single `.claude/` folder** in main worktree - worktrees are just working directories
 
 ## Architecture: Single Repo + Worktrees

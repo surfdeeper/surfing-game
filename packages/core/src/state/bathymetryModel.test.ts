@@ -5,7 +5,6 @@ import {
   getMinDepth,
   getPeakX,
   shouldBreak,
-  amplitudeToHeight,
 } from './bathymetryModel.js';
 
 describe('bathymetryModel', () => {
@@ -140,25 +139,6 @@ describe('bathymetryModel', () => {
       // depth = 2m, threshold = 1.56m
       // Very small wave (0.5m) should not break
       expect(shouldBreak(0.5, 2)).toBe(false);
-    });
-  });
-
-  describe('amplitudeToHeight', () => {
-    it('converts amplitude 1.0 to max height', () => {
-      expect(amplitudeToHeight(1.0)).toBe(3);
-    });
-
-    it('converts amplitude 0 to 0 height', () => {
-      expect(amplitudeToHeight(0)).toBe(0);
-    });
-
-    it('converts amplitude 0.5 to half max height', () => {
-      expect(amplitudeToHeight(0.5)).toBe(1.5);
-    });
-
-    it('scales linearly', () => {
-      expect(amplitudeToHeight(0.25)).toBe(0.75);
-      expect(amplitudeToHeight(0.75)).toBe(2.25);
     });
   });
 

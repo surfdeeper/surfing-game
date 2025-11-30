@@ -1,4 +1,4 @@
 import { defineStripVisualTests } from '../visual-test-helpers';
-import { FOAM_CONTOUR_STRIPS } from '../../src/render/foamContoursProgressions';
+import { FOAM_CONTOUR_STRIPS } from '@surf/core/src/render/foamContoursProgressions';
 
 defineStripVisualTests(FOAM_CONTOUR_STRIPS);

@@ -9,7 +9,7 @@
  */
 
 import { createWave } from './waveModel.js';
-import { createInitialState as createSetLullState, DEFAULT_CONFIG } from './setLullModel.js';
+import { createSetLullState, DEFAULT_CONFIG } from './setLullModel.js';
 import { createInitialBackgroundState, BACKGROUND_CONFIG } from './backgroundWaveModel.js';
 import { createEnergyField, FIELD_HEIGHT, FIELD_WIDTH } from './energyFieldModel.js';
 import { DEFAULT_BATHYMETRY } from './bathymetryModel.js';

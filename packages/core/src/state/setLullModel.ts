@@ -36,7 +36,7 @@ export const STATE = {
  * @param {number} gameTime - Current game time in ms (defaults to 0)
  * @returns {object} Initial state object
  */
-export function createInitialState(config = DEFAULT_CONFIG, randomFn = Math.random, gameTime = 0) {
+export function createSetLullState(config = DEFAULT_CONFIG, randomFn = Math.random, gameTime = 0) {
   const state = {
     setState: STATE.LULL,
     stateStartTime: gameTime, // Absolute game time when state started

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   DEFAULT_CONFIG,
   STATE,
-  createInitialState,
+  createSetLullState,
   randomInRange,
   getNextWaveTime,
   initializeLull,
@@ -22,15 +22,15 @@ const fixedRandom = (value) => () => value;
 const sec = (s) => s * 1000;
 
 describe('setLullModel', () => {
-  describe('createInitialState', () => {
+  describe('createSetLullState', () => {
     it('should create state in LULL mode', () => {
-      const state = createInitialState(DEFAULT_CONFIG, fixedRandom(0.5));
+      const state = createSetLullState(DEFAULT_CONFIG, fixedRandom(0.5));
       expect(state.setState).toBe(STATE.LULL);
     });
 
     it('should initialize timestamps to gameTime', () => {
       const gameTime = 5000; // 5 seconds in
-      const state = createInitialState(DEFAULT_CONFIG, fixedRandom(0.5), gameTime);
+      const state = createSetLullState(DEFAULT_CONFIG, fixedRandom(0.5), gameTime);
       expect(state.stateStartTime).toBe(gameTime);
       expect(state.lastWaveSpawnTime).toBe(gameTime);
       expect(state.wavesSpawned).toBe(0);
@@ -42,13 +42,13 @@ describe('setLullModel', () => {
 
     it('should set lull duration with variation', () => {
       // random = 0.5 means middle of variation range
-      const state = createInitialState(DEFAULT_CONFIG, fixedRandom(0.5));
+      const state = createSetLullState(DEFAULT_CONFIG, fixedRandom(0.5));
       expect(state.setDuration).toBe(DEFAULT_CONFIG.lullDuration); // 30s + 0 variation
     });
 
     it('should set wave count from lull config', () => {
       // random = 0.5 -> Math.floor(2 + 0.5 * 3) = Math.floor(3.5) = 3
-      const state = createInitialState(DEFAULT_CONFIG, fixedRandom(0.5));
+      const state = createSetLullState(DEFAULT_CONFIG, fixedRandom(0.5));
       expect(state.currentSetWaves).toBeGreaterThanOrEqual(DEFAULT_CONFIG.lullWavesPerSet[0]);
       expect(state.currentSetWaves).toBeLessThanOrEqual(DEFAULT_CONFIG.lullWavesPerSet[1]);
     });
@@ -256,7 +256,7 @@ describe('setLullModel', () => {
     describe('timer computation', () => {
       it('should compute setTimer from absolute timestamps', () => {
         const startTime = sec(10);
-        const state = createInitialState(DEFAULT_CONFIG, fixedRandom(0.5), startTime);
+        const state = createSetLullState(DEFAULT_CONFIG, fixedRandom(0.5), startTime);
         const currentTime = sec(11); // 1 second later
         const { state: newState } = updateSetLullState(
           state,
@@ -270,7 +270,7 @@ describe('setLullModel', () => {
 
       it('should compute timeSinceLastWave from absolute timestamps', () => {
         const startTime = sec(10);
-        const state = createInitialState(DEFAULT_CONFIG, fixedRandom(0.5), startTime);
+        const state = createSetLullState(DEFAULT_CONFIG, fixedRandom(0.5), startTime);
         const currentTime = sec(11); // 1 second later
         const { state: newState } = updateSetLullState(
           state,
@@ -284,7 +284,7 @@ describe('setLullModel', () => {
 
       it('should correctly compute time over multiple updates', () => {
         const startTime = sec(0);
-        let state = createInitialState(DEFAULT_CONFIG, fixedRandom(0.5), startTime);
+        let state = createSetLullState(DEFAULT_CONFIG, fixedRandom(0.5), startTime);
         // Simulate three 1-second updates (gameTime advances each call)
         state = updateSetLullState(state, sec(1), DEFAULT_CONFIG, fixedRandom(0.5)).state;
         state = updateSetLullState(state, sec(2), DEFAULT_CONFIG, fixedRandom(0.5)).state;
@@ -297,7 +297,7 @@ describe('setLullModel', () => {
     describe('LULL state behavior', () => {
       it('should stay in LULL until duration elapses', () => {
         const startTime = sec(0);
-        let state = createInitialState(DEFAULT_CONFIG, fixedRandom(0.5), startTime);
+        let state = createSetLullState(DEFAULT_CONFIG, fixedRandom(0.5), startTime);
         // Initial lull duration is ~30s, advance only 10s
         state = updateSetLullState(state, sec(10), DEFAULT_CONFIG, fixedRandom(0.5)).state;
         expect(state.setState).toBe(STATE.LULL);
@@ -305,7 +305,7 @@ describe('setLullModel', () => {
 
       it('should transition to SET after lull duration', () => {
         const startTime = sec(0);
-        let state = createInitialState(DEFAULT_CONFIG, fixedRandom(0.5), startTime);
+        let state = createSetLullState(DEFAULT_CONFIG, fixedRandom(0.5), startTime);
         // Advance past lull duration (30s)
         state = updateSetLullState(state, sec(31), DEFAULT_CONFIG, fixedRandom(0.5)).state;
         expect(state.setState).toBe(STATE.SET);
@@ -313,7 +313,7 @@ describe('setLullModel', () => {
 
       it('should NOT spawn waves during lull (lulls are empty)', () => {
         const startTime = sec(0);
-        let state = createInitialState(DEFAULT_CONFIG, fixedRandom(0.5), startTime);
+        let state = createSetLullState(DEFAULT_CONFIG, fixedRandom(0.5), startTime);
         // Even with enough time elapsed, lulls should not spawn waves
         // (Background waves are handled separately, not by this state machine)
         const result = updateSetLullState(state, sec(16), DEFAULT_CONFIG, fixedRandom(0.5));
@@ -323,7 +323,7 @@ describe('setLullModel', () => {
 
       it('should advance setTimer during LULL state', () => {
         const startTime = sec(0);
-        let state = createInitialState(DEFAULT_CONFIG, fixedRandom(0.5), startTime);
+        let state = createSetLullState(DEFAULT_CONFIG, fixedRandom(0.5), startTime);
 
         const result = updateSetLullState(state, sec(5), DEFAULT_CONFIG, fixedRandom(0.5));
         const derived = computeDerivedTimers(result.state, sec(5));
@@ -380,7 +380,7 @@ describe('setLullModel', () => {
     describe('wave spawning logic', () => {
       it('should not spawn when time has not elapsed', () => {
         const startTime = sec(0);
-        let state = createInitialState(DEFAULT_CONFIG, fixedRandom(0.5), startTime);
+        let state = createSetLullState(DEFAULT_CONFIG, fixedRandom(0.5), startTime);
         const result = updateSetLullState(state, sec(1), DEFAULT_CONFIG, fixedRandom(0.5));
         expect(result.shouldSpawn).toBe(false);
       });
@@ -412,7 +412,7 @@ describe('setLullModel', () => {
     describe('lull behavior', () => {
       it('should not reset wave counts during lull (no mini-sets)', () => {
         const startTime = sec(0);
-        let state = createInitialState(DEFAULT_CONFIG, fixedRandom(0.5), startTime);
+        let state = createSetLullState(DEFAULT_CONFIG, fixedRandom(0.5), startTime);
         const initialWavesSpawned = state.wavesSpawned;
         const initialSetWaves = state.currentSetWaves;
 
@@ -430,7 +430,7 @@ describe('setLullModel', () => {
   describe('full cycle simulation', () => {
     it('should complete LULL → SET → LULL cycle', () => {
       const startTime = sec(0);
-      let state = createInitialState(DEFAULT_CONFIG, fixedRandom(0.5), startTime);
+      let state = createSetLullState(DEFAULT_CONFIG, fixedRandom(0.5), startTime);
       expect(state.setState).toBe(STATE.LULL);
 
       // Advance through lull (30s) - simulate 1 second per iteration
@@ -455,7 +455,7 @@ describe('setLullModel', () => {
 
     it('should spawn multiple waves over simulation', () => {
       const startTime = sec(0);
-      let state = createInitialState(DEFAULT_CONFIG, fixedRandom(0.5), startTime);
+      let state = createSetLullState(DEFAULT_CONFIG, fixedRandom(0.5), startTime);
       let totalSpawns = 0;
       let gameTime = startTime;
 
@@ -473,7 +473,7 @@ describe('setLullModel', () => {
 
     it('should reset stateStartTime when transitioning LULL → SET', () => {
       const startTime = sec(0);
-      let state = createInitialState(DEFAULT_CONFIG, fixedRandom(0.5), startTime);
+      let state = createSetLullState(DEFAULT_CONFIG, fixedRandom(0.5), startTime);
       // Advance past lull duration (30s)
       const transitionTime = sec(31);
       state = updateSetLullState(state, transitionTime, DEFAULT_CONFIG, fixedRandom(0.5)).state;
@@ -601,7 +601,7 @@ describe('setLullModel', () => {
     describe('Timing Edge Cases', () => {
       it('handles same gameTime without breaking updates', () => {
         const startTime = sec(0);
-        let state = createInitialState(DEFAULT_CONFIG, fixedRandom(0.5), startTime);
+        let state = createSetLullState(DEFAULT_CONFIG, fixedRandom(0.5), startTime);
 
         // Update with same time (no change)
         const result = updateSetLullState(state, startTime, DEFAULT_CONFIG, fixedRandom(0.5));
@@ -613,7 +613,7 @@ describe('setLullModel', () => {
       it('handles very large time jump (simulates lag spike handling)', () => {
         // Note: main.js clamps deltaTime, but setLullModel should handle any value
         const startTime = sec(0);
-        let state = createInitialState(DEFAULT_CONFIG, fixedRandom(0.5), startTime);
+        let state = createSetLullState(DEFAULT_CONFIG, fixedRandom(0.5), startTime);
         const result = updateSetLullState(state, sec(1000), DEFAULT_CONFIG, fixedRandom(0.5));
 
         // Should transition through states without crashing
@@ -623,7 +623,7 @@ describe('setLullModel', () => {
 
       it('handles gameTime going backwards gracefully (edge case)', () => {
         const startTime = sec(10);
-        let state = createInitialState(DEFAULT_CONFIG, fixedRandom(0.5), startTime);
+        let state = createSetLullState(DEFAULT_CONFIG, fixedRandom(0.5), startTime);
 
         // Time going backwards (unusual but possible with save/load bugs)
         const result = updateSetLullState(state, sec(5), DEFAULT_CONFIG, fixedRandom(0.5));
@@ -647,7 +647,7 @@ describe('setLullModel', () => {
         };
 
         const startTime = sec(0);
-        let state = createInitialState(fastConfig, fixedRandom(0.5), startTime);
+        let state = createSetLullState(fastConfig, fixedRandom(0.5), startTime);
         let transitions = 0;
         let lastState = state.setState;
         let gameTime = startTime;
@@ -690,7 +690,7 @@ describe('setLullModel', () => {
 
       it('handles empty config gracefully by using defaults', () => {
         // updateSetLullState should use DEFAULT_CONFIG if not provided
-        let state = createInitialState();
+        let state = createSetLullState();
         const result = updateSetLullState(state, sec(1));
         expect(result.state).toBeDefined();
       });

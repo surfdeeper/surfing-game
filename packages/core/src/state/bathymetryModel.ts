@@ -151,16 +151,3 @@ export function shouldBreak(waveHeight, depth) {
   const breakerIndex = 0.78;
   return waveHeight > breakerIndex * depth;
 }
-
-/**
- * Calculate wave height from amplitude
- * Converts our 0-1 amplitude to approximate wave height in meters
- *
- * @param {number} amplitude - Wave amplitude (0-1)
- * @returns {number} Wave height in meters
- */
-export function amplitudeToHeight(amplitude) {
-  // Scale: amplitude 1.0 = ~3 meter wave
-  const maxHeight = 3;
-  return amplitude * maxHeight;
-}

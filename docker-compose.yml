@@ -1,0 +1,27 @@
+services:
+  visual-tests:
+    build:
+      context: .
+      dockerfile: Dockerfile.playwright
+    volumes:
+      # Mount snapshot directories so baselines persist to host
+      - ./stories:/app/stories
+      # Mount test results for debugging
+      - ./tests/visual/results:/app/tests/visual/results
+      - ./tests/visual/report:/app/tests/visual/report
+    environment:
+      - CI=true
+    command: npm run test:visual:headless
+
+  # Update baselines - run with: docker compose run update-snapshots
+  update-snapshots:
+    build:
+      context: .
+      dockerfile: Dockerfile.playwright
+    volumes:
+      - ./stories:/app/stories
+      - ./tests/visual/results:/app/tests/visual/results
+      - ./tests/visual/report:/app/tests/visual/report
+    environment:
+      - CI=true
+    command: npm run test:visual:update:headless
