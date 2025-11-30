@@ -44,8 +44,8 @@
     "test:visual:docker": "docker-compose run --rm visual-tests",
     "test:visual:docker:update": "docker-compose run --rm update-snapshots",
     "test:visual:docker:build": "docker-compose build",
-    "reset:visual": "bash -c 'rm -rf tests/visual/results tests/visual/report test-results/.last-run.json && mkdir -p tests/visual/results tests/visual/report'",
-    "reset:visual:all": "bash -c 'rm -rf tests/visual/results tests/visual/report tests/visual/snapshots test-results/.last-run.json && find packages/visual-regression-testing-viewer-react-application/src -name \"*.visual.spec.ts\" -execdir rm -f ./*.png \\; && mkdir -p tests/visual/results tests/visual/report'",
+    "reset:visual": "bash -c 'mkdir -p tests/visual/results tests/visual/report && rm -rf tests/visual/results/* tests/visual/report/* test-results/.last-run.json 2>/dev/null || true'",
+    "reset:visual:all": "bash -c 'mkdir -p tests/visual/results tests/visual/report && rm -rf tests/visual/results/* tests/visual/report/* tests/visual/snapshots test-results/.last-run.json 2>/dev/null || true && find packages/visual-regression-testing-viewer-react-application/src -name \"*.visual.spec.ts\" -execdir rm -f ./*.png \\; 2>/dev/null || true'",
     "prepare": "husky"
   },
   "keywords": [],
