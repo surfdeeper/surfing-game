@@ -14,7 +14,12 @@
     "resolveJsonModule": true,
     "allowJs": true,
     "checkJs": false,
-    "types": ["vite/client", "node"]
+    "types": ["vite/client", "node"],
+    "baseUrl": ".",
+    "paths": {
+      "@src/*": ["src/*"],
+      "@stories/*": ["stories/*"]
+    }
   },
   "include": ["src/**/*", "stories/**/*", "tests/**/*"],
   "exclude": ["node_modules", "dist"]

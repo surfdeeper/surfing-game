@@ -7,7 +7,7 @@ Guidelines for AI agents working on this codebase.
 ### Tight Feedback Loops
 Always prefer the fastest feedback mechanism available:
 1. **Lint first** (`npm run lint`) - catches syntax/import errors in ~1 second
-1. **Smoke test** (`npx playwright test tests/smoke.spec.js:3`) - verifies app loads without JS errors (~3 seconds)
+1. **Smoke test** (`npm run test:smoke` or `npx playwright test tests/smoke.spec.js:3`) - verifies app loads without JS errors (~3 seconds)
 1. **Run specific tests** - test files related to your changes, not the entire suite
 1. **Don't chain commands** - run `npm run lint` separately from tests; if lint passes, then run tests. Don't `lint && test` which delays test feedback.
 
@@ -16,6 +16,13 @@ Always prefer the fastest feedback mechanism available:
 ### Use Pre-approved Commands
 These commands are pre-approved and won't prompt for confirmation:
 - `npm run lint`
+- `npm run test:smoke`
+- `npm run test:unit`
+- `npm run test:visual:viewer`
+- `npm run test:visual:game`
+- `npm run test:all`
+- `npm run test:visual:game:force`
+- `npm run test:visual:viewer:force`
 - `npm test`
 - `npm run test:visual:headless`
 - `npm run test:visual:update:headless`
@@ -125,7 +132,14 @@ Run lint before running tests to catch basic issues faster.
 Run tests before committing (explicit commands only):
 ```bash
 npm run lint    # Lint first - fast feedback on syntax/import errors
-npm test        # Unit tests
+npm run test:smoke  # Playwright smoke (wireit cached)
+npm run test:unit   # Vitest (wireit) - depends on smoke
+npm run test:visual:viewer # Viewer UI tests (wireit) - depends on smoke
+npm run test:visual:game   # Game visual tests (wireit) - depends on unit
+npm run test:all   # Runs all wireit tasks with caching/ordering
+npm run test:visual:game:force   # Bypass wireit for debugging
+npm run test:visual:viewer:force # Bypass wireit for debugging
+npm test        # Unit tests direct (vitest)
 npm run test:e2e  # E2E tests (if available)
 npm run test:visual:headless        # Visual tests in headless mode
 npm run test:visual:headed          # Visual tests with browser UI
@@ -151,6 +165,7 @@ Custom commands for common workflows (`.claude/commands/`):
 | `/physics` | Load wave physics context | `/physics` |
 | `/test` | Run tests with context | `/test unit` or `/test foamDispersion.test.js` |
 | `/visual` | Visual regression workflows | `/visual run` or `/visual update` |
+| `/visual-debug` | Interactive visual debugging with Chrome DevTools | `/visual-debug bathymetry` |
 | `/refactor` | Find duplicate code, discuss consolidation | `/refactor src/render/` |
 
 ## Skills
@@ -167,6 +182,21 @@ Skills are auto-applied by Claude based on context (`.claude/skills/`):
 | `performance` | "slow", "fps", "lag", optimization discussions |
 | `refactoring` | "duplicate", "refactor", "DRY", "extract", "consolidate" |
 | `debugging` | "bug", "broken", "not working", "glitch", "flickering" |
+
+## Code Quality Analysis
+
+Commands for finding dead code and duplicates:
+
+```bash
+npm run check:dead-code      # Find unused files, exports, dependencies (Knip)
+npm run check:dead-code:json # JSON output for parsing
+npm run check:duplicates     # Find copy-paste code (jscpd)
+npm run check:duplicates:report # HTML report in ./jscpd-report
+```
+
+Agents for detailed analysis:
+- `dead-code-analysis` - Uses Knip, TypeScript analysis, custom patterns
+- `duplicate-code-analysis` - Uses jscpd, test/prod drift detection
 
 ## Debugging Methodology
 
