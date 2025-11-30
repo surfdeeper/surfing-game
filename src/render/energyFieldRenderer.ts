@@ -70,9 +70,10 @@ export function renderEnergyFieldFast(ctx, field, oceanTop, oceanBottom, canvasW
   const data = imageData.data;
 
   // Color mapping parameters
+  // BUG: Intentionally swapped peak/trough colors to test visual regression detection
   const baseColor = { r: 26, g: 74, b: 110 };
-  const peakColor = { r: 74, g: 144, b: 184 };
-  const troughColor = { r: 13, g: 58, b: 92 };
+  const peakColor = { r: 13, g: 58, b: 92 }; // Swapped: was troughColor
+  const troughColor = { r: 74, g: 144, b: 184 }; // Swapped: was peakColor
 
   // Fill each pixel
   for (let py = 0; py < pixelHeight; py++) {
