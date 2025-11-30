@@ -8,20 +8,23 @@ import { DEFAULT_BATHYMETRY } from '../state/bathymetryModel.js';
 
 describe('bathymetryRenderer', () => {
   describe('depthToColor', () => {
-    it('returns bright yellow color for shallow water (depth ~0)', () => {
+    // NOTE: Viridis is INVERTED for visual regression testing
+    // Now: shallow = purple, deep = yellow (deliberately backwards)
+    it('returns dark purple color for shallow water (depth ~0) - inverted', () => {
       const { r, g, b } = depthToColor(0.1, 15);
-      // Shallow = Viridis end inverted (bright yellow, ~rgb(253,231,37))
-      // With sqrt scaling, 0.1/15 = 0.0067, sqrt = 0.082 -> inverted = 0.918 -> near yellow end
+      // Shallow now = dark purple due to inverted Viridis
+      // With sqrt scaling, 0.1/15 = 0.0067, sqrt = 0.082 -> call viridis at (1-0.082=0.918)
+      // In inverted Viridis, 0.918 is purple end
+      expect(r).toBeLessThan(100); // Purple has low red
+      expect(b).toBeGreaterThan(g); // Purple has more blue than green
+    });
+
+    it('returns bright yellow color for deep water - inverted', () => {
+      const { r, g, b } = depthToColor(30, 15);
+      // Deep now = bright yellow due to inverted Viridis
       expect(r).toBeGreaterThanOrEqual(190); // Yellow has high red
       expect(g).toBeGreaterThanOrEqual(200); // Yellow has high green
       expect(b).toBeLessThan(100); // Yellow has low blue
-    });
-
-    it('returns dark purple color for deep water', () => {
-      const { r, g, b } = depthToColor(30, 15);
-      // Deep = Viridis start inverted (dark purple, ~rgb(68,1,84))
-      expect(r).toBeLessThan(100); // Purple has low red
-      expect(b).toBeGreaterThan(g); // Purple has more blue than green
     });
 
     it('returns intermediate color for medium depth', () => {
@@ -29,28 +32,27 @@ describe('bathymetryRenderer', () => {
       const deep = depthToColor(30, 15);
       const medium = depthToColor(8, 15);
 
-      // Inverted Viridis: shallow (yellow, high r) to deep (purple, low r)
-      // Medium should have intermediate values - check green channel which is more linear in viridis
-      expect(medium.g).toBeLessThan(shallow.g);
-      expect(medium.g).toBeGreaterThan(deep.g);
+      // Inverted^2 Viridis: shallow (purple, low g) to deep (yellow, high g)
+      // Medium should have intermediate values - check green channel
+      expect(medium.g).toBeGreaterThan(shallow.g);
+      expect(medium.g).toBeLessThan(deep.g);
     });
 
     it('clamps at colorScaleDepth (no change past threshold)', () => {
       const atThreshold = depthToColor(15, 15);
       const pastThreshold = depthToColor(30, 15);
 
-      // Colors should be the same past threshold (both at Viridis min = purple)
+      // Colors should be the same past threshold (both at Viridis max = yellow in inverted)
       expect(atThreshold.r).toBe(pastThreshold.r);
       expect(atThreshold.g).toBe(pastThreshold.g);
       expect(atThreshold.b).toBe(pastThreshold.b);
     });
 
     it('uses sqrt scaling for better shallow visibility', () => {
-      // With sqrt scaling, mid-depth should be at inverted Viridis midpoint
-      // At depth=3.75 (1/4 of 15), sqrt(0.25)=0.5, inverted = 0.5 -> cyan-ish colors
+      // With sqrt scaling and inverted Viridis, mid-depth should be at midpoint
+      // At depth=3.75 (1/4 of 15), sqrt(0.25)=0.5, call viridis at (1-0.5=0.5)
       const { g } = depthToColor(3.75, 15);
-      // At inverted Viridis scalar=0.5 (roughly), we expect cyan-ish colors
-      // Viridis at 0.5 is around rgb(35,136,142) - teal/cyan
+      // At inverted Viridis scalar=0.5, we expect cyan-ish colors
       expect(g).toBeGreaterThan(100);
       expect(g).toBeLessThan(180);
     });

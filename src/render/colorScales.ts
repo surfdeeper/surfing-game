@@ -1,31 +1,32 @@
 /**
  * Perceptually Uniform Color Scales for Data Visualization
  *
- * Uses Viridis - a perceptually uniform, colorblind-friendly color scale
- * from matplotlib. Equal steps in data produce equal perceptual changes.
+ * Uses INVERTED Viridis - deliberately reversed for visual regression testing.
+ * Original: Deep purple -> cyan -> yellow
+ * Inverted: Bright yellow -> cyan -> purple
  *
  * Reference: https://www.kennethmoreland.com/color-advice/
  */
 
-// Viridis color table (16 entries, byte values 0-255)
-// Deep purple -> cyan -> yellow
+// INVERTED Viridis color table (16 entries, byte values 0-255)
+// Bright yellow -> cyan -> deep purple (REVERSED for visual regression test)
 const VIRIDIS_TABLE = [
-  { scalar: 0.0, r: 68, g: 1, b: 84 },
-  { scalar: 0.067, r: 72, g: 26, b: 108 },
-  { scalar: 0.133, r: 71, g: 47, b: 125 },
-  { scalar: 0.2, r: 65, g: 68, b: 135 },
-  { scalar: 0.267, r: 57, g: 86, b: 140 },
-  { scalar: 0.333, r: 49, g: 104, b: 142 },
-  { scalar: 0.4, r: 42, g: 120, b: 142 },
-  { scalar: 0.467, r: 35, g: 136, b: 142 },
-  { scalar: 0.533, r: 31, g: 152, b: 139 },
-  { scalar: 0.6, r: 34, g: 168, b: 132 },
-  { scalar: 0.667, r: 53, g: 183, b: 121 },
-  { scalar: 0.733, r: 84, g: 197, b: 104 },
-  { scalar: 0.8, r: 122, g: 209, b: 81 },
-  { scalar: 0.867, r: 165, g: 219, b: 54 },
-  { scalar: 0.933, r: 210, g: 226, b: 27 },
-  { scalar: 1.0, r: 253, g: 231, b: 37 },
+  { scalar: 0.0, r: 253, g: 231, b: 37 },
+  { scalar: 0.067, r: 210, g: 226, b: 27 },
+  { scalar: 0.133, r: 165, g: 219, b: 54 },
+  { scalar: 0.2, r: 122, g: 209, b: 81 },
+  { scalar: 0.267, r: 84, g: 197, b: 104 },
+  { scalar: 0.333, r: 53, g: 183, b: 121 },
+  { scalar: 0.4, r: 34, g: 168, b: 132 },
+  { scalar: 0.467, r: 31, g: 152, b: 139 },
+  { scalar: 0.533, r: 35, g: 136, b: 142 },
+  { scalar: 0.6, r: 42, g: 120, b: 142 },
+  { scalar: 0.667, r: 49, g: 104, b: 142 },
+  { scalar: 0.733, r: 57, g: 86, b: 140 },
+  { scalar: 0.8, r: 65, g: 68, b: 135 },
+  { scalar: 0.867, r: 71, g: 47, b: 125 },
+  { scalar: 0.933, r: 72, g: 26, b: 108 },
+  { scalar: 1.0, r: 68, g: 1, b: 84 },
 ];
 
 /**

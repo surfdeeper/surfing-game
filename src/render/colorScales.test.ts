@@ -3,24 +3,27 @@ import { viridisToRgb, viridisToColor, energyToColor } from './colorScales';
 
 describe('colorScales', () => {
   describe('viridisToRgb', () => {
-    it('returns dark purple at 0', () => {
+    // NOTE: Viridis is INVERTED for visual regression testing
+    // Original: 0=purple, 1=yellow
+    // Inverted: 0=yellow, 1=purple
+    it('returns bright yellow at 0 (inverted)', () => {
       const color = viridisToRgb(0);
-      expect(color).toEqual({ r: 68, g: 1, b: 84 });
+      expect(color).toEqual({ r: 253, g: 231, b: 37 });
     });
 
-    it('returns bright yellow at 1', () => {
+    it('returns dark purple at 1 (inverted)', () => {
       const color = viridisToRgb(1);
-      expect(color).toEqual({ r: 253, g: 231, b: 37 });
-    });
-
-    it('clamps values below 0', () => {
-      const color = viridisToRgb(-0.5);
       expect(color).toEqual({ r: 68, g: 1, b: 84 });
     });
 
-    it('clamps values above 1', () => {
-      const color = viridisToRgb(1.5);
+    it('clamps values below 0 to yellow (inverted)', () => {
+      const color = viridisToRgb(-0.5);
       expect(color).toEqual({ r: 253, g: 231, b: 37 });
+    });
+
+    it('clamps values above 1 to purple (inverted)', () => {
+      const color = viridisToRgb(1.5);
+      expect(color).toEqual({ r: 68, g: 1, b: 84 });
     });
 
     it('interpolates smoothly at midpoint', () => {
@@ -32,14 +35,14 @@ describe('colorScales', () => {
   });
 
   describe('viridisToColor', () => {
-    it('returns CSS rgb string', () => {
+    it('returns CSS rgb string (yellow at 0, inverted)', () => {
       const color = viridisToColor(0);
-      expect(color).toBe('rgb(68,1,84)');
+      expect(color).toBe('rgb(253,231,37)');
     });
 
-    it('returns CSS rgb string at 1', () => {
+    it('returns CSS rgb string at 1 (purple, inverted)', () => {
       const color = viridisToColor(1);
-      expect(color).toBe('rgb(253,231,37)');
+      expect(color).toBe('rgb(68,1,84)');
     });
   });
 
