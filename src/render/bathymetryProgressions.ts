@@ -26,17 +26,18 @@ function toProgression(id: string, label: string, description: string, buildMatr
   });
 }
 
-// Gradual gradient from moderate depth (0.5) at horizon to shallow (0.0) at shore
-// Starts at 50% to contrast with Steep Slope (which starts at 100%)
-export const PROGRESSION_GRADUAL_SLOPE = toProgression(
-  'bathymetry/gradual-slope',
-  'Gradual Slope',
-  'Gentle depth gradient - moderate depth at horizon, gradual transition to shore',
+// =============================================================================
+// Flat Bottom variants (constant depth across entire grid)
+// =============================================================================
+
+export const PROGRESSION_FLAT_SHALLOW = toProgression(
+  'bathymetry/flat-shallow',
+  'Flat Bottom (Shallow)',
+  'Constant shallow depth (25%) - waves interact strongly with bottom everywhere',
   () => {
     const matrix = createMatrix();
-    const maxDepth = 0.5; // Start at 50% depth (vs steep which starts at 100%)
+    const depth = 0.25;
     for (let row = 0; row < GRID_HEIGHT; row++) {
-      const depth = maxDepth * (1 - row / (GRID_HEIGHT - 1)); // 0.5 at top, 0 at bottom
       for (let col = 0; col < GRID_WIDTH; col++) {
         matrix[row][col] = depth;
       }
@@ -45,17 +46,14 @@ export const PROGRESSION_GRADUAL_SLOPE = toProgression(
   }
 );
 
-// Steep drop-off near shore (exponential curve) - starts at 100% depth
-export const PROGRESSION_STEEP_SLOPE = toProgression(
-  'bathymetry/steep-slope',
-  'Steep Slope',
-  'Deep water (100%) with steep drop-off near shore',
+export const PROGRESSION_FLAT_MEDIUM = toProgression(
+  'bathymetry/flat-medium',
+  'Flat Bottom (Medium)',
+  'Constant medium depth (50%) - moderate wave-bottom interaction',
   () => {
     const matrix = createMatrix();
+    const depth = 0.5;
     for (let row = 0; row < GRID_HEIGHT; row++) {
-      const normalized = row / (GRID_HEIGHT - 1);
-      // Exponential curve: stays deep longer, drops quickly near shore
-      const depth = Math.exp(-normalized * 3);
       for (let col = 0; col < GRID_WIDTH; col++) {
         matrix[row][col] = depth;
       }
@@ -64,7 +62,81 @@ export const PROGRESSION_STEEP_SLOPE = toProgression(
   }
 );
 
-// Sandbar: shallow region in the middle
+export const PROGRESSION_FLAT_DEEP = toProgression(
+  'bathymetry/flat-deep',
+  'Flat Bottom (Deep)',
+  'Constant deep water (100%) - waves travel unaffected by bottom',
+  () => {
+    const matrix = createMatrix();
+    const depth = 1.0;
+    for (let row = 0; row < GRID_HEIGHT; row++) {
+      for (let col = 0; col < GRID_WIDTH; col++) {
+        matrix[row][col] = depth;
+      }
+    }
+    return matrix;
+  }
+);
+
+// =============================================================================
+// Linear Slope variants (constant gradient from horizon to shore)
+// =============================================================================
+
+export const PROGRESSION_SLOPE_GENTLE = toProgression(
+  'bathymetry/slope-gentle',
+  'Linear Slope (Gentle)',
+  'Gentle gradient from shallow (25%) at horizon to shore - minimal depth change',
+  () => {
+    const matrix = createMatrix();
+    const maxDepth = 0.25; // Starts shallow
+    for (let row = 0; row < GRID_HEIGHT; row++) {
+      const depth = maxDepth * (1 - row / (GRID_HEIGHT - 1));
+      for (let col = 0; col < GRID_WIDTH; col++) {
+        matrix[row][col] = depth;
+      }
+    }
+    return matrix;
+  }
+);
+
+export const PROGRESSION_SLOPE_GRADUAL = toProgression(
+  'bathymetry/slope-gradual',
+  'Linear Slope (Gradual)',
+  'Gradual gradient from medium depth (50%) at horizon to shore',
+  () => {
+    const matrix = createMatrix();
+    const maxDepth = 0.5;
+    for (let row = 0; row < GRID_HEIGHT; row++) {
+      const depth = maxDepth * (1 - row / (GRID_HEIGHT - 1));
+      for (let col = 0; col < GRID_WIDTH; col++) {
+        matrix[row][col] = depth;
+      }
+    }
+    return matrix;
+  }
+);
+
+export const PROGRESSION_SLOPE_STEEP = toProgression(
+  'bathymetry/slope-steep',
+  'Linear Slope (Steep)',
+  'Steep gradient from deep (100%) at horizon to shore - maximum depth change',
+  () => {
+    const matrix = createMatrix();
+    const maxDepth = 1.0;
+    for (let row = 0; row < GRID_HEIGHT; row++) {
+      const depth = maxDepth * (1 - row / (GRID_HEIGHT - 1));
+      for (let col = 0; col < GRID_WIDTH; col++) {
+        matrix[row][col] = depth;
+      }
+    }
+    return matrix;
+  }
+);
+
+// =============================================================================
+// Bottom Features (localized depth variations)
+// =============================================================================
+
 export const PROGRESSION_SANDBAR = toProgression(
   'bathymetry/sandbar',
   'Sandbar',
@@ -89,7 +161,6 @@ export const PROGRESSION_SANDBAR = toProgression(
   }
 );
 
-// Reef: localized shallow spot
 export const PROGRESSION_REEF = toProgression(
   'bathymetry/reef',
   'Reef',
@@ -113,7 +184,6 @@ export const PROGRESSION_REEF = toProgression(
   }
 );
 
-// Channel: deeper groove between sandbars (common at river mouths)
 export const PROGRESSION_CHANNEL = toProgression(
   'bathymetry/channel',
   'Channel',
@@ -136,28 +206,18 @@ export const PROGRESSION_CHANNEL = toProgression(
   }
 );
 
-// Flat bottom (constant depth - for reference)
-export const PROGRESSION_FLAT = toProgression(
-  'bathymetry/flat',
-  'Flat Bottom',
-  'Constant depth (no bathymetry gradient)',
-  () => {
-    const matrix = createMatrix();
-    for (let row = 0; row < GRID_HEIGHT; row++) {
-      for (let col = 0; col < GRID_WIDTH; col++) {
-        matrix[row][col] = 0.5; // Mid-depth everywhere
-      }
-    }
-    return matrix;
-  }
-);
+// =============================================================================
+// Exports
+// =============================================================================
 
-// Export organized by category
 export const BATHYMETRY_PROGRESSIONS = {
-  gradualSlope: PROGRESSION_GRADUAL_SLOPE,
-  steepSlope: PROGRESSION_STEEP_SLOPE,
+  flatShallow: PROGRESSION_FLAT_SHALLOW,
+  flatMedium: PROGRESSION_FLAT_MEDIUM,
+  flatDeep: PROGRESSION_FLAT_DEEP,
+  slopeGentle: PROGRESSION_SLOPE_GENTLE,
+  slopeGradual: PROGRESSION_SLOPE_GRADUAL,
+  slopeSteep: PROGRESSION_SLOPE_STEEP,
   sandbar: PROGRESSION_SANDBAR,
   reef: PROGRESSION_REEF,
   channel: PROGRESSION_CHANNEL,
-  flat: PROGRESSION_FLAT,
 };
