@@ -3,7 +3,7 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     // Only include performance tests
-    include: ['src/**/*.perf.test.{ts,tsx}'],
+    include: ['packages/core/src/**/*.perf.test.{ts,tsx}'],
     exclude: ['node_modules/**'],
     // Use node environment for minimal overhead
     environment: 'node',

@@ -1,0 +1,106 @@
+# 3. Shoaling
+
+As waves enter shallow water, they "feel the bottom" and undergo shoaling:
+- Wave speed decreases (c = sqrt(g * depth))
+- Wavelength shortens
+- Wave height increases (energy conservation)
+- Circular orbits flatten into ellipses
+
+import { ProgressionPlayer } from '../components/ProgressionPlayer';
+import { Filmstrip, renderMatrixToCanvas } from '../components/Filmstrip';
+import { energyToColor } from '../../src/render/colorScales';
+import {
+  PROGRESSION_WAVE_SHOALING,
+  PROGRESSION_WAVELENGTH_COMPRESSION,
+  PROGRESSION_SHOALING_COMBINED,
+  SHOALING_STRIP_HEIGHT,
+  SHOALING_STRIP_COMPRESSION,
+  SHOALING_STRIP_STATIC,
+  SHOALING_STRIP_COMBINED,
+} from '../../src/render/shoalingProgressions';
+
+export const renderEnergy = (snap, ctx, w, h) =>
+  renderMatrixToCanvas(ctx, snap.matrix, energyToColor, w, h);
+
+<section id="wave-transformation">
+
+## Wave Transformation
+
+As a wave enters shallow water, its height increases while its speed decreases.
+This is due to energy conservation - as the wave slows, energy "piles up" making
+the wave taller.
+
+<ProgressionPlayer snapshots={PROGRESSION_WAVE_SHOALING.snapshots} />
+
+<Filmstrip snapshots={SHOALING_STRIP_HEIGHT.snapshots} renderSnapshot={renderEnergy} testId={SHOALING_STRIP_HEIGHT.testId} />
+
+**Key observations:**
+- Wave starts at moderate height in deep water (top)
+- As it propagates shoreward (down), intensity increases
+- By the time it reaches shallow water, height has nearly doubled
+
+</section>
+
+<section id="wavelength-compression">
+
+## Wavelength Compression
+
+Waves slow down in shallow water, causing following waves to "catch up".
+This compresses the wavelength - waves become shorter and steeper.
+
+<ProgressionPlayer snapshots={PROGRESSION_WAVELENGTH_COMPRESSION.snapshots} />
+
+<Filmstrip snapshots={SHOALING_STRIP_COMPRESSION.snapshots} renderSnapshot={renderEnergy} testId={SHOALING_STRIP_COMPRESSION.testId} />
+
+**What to look for:**
+- Two wave peaks start spread apart (deep water)
+- As they approach shore, the gap between them shrinks
+- This compression contributes to wave steepening before breaking
+
+</section>
+
+<section id="speed-vs-depth">
+
+## Speed vs Depth
+
+Wave celerity (speed) follows the shallow water equation:
+
+```
+c = sqrt(g * d)
+```
+
+This static visualization shows speed as intensity: bright = fast, dark = slow.
+
+<Filmstrip snapshots={SHOALING_STRIP_STATIC.snapshots} renderSnapshot={renderEnergy} testId={SHOALING_STRIP_STATIC.testId} />
+
+**Orbital Flattening**: In deep water, water particles move in circles. As depth
+decreases, these orbits flatten into ellipses (more horizontal motion, less vertical).
+
+**Speed Gradient**: The smooth transition from fast (deep/bright) to slow (shallow/dark)
+following the sqrt(depth) relationship.
+
+</section>
+
+<section id="combined-effects">
+
+## Combined Shoaling Effects
+
+Real shoaling combines all effects: speed decrease, height increase, and compression
+occur simultaneously as the wave transforms.
+
+<ProgressionPlayer snapshots={PROGRESSION_SHOALING_COMBINED.snapshots} />
+
+<Filmstrip snapshots={SHOALING_STRIP_COMBINED.snapshots} renderSnapshot={renderEnergy} testId={SHOALING_STRIP_COMBINED.testId} />
+
+The simulation uses Green's Law for shoaling amplification:
+
+```
+H2/H1 = (d1/d2)^0.25
+```
+
+Where:
+- `H` = wave height
+- `d` = water depth
+- Wave height increases as depth decreases (with exponent 0.25)
+
+</section>

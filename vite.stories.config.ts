@@ -4,16 +4,19 @@ import mdx from '@mdx-js/rollup';
 import path from 'path';
 
 export default defineConfig({
-  root: 'stories',
+  root: 'packages/visual-regression-testing-viewer-react-application/src',
   plugins: [{ enforce: 'pre', ...mdx({ providerImportSource: '@mdx-js/react' }) }, react()],
   resolve: {
     alias: {
-      '@src': path.resolve(__dirname, './src'),
-      '@stories': path.resolve(__dirname, './stories'),
+      '@src': path.resolve(__dirname, './packages/core/src'),
+      '@stories': path.resolve(
+        __dirname,
+        './packages/visual-regression-testing-viewer-react-application/src'
+      ),
     },
   },
   build: {
-    outDir: '../dist-stories',
+    outDir: '../../../dist-stories',
   },
   server: {
     port: 3001,
