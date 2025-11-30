@@ -48,19 +48,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Install Playwright
-        run: npx playwright install --with-deps chromium
-
-      - name: Run visual tests
-        run: npm run test:visual:headless
+      - name: Build and run visual tests in Docker
+        run: docker-compose run --rm visual-tests
 
       - name: Upload test results on failure
         uses: actions/upload-artifact@v4
