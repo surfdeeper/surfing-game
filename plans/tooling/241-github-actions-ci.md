@@ -1,6 +1,6 @@
 # Plan 241: GitHub Actions CI Pipeline
 
-**Status**: In Progress
+**Status**: Complete
 **Category**: tooling
 **Depends On**: 240 (Agentic Workflow Architecture)
 
@@ -21,7 +21,21 @@ The pre-commit hooks help locally, but can be bypassed (as we discovered with th
 4. Cache dependencies for fast CI runs
 5. Keep it simple - single workflow file
 
-## Proposed Solution
+## Completion Summary
+
+**Implemented in PR #2** (`feature/ci-setup`):
+
+- Created `.github/workflows/ci.yml` with two jobs:
+  - `check`: Lint, typecheck, smoke test, unit tests (~2 min)
+  - `visual`: Visual regression tests, depends on `check` passing
+- Added concurrency control to cancel in-progress runs on new pushes
+- Configured artifact upload on visual test failure for debugging
+- Uses npm cache for faster dependency installation
+
+**Remaining (manual steps)**:
+- Configure branch protection rules in GitHub Settings after merge
+
+## Solution
 
 ### Workflow Structure
 
