@@ -19,3 +19,7 @@ dist-stories
 .npm/
 .config/
 .nx/
+.wireit/
+
+# Astro generated files
+.astro/

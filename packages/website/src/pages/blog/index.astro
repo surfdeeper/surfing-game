@@ -1,0 +1,81 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+
+const posts = (await getCollection('blog'))
+  .filter((post) => !post.data.draft)
+  .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+---
+
+<BaseLayout title="Blog" description="Development updates and technical articles about Surfing Game">
+  <h1>Blog</h1>
+  <p class="intro">Development updates, technical deep-dives, and behind-the-scenes content.</p>
+
+  <ul class="post-list">
+    {
+      posts.map((post) => (
+        <li class="post-item">
+          <a href={`/blog/${post.id}`}>
+            <h2>{post.data.title}</h2>
+            <p class="description">{post.data.description}</p>
+            <time datetime={post.data.pubDate.toISOString()}>
+              {post.data.pubDate.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+              })}
+            </time>
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+
+  {posts.length === 0 && <p>No blog posts yet. Check back soon!</p>}
+</BaseLayout>
+
+<style>
+  h1 {
+    margin-bottom: 0.5rem;
+  }
+
+  .intro {
+    color: var(--color-text-muted);
+    margin-bottom: 2rem;
+  }
+
+  .post-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .post-item a {
+    display: block;
+    padding: 1.5rem;
+    background: var(--color-bg-secondary);
+    border-radius: 0.5rem;
+    text-decoration: none;
+    transition: box-shadow 0.2s;
+  }
+
+  .post-item a:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  .post-item h2 {
+    color: var(--color-primary);
+    margin-bottom: 0.5rem;
+  }
+
+  .description {
+    color: var(--color-text);
+    margin-bottom: 0.5rem;
+  }
+
+  time {
+    color: var(--color-text-muted);
+    font-size: 0.875rem;
+  }
+</style>

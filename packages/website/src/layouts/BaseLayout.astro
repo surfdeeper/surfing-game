@@ -1,0 +1,87 @@
+---
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const { title, description = 'Surfing Game - A wave simulation game' } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={description} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>{title} | Surfing Game</title>
+  </head>
+  <body>
+    <header>
+      <nav>
+        <a href="/" class="logo">Surfing Game</a>
+        <ul>
+          <li><a href="/">Home</a></li>
+          <li><a href="/blog">Blog</a></li>
+          <li><a href="/game">Play Game</a></li>
+          <li><a href="/viewer">Dev Docs</a></li>
+        </ul>
+      </nav>
+    </header>
+    <main>
+      <slot />
+    </main>
+    <footer>
+      <p>&copy; {new Date().getFullYear()} Surfing Game. All rights reserved.</p>
+    </footer>
+  </body>
+</html>
+
+<style is:global>
+  @import '../styles/global.css';
+</style>
+
+<style>
+  header {
+    background: var(--color-bg-secondary);
+    border-bottom: 1px solid #ddd;
+  }
+
+  nav {
+    max-width: var(--max-width);
+    margin: 0 auto;
+    padding: var(--spacing);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .logo {
+    font-size: 1.25rem;
+    font-weight: bold;
+    color: var(--color-primary);
+  }
+
+  nav ul {
+    display: flex;
+    list-style: none;
+    gap: 1.5rem;
+  }
+
+  nav a {
+    color: var(--color-text);
+  }
+
+  nav a:hover {
+    color: var(--color-primary);
+    text-decoration: none;
+  }
+
+  footer {
+    background: var(--color-bg-secondary);
+    border-top: 1px solid #ddd;
+    padding: var(--spacing);
+    text-align: center;
+    color: var(--color-text-muted);
+  }
+</style>

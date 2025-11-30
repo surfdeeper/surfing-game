@@ -1,0 +1,112 @@
+---
+title: "Testing Physics with ASCII Art: A DSL Inspired by RxJS Marbles"
+description: "How we test wave energy propagation using human-readable ASCII diagrams that make simulation behavior visible at a glance."
+pubDate: 2024-11-30
+---
+
+# Testing Physics with ASCII Art
+
+When building a wave simulation, one of the hardest problems isn't the physics—it's knowing whether your physics is *correct*. Traditional unit tests with numeric assertions become unreadable walls of floating-point numbers. We needed something better.
+
+## The Inspiration: RxJS Marble Diagrams
+
+If you've tested reactive streams with RxJS, you've probably seen marble diagrams:
+
+```
+source:   --a--b--c--d--|
+result:   --A--B--C--D--|
+```
+
+These diagrams make time-based behavior *visible*. You can see at a glance what happens and when. We wanted the same clarity for our 2D energy matrices.
+
+## The ASCII Matrix Format
+
+Our solution maps numeric values (0.0–1.0) to single characters:
+
+| Character | Value Range |
+|-----------|-------------|
+| `-`       | 0.0 (< 0.05) |
+| `0`–`9`   | 0.0–0.9      |
+| `A`–`F`   | 0.5–1.0      |
+
+A 6×5 matrix showing full energy at the horizon becomes:
+
+```
+FFFFF
+-----
+-----
+-----
+-----
+-----
+```
+
+## Progression Testing
+
+The real power comes from testing *progressions*—how a matrix evolves over time:
+
+```
+t=0s     t=1s     t=2s     t=3s
+FFFFF    66666    44444    22222
+-----    55555    55555    44444
+-----    22222    44444    44444
+-----    11111    22222    33333
+-----    -----    11111    22222
+-----    -----    -----    11111
+```
+
+This single diagram tells a complete story: energy starts at maximum at the horizon (row 0), then propagates downward and dissipates over 3 seconds.
+
+## Why This Matters
+
+1. **Reviewable diffs**: When physics changes, git shows exactly which cells changed and when
+2. **Self-documenting tests**: The expected behavior is literally drawn in the test file
+3. **Fast debugging**: Failures show visual mismatches, not cryptic numeric comparisons
+4. **Precision tolerance built-in**: Values mapping to the same character are considered equal
+
+## Implementation
+
+The core is simple—just two functions:
+
+```typescript
+function valueToChar(value: number): string {
+  if (value < 0.05) return '-';
+  if (value >= 0.95) return 'F';
+  // ... map to A-E for 0.5-0.9
+  return Math.round(value * 10).toString();
+}
+
+function matrixToAscii(matrix: number[][]): string {
+  return matrix.map(row =>
+    row.map(valueToChar).join('')
+  ).join('\n');
+}
+```
+
+Tests then become declarative:
+
+```typescript
+test('wave energy propagates from horizon', () => {
+  const sim = createSimulation();
+
+  expect(progressionToAscii([
+    { time: 0, matrix: sim.step(0) },
+    { time: 1, matrix: sim.step(1) },
+    { time: 2, matrix: sim.step(2) },
+  ])).toBe(`
+t=0s     t=1s     t=2s
+FFFFF    66666    44444
+-----    55555    55555
+-----    22222    44444
+  `.trim());
+});
+```
+
+## Trade-offs
+
+This approach sacrifices numeric precision for human readability. Values 0.51 and 0.59 both display as `5`. For physics testing, this is usually fine—we care about *behavior*, not exact floating-point values.
+
+For pixel-perfect rendering tests, we use screenshot comparisons instead. Different tools for different jobs.
+
+---
+
+The ASCII matrix DSL has become one of our favorite testing tools. It transforms opaque numeric simulations into visual stories that anyone can read and review.
