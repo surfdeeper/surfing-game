@@ -13,3 +13,8 @@ tests/visual/report/
 ladle-build/dist-stories/
 
 dist-stories
+
+# Cache directories
+.wireit/
+.npm/
+.config/

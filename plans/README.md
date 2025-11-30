@@ -20,6 +20,17 @@ Design documents and implementation plans organized by category.
 
 - `00-principles.md` - Foundational concepts (never archive)
 
+## Code Quality Tools
+
+Automated analysis available via npm scripts:
+
+```bash
+npm run check:dead-code      # Find unused files/exports/deps (Knip)
+npm run check:duplicates     # Find copy-paste code (jscpd)
+```
+
+See **Plan 250** for details on the code quality agents.
+
 ## Numbering Convention
 
 - Plans are numbered in increments of 10 (10, 20, 30...) to allow inserting related plans

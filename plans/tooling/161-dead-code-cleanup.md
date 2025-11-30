@@ -4,6 +4,7 @@
 **Category**: tooling
 **Depends On**: 160 (coordinate consolidation should happen first)
 **Completed**: 2024-11
+**Superseded By**: 250 (code quality agents) - For ongoing dead code detection, use `npm run check:dead-code`
 
 ## Problem
 

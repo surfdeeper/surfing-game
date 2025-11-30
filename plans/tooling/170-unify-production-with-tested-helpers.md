@@ -73,6 +73,15 @@ Incrementally migrate `main.jsx` to import and use the extracted, tested helpers
 - API mismatch: adapt world state to helper signatures; update tests if APIs change intentionally.
 
 ## Follow-ups
-- Add CI check/workflow to flag exported-but-unused helpers.
+- ✅ Add CI check/workflow to flag exported-but-unused helpers → **See Plan 250** (`npm run check:dead-code`)
 - ✅ Event store adopted - game state now flows through `store.dispatch()` and reducer
 - Future: Enable event replay for debugging/testing deterministic game sessions
+
+## Related: Automated Detection (Plan 250)
+
+For ongoing detection of test/production drift, use the duplicate-code-analysis agent:
+```bash
+npm run check:duplicates         # Quick scan
+npm run check:duplicates:report  # HTML report
+```
+The agent also detects helpers used only in tests but not production.
