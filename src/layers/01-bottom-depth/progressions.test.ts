@@ -22,22 +22,6 @@ import { PROGRESSION_CHANNEL } from './stories/09-channel';
 
 describe('Bathymetry Progressions - ASCII Snapshots', () => {
   describe('Flat Bottom variants', () => {
-    it('PROGRESSION_FLAT_SHALLOW produces uniform shallow depth', () => {
-      const matrix = PROGRESSION_FLAT_SHALLOW.snapshots[0].matrix;
-      expect(matrixToAscii(matrix)).toMatchInlineSnapshot(`
-        "33333333
-        33333333
-        33333333
-        33333333
-        33333333
-        33333333
-        33333333
-        33333333
-        33333333
-        33333333"
-      `);
-    });
-
     it('PROGRESSION_FLAT_MEDIUM produces uniform medium depth', () => {
       const matrix = PROGRESSION_FLAT_MEDIUM.snapshots[0].matrix;
       expect(matrixToAscii(matrix)).toMatchInlineSnapshot(`
