@@ -19,14 +19,10 @@
     "paths": {
       "@src/*": ["src/*"],
       "@stories/*": ["stories/*"],
-      "@surf/core": ["packages/core/index.ts"],
+      "@surf/core": ["packages/core/src/index.ts"],
       "@surf/core/*": ["packages/core/*"],
-      "@surf/render": ["packages/render/index.ts"],
-      "@surf/render/*": ["packages/render/*"],
-      "@surf/app": ["packages/app/index.ts"],
-      "@surf/app/*": ["packages/app/*"],
-      "@surf/stories": ["packages/stories/index.ts"],
-      "@surf/stories/*": ["packages/stories/*"]
+      "@surf/render": ["packages/render/src/index.ts"],
+      "@surf/render/*": ["packages/render/*"]
     }
   },
   "include": ["src/**/*", "stories/**/*", "tests/**/*", "packages/**/*"],
