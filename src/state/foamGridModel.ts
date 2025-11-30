@@ -2,7 +2,7 @@
 // Grid-based foam simulation driven by energy transfer/breaking.
 // All layers are grids: energy → energy transfer → foam density.
 
-import { FIELD_HEIGHT, FIELD_WIDTH } from './energyFieldModel.js';
+import { FIELD_HEIGHT, FIELD_WIDTH } from '@layers/02-energy-field';
 
 export const FOAM_GRID_WIDTH = FIELD_WIDTH;
 export const FOAM_GRID_HEIGHT = FIELD_HEIGHT;

@@ -21,7 +21,7 @@ import {
   getHeightAt,
   drainEnergyAt,
   injectWavePulse,
-} from '../state/energyFieldModel.js';
+} from '@layers/02-energy-field';
 import { accumulateEnergyTransfer, updateFoamLayer } from '../state/foamGridModel.js';
 import {
   updatePlayerProxy,

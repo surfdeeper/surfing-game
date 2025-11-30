@@ -11,7 +11,7 @@
 import { createWave } from './waveModel.js';
 import { createInitialState as createSetLullState, DEFAULT_CONFIG } from './setLullModel.js';
 import { createInitialBackgroundState, BACKGROUND_CONFIG } from './backgroundWaveModel.js';
-import { createEnergyField, FIELD_HEIGHT, FIELD_WIDTH } from './energyFieldModel.js';
+import { createEnergyField, FIELD_HEIGHT, FIELD_WIDTH } from '@layers/02-energy-field';
 import { DEFAULT_BATHYMETRY } from '@layers/01-bathymetry';
 import { createFoamGrids } from './foamGridModel.js';
 

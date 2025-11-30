@@ -10,7 +10,7 @@ import {
   resetRowAccumulator,
   FIELD_WIDTH,
   FIELD_HEIGHT,
-} from './energyFieldModel.js';
+} from './model.js';
 
 describe('energyFieldModel', () => {
   beforeEach(() => {

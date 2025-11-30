@@ -4,14 +4,14 @@
  * These tests validate the progression data defined in energyFieldProgressions.ts
  */
 import { describe, it, expect } from 'vitest';
-import { updateEnergyField } from './energyFieldModel.js';
+import { updateEnergyField } from './model.js';
 import {
   matrixToField,
   fieldToMatrix,
   matrixTotalEnergy,
   matrixPeakRow,
   progressionToAscii,
-} from '../test-utils/index.js';
+} from '../../test-utils/index.js';
 
 // Import progressions from the dedicated progressions file
 import {
@@ -19,7 +19,7 @@ import {
   PROGRESSION_LOW_DAMPING,
   PROGRESSION_HIGH_DAMPING,
   PROGRESSION_WITH_DRAIN,
-} from './energyFieldProgressions';
+} from './progressions';
 
 // Standard initial state for legacy tests
 const INITIAL_PULSE = [
@@ -265,4 +265,4 @@ export {
   PROGRESSION_LOW_DAMPING,
   PROGRESSION_HIGH_DAMPING,
   PROGRESSION_WITH_DRAIN,
-} from './energyFieldProgressions';
+} from './progressions';

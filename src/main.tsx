@@ -36,9 +36,8 @@ import {
   drawPlayerProxy,
 } from './state/playerProxyModel.js';
 import { createAIState, drawAIKeyIndicator, AI_MODE } from './state/aiPlayerModel.js';
-import { updateEnergyField, injectWavePulse } from './state/energyFieldModel.js';
+import { updateEnergyField, injectWavePulse, renderEnergyField } from '@layers/02-energy-field';
 import { FOAM_GRID_HEIGHT, FOAM_GRID_WIDTH, sampleFoamGrid } from './state/foamGridModel.js';
-import { renderEnergyField } from './render/energyFieldRenderer.js';
 import { renderWaves } from './render/waveRenderer.js';
 import { KeyboardInput } from './input/keyboard.js';
 import { createDebugPanelManager } from './ui/debugPanelManager.js';

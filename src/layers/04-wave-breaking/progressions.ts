@@ -1,4 +1,4 @@
-import { defineProgression } from '../test-utils';
+import { defineProgression } from '../../test-utils';
 
 type Matrix = number[][];
 

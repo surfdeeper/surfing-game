@@ -4,8 +4,8 @@
  * Progression definitions for energy field visualization and testing.
  * These are separated from the .test.ts file to allow importing without vitest.
  */
-import { updateEnergyField, drainEnergyAt } from './energyFieldModel.js';
-import { defineProgression, captureWithEvents } from '../test-utils/index.js';
+import { updateEnergyField, drainEnergyAt } from './model.js';
+import { defineProgression, captureWithEvents } from '../../test-utils/index.js';
 
 // Small field dimensions for readable test output
 const SMALL_HEIGHT = 6;

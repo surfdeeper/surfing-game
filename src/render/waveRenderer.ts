@@ -9,7 +9,7 @@
  */
 
 import { getWaveProgress, WAVE_TYPE, WAVE_X_SAMPLES } from '../state/waveModel.js';
-import { getHeightAt } from '../state/energyFieldModel.js';
+import { getHeightAt } from '@layers/02-energy-field';
 import { progressToScreenY } from './coordinates.js';
 
 /**
