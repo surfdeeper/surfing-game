@@ -15,6 +15,6 @@ ladle-build/dist-stories/
 dist-stories
 
 # Cache directories
-.wireit/
+.nx/
 .npm/
 .config/
