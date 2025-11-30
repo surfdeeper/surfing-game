@@ -4,11 +4,11 @@ When waves break, energy is **released** from the energy field and deposited int
 energy transfer grid. This grid captures where energy is actively being dissipated.
 
 import { Filmstrip, renderMatrixToCanvas } from '../components/Filmstrip';
-import { energyToColor } from '../../src/render/colorScales';
+import { energyToColor } from '@src/render/colorScales';
 import {
   ENERGY_TRANSFER_STRIP_BREAKING,
   ENERGY_TRANSFER_STRIP_SPREAD,
-} from '../../src/render/energyTransferProgressions';
+} from '@src/render/energyTransferProgressions';
 
 export const renderEnergy = (snap, ctx, w, h) =>
   renderMatrixToCanvas(ctx, snap.matrix, energyToColor, w, h);

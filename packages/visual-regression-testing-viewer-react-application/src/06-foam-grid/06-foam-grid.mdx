@@ -6,7 +6,7 @@ state as bubbles form, spread, and decay.
 
 import { ProgressionPlayer } from '../components/ProgressionPlayer';
 import { Filmstrip, renderMatrixToCanvas } from '../components/Filmstrip';
-import { energyToColor } from '../../src/render/colorScales';
+import { energyToColor } from '@src/render/colorScales';
 import {
   FOAM_GRID_STRIP_ACCUMULATION,
   FOAM_GRID_STRIP_ADVECTION,
@@ -14,7 +14,7 @@ import {
   PROGRESSION_ACCUMULATION,
   PROGRESSION_ADVECTION,
   PROGRESSION_COMBINED,
-} from '../../src/render/foamGridProgressions';
+} from '@src/render/foamGridProgressions';
 
 export const renderEnergy = (snap, ctx, w, h) =>
   renderMatrixToCanvas(ctx, snap.matrix, energyToColor, w, h);

@@ -8,7 +8,7 @@ After wave breaking deposits foam, the foam disperses over time:
 
 import { ProgressionPlayer } from '../components/ProgressionPlayer';
 import { Filmstrip, renderMatrixToCanvas } from '../components/Filmstrip';
-import { energyToColor } from '../../src/render/colorScales';
+import { energyToColor } from '@src/render/colorScales';
 import {
   PROGRESSION_INTENSITY_DECAY,
   PROGRESSION_SPATIAL_SPREADING,
@@ -16,7 +16,7 @@ import {
   FOAM_DISPERSION_STRIP_DECAY,
   FOAM_DISPERSION_STRIP_SPATIAL,
   FOAM_DISPERSION_STRIP_COMBINED,
-} from '../../src/render/foamDispersionProgressions';
+} from '@src/render/foamDispersionProgressions';
 
 export const renderEnergy = (snap, ctx, w, h) =>
   renderMatrixToCanvas(ctx, snap.matrix, energyToColor, w, h);

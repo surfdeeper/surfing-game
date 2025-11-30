@@ -6,7 +6,7 @@ the crest to overtake and fall forward.
 
 import { ProgressionPlayer } from '../components/ProgressionPlayer';
 import { Filmstrip, renderMatrixToCanvas } from '../components/Filmstrip';
-import { energyToColor } from '../../src/render/colorScales';
+import { energyToColor } from '@src/render/colorScales';
 import {
   PROGRESSION_SPILLING,
   PROGRESSION_PLUNGING,
@@ -15,7 +15,7 @@ import {
   WAVE_BREAKING_STRIP_CRITERION,
   WAVE_BREAKING_STRIP_TYPES,
   WAVE_BREAKING_STRIP_ENERGY,
-} from '../../src/render/waveBreakingProgressions';
+} from '@src/render/waveBreakingProgressions';
 
 export const renderEnergy = (snap, ctx, w, h) =>
   renderMatrixToCanvas(ctx, snap.matrix, energyToColor, w, h);

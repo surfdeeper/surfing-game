@@ -6,7 +6,7 @@ row above them at a rate determined by `travelDuration`.
 
 import { ProgressionPlayer } from '../components/ProgressionPlayer';
 import { Filmstrip, renderMatrixToCanvas } from '../components/Filmstrip';
-import { energyToColor } from '../../src/render/colorScales';
+import { energyToColor } from '@src/render/colorScales';
 import {
   PROGRESSION_NO_DAMPING,
   PROGRESSION_LOW_DAMPING,
@@ -16,7 +16,7 @@ import {
   ENERGY_FIELD_STRIP_LOW_DAMPING,
   ENERGY_FIELD_STRIP_HIGH_DAMPING,
   ENERGY_FIELD_STRIP_WITH_DRAIN,
-} from '../../src/state/energyFieldProgressions';
+} from '@src/state/energyFieldProgressions';
 
 export const renderEnergy = (snap, ctx, w, h) =>
   renderMatrixToCanvas(ctx, snap.matrix, energyToColor, w, h);
