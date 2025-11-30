@@ -18,9 +18,13 @@
     "baseUrl": ".",
     "paths": {
       "@src/*": ["src/*"],
-      "@stories/*": ["stories/*"]
+      "@stories/*": ["stories/*"],
+      "@surf/core": ["packages/core/src/index.ts"],
+      "@surf/core/*": ["packages/core/*"],
+      "@surf/render": ["packages/render/src/index.ts"],
+      "@surf/render/*": ["packages/render/*"]
     }
   },
-  "include": ["src/**/*", "stories/**/*", "tests/**/*"],
+  "include": ["src/**/*", "stories/**/*", "tests/**/*", "packages/**/*"],
   "exclude": ["node_modules", "dist"]
 }
