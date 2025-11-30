@@ -162,6 +162,37 @@ Notes:
 - Prefer headless for CI/agents; headed is for local debugging.
 - **Use Docker commands for visual tests** to ensure baselines match CI (Linux).
 
+## Visual Regression CI Workflow
+
+When a PR fails visual regression tests in CI:
+
+### Option 1: Compare Locally First
+```bash
+git checkout main && npm run test:visual:docker
+git checkout your-branch && npm run test:visual:docker
+# Review diffs in tests/visual/results/
+```
+
+### Option 2: Accept Changes via GitHub Action
+```bash
+# Trigger auto-update workflow on your branch
+gh workflow run update-baselines.yml --ref your-branch
+
+# Wait for completion (creates a commit)
+gh run list --workflow=update-baselines.yml --limit=1
+
+# Pull the auto-generated baseline commit
+git pull
+
+# Review PNG diffs in GitHub PR "Files changed" tab
+```
+
+**Key Points:**
+- CI uses Linux/Docker for consistent screenshots - local macOS differs
+- `update-baselines.yml` auto-commits updated PNGs with `[skip ci]` tag
+- GitHub renders PNG diffs side-by-side in PR review
+- See [Plan 241](plans/tooling/241-github-actions-ci.md) and [Plan 242](plans/tooling/242-auto-commit-visual-baselines.md) for details
+
 ## Slash Commands
 
 Custom commands for common workflows (`.claude/commands/`):
@@ -173,7 +204,7 @@ Custom commands for common workflows (`.claude/commands/`):
 | `/plan` | Show roadmap status and active plans | `/plan` |
 | `/physics` | Load wave physics context | `/physics` |
 | `/test` | Run tests with context | `/test unit` or `/test foamDispersion.test.js` |
-| `/visual` | Visual regression workflows | `/visual run` or `/visual update` |
+| `/visual` | Visual regression workflows | `/visual run`, `/visual update`, `/visual ci-fix` |
 | `/visual-debug` | Interactive visual debugging with Chrome DevTools | `/visual-debug bathymetry` |
 | `/refactor` | Find duplicate code, discuss consolidation | `/refactor src/render/` |
 | `/worktree` | Manage git worktrees | `/worktree create shoaling` |
@@ -189,6 +220,8 @@ Skills are auto-applied by Claude based on context (`.claude/skills/`):
 | `wave-physics` | Editing simulation code, discussing wave behavior |
 | `plan-management` | Creating/organizing plans, documentation |
 | `testing` | Writing tests, editing `*.test.js` or `tests/` |
+| `visual-regression` | Editing `stories/`, `*.visual.spec.ts`, baseline screenshots |
+| `github-workflow` | PR, CI, GitHub Actions, worktrees, branch operations |
 | `visualization-algorithms` | Editing `src/render/`, graphics algorithms |
 | `react-ui` | JSX files, React component work |
 | `performance` | "slow", "fps", "lag", optimization discussions |
