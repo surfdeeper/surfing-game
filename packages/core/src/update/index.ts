@@ -23,12 +23,7 @@ import {
   injectWavePulse,
 } from '../state/energyFieldModel.js';
 import { accumulateEnergyTransfer, updateFoamLayer } from '../state/foamGridModel.js';
-import {
-  updatePlayerProxy,
-  createPlayerProxy,
-  PLAYER_PROXY_CONFIG,
-} from '../state/playerProxyModel.js';
-import { updateAIPlayer, createAIState } from '../state/aiPlayerModel.js';
+import { createPlayerProxy } from '../state/playerProxyModel.js';
 import { getDepth } from '../state/bathymetryModel.js';
 import { EventType } from '../state/eventStore.js';
 import {
@@ -367,57 +362,6 @@ export function updateFoamRowLifecycle(foamRows, gameTime) {
     row.opacity = Math.max(0, 1 - age / foamRowFadeTime);
     return row.opacity > 0;
   });
-}
-
-/**
- * Update player proxy
- */
-export function updatePlayer(playerProxy, aiState, aiMode, input, state) {
-  const { canvasWidth, canvasHeight, shoreHeight, swellSpeed, foamGrid } = state;
-  const { oceanTop, oceanBottom, shoreY } = getOceanBounds(canvasHeight, shoreHeight);
-  const travelDuration = calculateTravelDuration(oceanBottom, swellSpeed);
-  const scaledDelta = state.deltaTime;
-
-  let currentAiState = aiState;
-  let playerInput = input;
-  let lastAIInput = { left: false, right: false, up: false, down: false };
-
-  if (state.showAIPlayer) {
-    if (!currentAiState) {
-      currentAiState = createAIState(aiMode);
-    }
-    playerInput = updateAIPlayer(
-      playerProxy,
-      currentAiState,
-      state.world,
-      scaledDelta,
-      canvasWidth,
-      canvasHeight,
-      oceanTop,
-      oceanBottom,
-      travelDuration
-    );
-    lastAIInput = playerInput;
-  }
-
-  const updatedPlayer = updatePlayerProxy(
-    playerProxy,
-    scaledDelta,
-    playerInput,
-    foamGrid,
-    shoreY,
-    canvasWidth,
-    canvasHeight,
-    oceanTop,
-    oceanBottom,
-    PLAYER_PROXY_CONFIG
-  );
-
-  return {
-    playerProxy: updatedPlayer,
-    aiState: currentAiState,
-    lastAIInput,
-  };
 }
 
 /**

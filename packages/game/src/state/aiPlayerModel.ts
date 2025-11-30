@@ -1,8 +1,8 @@
 // AI Player Model
 // Active surfing AI - seeks foam at the peak triangle and rides along the diagonal
 
-import { sampleFoamIntensity } from './playerProxyModel.js';
-import { getPeakX } from './bathymetryModel.js';
+import { sampleFoamIntensity } from '@surf/core/src/state/playerProxyModel.js';
+import { getPeakX } from '@surf/core/src/state/bathymetryModel.js';
 
 // AI States
 export const AI_STATE = {

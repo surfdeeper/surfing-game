@@ -7,6 +7,7 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
+      '@surf/core': path.resolve(__dirname, './packages/core'),
       '@src': path.resolve(__dirname, './packages/core/src'),
       '@stories': path.resolve(
         __dirname,

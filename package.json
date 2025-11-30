@@ -13,7 +13,7 @@
     "build": "npm run typecheck && vite build",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:smoke": "playwright test tests/smoke.spec.js",
+    "test:smoke": "playwright test smoke.spec.js",
     "test:unit": "vitest run",
     "test:perf": "vitest run --config vitest.perf.config.ts",
     "test:visual:game": "playwright test --config=playwright.visual.config.js packages/visual-regression-testing-viewer-react-application/src/",

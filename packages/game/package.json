@@ -1,0 +1,15 @@
+{
+  "name": "@surf/game",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/main.tsx",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "@surf/core": "*"
+  }
+}

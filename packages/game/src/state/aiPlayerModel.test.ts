@@ -2,8 +2,8 @@
 
 import { describe, it, expect } from 'vitest';
 import { createAIState, updateAIPlayer, AI_STATE, AI_MODE } from './aiPlayerModel.js';
-import { DEFAULT_BATHYMETRY } from './bathymetryModel.js';
-import { createFoamGrids } from './foamGridModel.js';
+import { DEFAULT_BATHYMETRY } from '@surf/core/src/state/bathymetryModel.js';
+import { createFoamGrids } from '@surf/core/src/state/foamGridModel.js';
 
 // Use real bathymetry config - same as the game
 function createMockWorld(overrides = {}) {

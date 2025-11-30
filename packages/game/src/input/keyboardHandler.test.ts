@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { createKeyboardHandler } from './keyboardHandler.js';
-import { SETTINGS_SCHEMA } from '../state/settingsModel.js';
+import { SETTINGS_SCHEMA } from '@surf/core/src/state/settingsModel.js';
 
 describe('keyboardHandler', () => {
   let cleanup;

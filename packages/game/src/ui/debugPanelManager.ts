@@ -8,7 +8,7 @@
 import { createRoot } from 'react-dom/client';
 import { createElement } from 'react';
 import { DebugPanel } from './DebugPanel.jsx';
-import { getWaveProgress } from '../state/waveModel.js';
+import { getWaveProgress } from '@surf/core/src/state/waveModel.js';
 
 /**
  * Create debug panel manager

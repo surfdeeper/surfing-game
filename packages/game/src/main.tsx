@@ -15,34 +15,45 @@ declare global {
 // - Position is calculated: progress = (currentTime - spawnTime) / travelDuration
 // - Coordinates mapped: progress (0-1) → screen pixels at render time
 
-import { WAVE_TYPE } from './state/waveModel.js';
-import { getDepth, createBathymetryCacheManager } from './layers/01-bottom-depth/index.js';
-import { getOceanBounds, calculateTravelDuration } from './render/coordinates.js';
-import { saveGameState, loadGameState, shouldAutoSave } from './state/gamePersistence.js';
-import './state/backgroundWaveModel.js'; // Needed by eventStore
+import { WAVE_TYPE } from '@surf/core/src/state/waveModel.js';
+import {
+  getDepth,
+  createBathymetryCacheManager,
+} from '@surf/core/src/layers/01-bottom-depth/index.js';
+import { getOceanBounds, calculateTravelDuration } from '@surf/core/src/render/coordinates.js';
+import {
+  saveGameState,
+  loadGameState,
+  shouldAutoSave,
+} from '@surf/core/src/state/gamePersistence.js';
+import '@surf/core/src/state/backgroundWaveModel.js'; // Needed by eventStore
 import {
   updateWaveSpawning,
   updateWaves,
   updateFoamGridsFromWaves,
-  updatePlayer,
-} from './update/index.js';
-import { EventType, getStore } from './state/eventStore.js';
-import { loadSettings, saveSettings } from './state/settingsModel.js';
-import { createFpsTracker } from './util/fpsTracker.js';
+} from '@surf/core/src/update/index.js';
+import { updatePlayer } from './update/playerUpdate.js';
+import { EventType, getStore } from '@surf/core/src/state/eventStore.js';
+import { loadSettings, saveSettings } from '@surf/core/src/state/settingsModel.js';
+import { createFpsTracker } from '@surf/core/src/util/fpsTracker.js';
 import { createKeyboardHandler } from './input/keyboardHandler.js';
 import {
   PLAYER_PROXY_CONFIG,
   createPlayerProxy,
   drawPlayerProxy,
-} from './state/playerProxyModel.js';
+} from '@surf/core/src/state/playerProxyModel.js';
 import { createAIState, drawAIKeyIndicator, AI_MODE } from './state/aiPlayerModel.js';
 import {
   updateEnergyField,
   injectWavePulse,
   renderEnergyField,
-} from './layers/03-energy-field/index.js';
-import { FOAM_GRID_HEIGHT, FOAM_GRID_WIDTH, sampleFoamGrid } from './state/foamGridModel.js';
-import { renderWaves } from './render/waveRenderer.js';
+} from '@surf/core/src/layers/03-energy-field/index.js';
+import {
+  FOAM_GRID_HEIGHT,
+  FOAM_GRID_WIDTH,
+  sampleFoamGrid,
+} from '@surf/core/src/state/foamGridModel.js';
+import { renderWaves } from '@surf/core/src/render/waveRenderer.js';
 import { KeyboardInput } from './input/keyboard.js';
 import { createDebugPanelManager } from './ui/debugPanelManager.js';
 import {
@@ -50,8 +61,8 @@ import {
   renderMultiContourOptionAFromGrid,
   renderMultiContourOptionBFromGrid,
   renderMultiContourOptionCFromGrid,
-} from './render/marchingSquares.js';
-import { renderFoamContours } from './render/foamConfig.js';
+} from '@surf/core/src/render/marchingSquares.js';
+import { renderFoamContours } from '@surf/core/src/render/foamConfig.js';
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
 const ctx = canvas.getContext('2d');

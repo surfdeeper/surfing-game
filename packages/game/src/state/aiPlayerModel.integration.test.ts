@@ -4,10 +4,10 @@
 import { describe, it, expect } from 'vitest';
 import { createAIState, updateAIPlayer, AI_MODE, AI_STATE } from './aiPlayerModel.js';
 // Note: AI_STATE.SEEKING replaces PADDLE_OUT, AI starts by actively looking for foam
-import { createPlayerProxy, updatePlayerProxy } from './playerProxyModel.js';
-import { DEFAULT_BATHYMETRY } from './bathymetryModel.js';
-import { getOceanBounds, calculateTravelDuration } from '../render/coordinates.js';
-import { createFoamGrids } from './foamGridModel.js';
+import { createPlayerProxy, updatePlayerProxy } from '@surf/core/src/state/playerProxyModel.js';
+import { DEFAULT_BATHYMETRY } from '@surf/core/src/state/bathymetryModel.js';
+import { getOceanBounds, calculateTravelDuration } from '@surf/core/src/render/coordinates.js';
+import { createFoamGrids } from '@surf/core/src/state/foamGridModel.js';
 
 // Simulate real game dimensions
 const CANVAS_WIDTH = 800;

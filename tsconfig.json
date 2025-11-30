@@ -21,8 +21,8 @@
       "@stories/*": ["packages/visual-regression-testing-viewer-react-application/src/*"],
       "@surf/core": ["packages/core/src/index.ts"],
       "@surf/core/*": ["packages/core/*"],
-      "@surf/render": ["packages/render/src/index.ts"],
-      "@surf/render/*": ["packages/render/*"]
+      "@surf/game": ["packages/game/src/main.tsx"],
+      "@surf/game/*": ["packages/game/*"]
     }
   },
   "include": ["stories/**/*", "tests/**/*", "packages/**/*"],

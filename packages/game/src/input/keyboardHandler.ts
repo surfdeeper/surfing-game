@@ -7,7 +7,7 @@
  * - AI mode cycling
  */
 
-import { getSettingForHotkey, SETTINGS_SCHEMA } from '../state/settingsModel.js';
+import { getSettingForHotkey, SETTINGS_SCHEMA } from '@surf/core/src/state/settingsModel.js';
 
 // Get time scales from schema (default: [1, 2, 4, 8])
 const TIME_SCALES = SETTINGS_SCHEMA.timeScale?.options || [1, 2, 4, 8];

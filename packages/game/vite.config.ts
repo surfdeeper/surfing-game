@@ -4,10 +4,10 @@ import path from 'path';
 
 export default defineConfig({
   plugins: [react()],
-  root: path.resolve(__dirname, './packages/game'),
+  root: __dirname,
   resolve: {
     alias: {
-      '@surf/core': path.resolve(__dirname, './packages/core'),
+      '@surf/core': path.resolve(__dirname, '../core'),
     },
   },
 });
