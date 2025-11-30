@@ -18,7 +18,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Generate baselines in Docker
-        run: docker compose run --rm visual-tests -- --update-snapshots
+        run: docker compose run --rm update-snapshots
 
       - name: Validate baselines
         run: |
