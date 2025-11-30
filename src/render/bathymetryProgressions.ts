@@ -159,27 +159,3 @@ export const BATHYMETRY_PROGRESSIONS = {
   channel: PROGRESSION_CHANNEL,
   flat: PROGRESSION_FLAT,
 };
-
-// Visual test strips - colocated with the data they render
-// Each strip includes: snapshots, testId, pageId (for visual regression tests)
-
-export const BATHYMETRY_STRIP_BASIC = {
-  testId: 'strip-bathymetry-basic',
-  pageId: '01-bathymetry',
-  snapshots: [PROGRESSION_LINEAR_SLOPE, PROGRESSION_STEEP_SHORE, PROGRESSION_FLAT].map((prog) => ({
-    ...prog.snapshots[0],
-    label: prog.metadata.label,
-  })),
-};
-
-export const BATHYMETRY_STRIP_FEATURES = {
-  testId: 'strip-bathymetry-features',
-  pageId: '01-bathymetry',
-  snapshots: [PROGRESSION_SANDBAR, PROGRESSION_REEF, PROGRESSION_CHANNEL].map((prog) => ({
-    ...prog.snapshots[0],
-    label: prog.metadata.label,
-  })),
-};
-
-// All strips for this layer (used by visual test discovery)
-export const BATHYMETRY_STRIPS = [BATHYMETRY_STRIP_BASIC, BATHYMETRY_STRIP_FEATURES];

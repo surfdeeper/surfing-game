@@ -3,6 +3,7 @@
 // Uses caching for performance - builds once, blits each frame
 
 import { getDepth } from '../state/bathymetryModel.js';
+import { viridisToRgb } from './colorScales';
 
 /**
  * Build bathymetry heat map to an offscreen canvas
@@ -45,21 +46,20 @@ export function buildBathymetryCache(
 }
 
 /**
- * Convert depth value to RGB color
- * Shallow = sand/tan, Deep = dark brown
+ * Convert depth value to RGB color using Viridis perceptually uniform scale
+ * Shallow = yellow (warm), Deep = purple (cool)
  * @param {number} depth - Water depth in meters
  * @param {number} colorScaleDepth - Depth at which color saturates
  * @returns {{r: number, g: number, b: number}} RGB color values
  */
-export function depthToColor(depth, colorScaleDepth = 15) {
+export function depthToColor(
+  depth: number,
+  colorScaleDepth = 15
+): { r: number; g: number; b: number } {
   // Use sqrt for non-linear scaling - shows shallow areas more distinctly
   const depthRatio = Math.min(1, Math.sqrt(depth / colorScaleDepth));
-  // Sand/tan for shallow (depthRatio near 0), dark brown for deep (depthRatio near 1)
-  return {
-    r: Math.floor(220 - 160 * depthRatio), // 220 -> 60
-    g: Math.floor(180 - 140 * depthRatio), // 180 -> 40
-    b: Math.floor(100 - 80 * depthRatio), // 100 -> 20
-  };
+  // Invert: shallow (low depth) = yellow, deep (high depth) = purple
+  return viridisToRgb(1 - depthRatio);
 }
 
 /**
