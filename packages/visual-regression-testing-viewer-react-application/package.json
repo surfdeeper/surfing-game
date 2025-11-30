@@ -1,0 +1,15 @@
+{
+  "name": "@surf/visual-regression-testing-viewer-react-application",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/main.tsx",
+  "scripts": {
+    "dev": "vite --config vite.config.ts",
+    "build": "vite build --config vite.config.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@surf/core": "*"
+  }
+}

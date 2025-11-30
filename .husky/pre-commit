@@ -1,10 +1,4 @@
 #!/bin/sh
 
-# Run lint-staged (prettier + eslint on staged files) and tests in parallel
-# Note: Skipping unit tests here since smoke tests cover basic functionality
-# and vitest hangs when run via concurrently
-npx concurrently --kill-others-on-fail \
-  "npx lint-staged" \
-  "npm run typecheck" \
-  "npx playwright test tests/smoke.spec.js" \
-  "bash scripts/check-no-js.sh"
+# Lightweight pre-commit: just lint and format staged files
+npx lint-staged

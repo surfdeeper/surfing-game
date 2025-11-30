@@ -6,17 +6,15 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      '@layers': path.resolve(__dirname, './src/layers'),
-      '@src': path.resolve(__dirname, './src'),
-      '@stories': path.resolve(__dirname, './stories'),
+      '@src': path.resolve(__dirname, './packages/core/src'),
     },
   },
   test: {
-    // Only include tests in src/ directory
-    include: ['src/**/*.test.{ts,tsx}'],
+    // Only include tests in packages/core/src/ directory
+    include: ['packages/core/src/**/*.test.{ts,tsx}'],
     // Exclude Playwright tests and performance tests
-    exclude: ['tests/**', 'node_modules/**', 'src/**/*.perf.test.{ts,tsx}'],
+    exclude: ['tests/**', 'node_modules/**', 'packages/core/src/**/*.perf.test.{ts,tsx}'],
     environment: 'jsdom',
-    setupFiles: ['./src/test-setup.ts'],
+    setupFiles: ['./packages/core/src/test-setup.ts'],
   },
 });

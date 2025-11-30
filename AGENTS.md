@@ -29,6 +29,9 @@ These commands are pre-approved and won't prompt for confirmation:
 - `npm run reset:visual`
 - `npx vitest run <specific-file>`
 - `npx playwright test <specific-file>`
+- `npm run test:visual:docker`
+- `npm run test:visual:docker:update`
+- `npm run test:visual:docker:build`
 
 Prefer these simple commands over complex chained commands that require permission.
 
@@ -147,11 +150,17 @@ npm run test:visual:update:headless # Update baseline snapshots (headless)
 npm run test:visual:update:headed   # Update baseline snapshots (headed)
 npm run reset:visual          # Clear visual results/report
 npm run reset:visual:all      # Also clear baseline snapshots
+
+# Docker-based visual tests (Linux screenshots, matches CI)
+npm run test:visual:docker         # Run visual tests in Docker
+npm run test:visual:docker:update  # Update baselines in Docker
+npm run test:visual:docker:build   # Rebuild Docker image
 ```
 
 Notes:
 - Do not use deprecated or ambiguous commands (e.g., `test:visual`).
 - Prefer headless for CI/agents; headed is for local debugging.
+- **Use Docker commands for visual tests** to ensure baselines match CI (Linux).
 
 ## Slash Commands
 

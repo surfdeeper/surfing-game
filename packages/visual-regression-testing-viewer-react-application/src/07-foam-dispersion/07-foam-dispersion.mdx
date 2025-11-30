@@ -1,0 +1,120 @@
+# 6. Foam Dispersion
+
+After wave breaking deposits foam, the foam disperses over time:
+- Intensity fades as bubbles pop
+- Foam spreads outward from the breaking point
+- Longshore currents push foam sideways
+- Eventually dissipates back to clear water
+
+import { ProgressionPlayer } from '../components/ProgressionPlayer';
+import { Filmstrip, renderMatrixToCanvas } from '../components/Filmstrip';
+import { energyToColor } from '@src/render/colorScales';
+import {
+  PROGRESSION_INTENSITY_DECAY,
+  PROGRESSION_SPATIAL_SPREADING,
+  PROGRESSION_DECAY_AND_SPREAD,
+  FOAM_DISPERSION_STRIP_DECAY,
+  FOAM_DISPERSION_STRIP_SPATIAL,
+  FOAM_DISPERSION_STRIP_COMBINED,
+} from '@src/render/foamDispersionProgressions';
+
+export const renderEnergy = (snap, ctx, w, h) =>
+  renderMatrixToCanvas(ctx, snap.matrix, energyToColor, w, h);
+
+<section id="decay-rate">
+
+## Decay Rate
+
+Foam intensity decays exponentially as bubbles pop:
+
+```
+foam(t) = foam(0) * exp(-k * t)
+```
+
+Where `k` is the decay coefficient. Higher values mean faster fade.
+
+<Filmstrip snapshots={FOAM_DISPERSION_STRIP_DECAY.snapshots} renderSnapshot={renderEnergy} testId={FOAM_DISPERSION_STRIP_DECAY.testId} />
+
+**Fast Decay** (k = 1.5): Foam nearly gone within 2 seconds. Appropriate for
+thin whitewash in shallow water where bubbles pop quickly.
+
+**Slow Decay** (k = 0.2): Foam persists for 5+ seconds. Better for thick foam
+deposits from heavy breaking where bubbles are larger and more stable.
+
+<ProgressionPlayer snapshots={PROGRESSION_INTENSITY_DECAY.snapshots} />
+
+</section>
+
+<section id="spatial-spreading">
+
+## Spatial Spreading
+
+Foam doesn't just fade - it also spreads outward via diffusion. The diffusion
+equation governs this behavior:
+
+```
+∂u/∂t = D * ∇²u
+```
+
+Where:
+- `u` = foam density
+- `D` = diffusion coefficient
+- `∇²` = Laplacian operator
+
+<ProgressionPlayer snapshots={PROGRESSION_SPATIAL_SPREADING.snapshots} />
+
+<Filmstrip snapshots={FOAM_DISPERSION_STRIP_SPATIAL.snapshots} renderSnapshot={renderEnergy} testId={FOAM_DISPERSION_STRIP_SPATIAL.testId} />
+
+**Spreading**: A concentrated foam point expands into a growing circle. The peak
+intensity drops as foam spreads over a larger area (conservation of mass).
+
+**Current Drift**: Longshore currents push foam parallel to the beach. The foam
+patch drifts sideways while also fading.
+
+</section>
+
+<section id="combined-effects">
+
+## Combined Effects
+
+Real foam behavior combines decay and spreading simultaneously:
+
+<ProgressionPlayer snapshots={PROGRESSION_DECAY_AND_SPREAD.snapshots} />
+
+<Filmstrip snapshots={FOAM_DISPERSION_STRIP_COMBINED.snapshots} renderSnapshot={renderEnergy} testId={FOAM_DISPERSION_STRIP_COMBINED.testId} />
+
+**What to look for:**
+- t=0s: Concentrated foam deposit from wave break
+- t=1-2s: Spreading outward while intensity drops
+- t=3-4s: Diffuse halo remains as bubbles continue popping
+- t=5s: Nearly dissipated - clear water returns
+
+</section>
+
+<section id="physics-parameters">
+
+## Physics Parameters
+
+The foam system is controlled by these coefficients:
+
+| Parameter | Range | Effect |
+|-----------|-------|--------|
+| `decayRate` | 0.1 - 2.0 | How fast bubbles pop (higher = faster fade) |
+| `diffusionRate` | 0.1 - 0.5 | How fast foam spreads (higher = faster spread) |
+| `currentSpeed` | 0 - 3.0 | Longshore drift velocity (cells/second) |
+
+### Tuning Guide
+
+**Beach break** (lots of foam, slow dissipation):
+- decayRate: 0.2
+- diffusionRate: 0.3
+
+**Point break** (clean waves, quick cleanup):
+- decayRate: 0.8
+- diffusionRate: 0.2
+
+**Reef break** (intense but localized):
+- decayRate: 0.5
+- diffusionRate: 0.1
+
+</section>
