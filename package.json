@@ -4,31 +4,36 @@
   "description": "",
   "main": "index.js",
   "type": "module",
+  "packageManager": "npm@10.9.3",
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "npm run typecheck && vite build",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:smoke": "wireit",
-    "test:unit": "wireit",
+    "test:smoke": "playwright test tests/smoke.spec.js",
+    "test:unit": "vitest run",
     "test:perf": "vitest run --config vitest.perf.config.ts",
-    "test:visual:game": "wireit",
-    "test:visual:viewer": "wireit",
-    "test:all": "wireit",
-    "test:visual:game:force": "playwright test --config=playwright.visual.config.js stories/",
+    "test:visual:game": "playwright test --config=playwright.visual.config.js packages/visual-regression-testing-viewer-react-application/src/",
+    "test:visual:viewer": "playwright test --config=playwright.stories.config.js",
+    "test:all": "turbo run test:smoke test:unit test:visual:game test:visual:viewer",
+    "test:affected": "turbo run test --filter=...[origin/master]",
+    "test:visual:game:force": "playwright test --config=playwright.visual.config.js packages/visual-regression-testing-viewer-react-application/src/",
     "test:visual:viewer:force": "playwright test --config=playwright.stories.config.js",
-    "lint": "eslint src/",
-    "lint:fix": "eslint src/ --fix",
+    "lint": "eslint packages/",
+    "lint:fix": "eslint packages/ --fix",
     "lint:md": "markdownlint '**/*.{md,mdx}' --ignore node_modules",
     "lint:md:fix": "markdownlint '**/*.{md,mdx}' --ignore node_modules --fix",
-    "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css}\"",
-    "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,css}\"",
+    "format": "prettier --write \"packages/**/*.{ts,tsx,js,jsx,json,css}\"",
+    "format:check": "prettier --check \"packages/**/*.{ts,tsx,js,jsx,json,css}\"",
     "test:e2e": "playwright test",
     "check:no-js": "bash scripts/check-no-js.sh",
     "check:dead-code": "npx knip",
     "check:dead-code:json": "npx knip --reporter json",
-    "check:duplicates": "npx jscpd src/ --min-lines 5 --min-tokens 50",
-    "check:duplicates:report": "npx jscpd src/ --reporters html,console --output ./jscpd-report --min-lines 5",
+    "check:duplicates": "npx jscpd packages/ --min-lines 5 --min-tokens 50",
+    "check:duplicates:report": "npx jscpd packages/ --reporters html,console --output ./jscpd-report --min-lines 5",
     "stories": "vite --config vite.stories.config.ts",
     "stories:build": "vite build --config vite.stories.config.ts",
     "test:stories": "npm run test:visual:viewer:force",
@@ -39,70 +44,9 @@
     "test:visual:docker": "docker-compose run --rm visual-tests",
     "test:visual:docker:update": "docker-compose run --rm update-snapshots",
     "test:visual:docker:build": "docker-compose build",
-    "reset:visual": "bash -c 'mkdir -p tests/visual/results tests/visual/report && rm -rf tests/visual/results/* tests/visual/report/* test-results/.last-run.json 2>/dev/null; true'",
-    "reset:visual:all": "bash -c 'mkdir -p tests/visual/results tests/visual/report && rm -rf tests/visual/results/* tests/visual/report/* tests/visual/snapshots test-results/.last-run.json 2>/dev/null; find stories -name \"*.visual.spec.ts\" -execdir rm -f ./*.png \\; ; true'",
+    "reset:visual": "bash -c 'mkdir -p tests/visual/results tests/visual/report && rm -rf tests/visual/results/* tests/visual/report/* test-results/.last-run.json 2>/dev/null || true'",
+    "reset:visual:all": "bash -c 'mkdir -p tests/visual/results tests/visual/report && rm -rf tests/visual/results/* tests/visual/report/* tests/visual/snapshots test-results/.last-run.json 2>/dev/null || true && find packages/visual-regression-testing-viewer-react-application/src -name \"*.visual.spec.ts\" -execdir rm -f ./*.png \\; 2>/dev/null || true'",
     "prepare": "husky"
-  },
-  "wireit": {
-    "test:smoke": {
-      "command": "playwright test tests/smoke.spec.js",
-      "files": [
-        "src/**/*.ts",
-        "src/**/*.tsx",
-        "index.html",
-        "tests/smoke.spec.js"
-      ],
-      "output": []
-    },
-    "test:unit": {
-      "command": "vitest run",
-      "dependencies": [
-        "test:smoke"
-      ],
-      "files": [
-        "src/**/*.ts",
-        "src/**/*.tsx",
-        "vitest.config.ts"
-      ],
-      "output": []
-    },
-    "test:visual:game": {
-      "command": "playwright test --config=playwright.visual.config.js stories/",
-      "dependencies": [
-        "test:unit"
-      ],
-      "files": [
-        "src/**/*.ts",
-        "stories/components/**/*.tsx",
-        "stories/**/*.visual.spec.ts",
-        "playwright.visual.config.js"
-      ],
-      "output": [
-        "stories/**/*.png"
-      ]
-    },
-    "test:visual:viewer": {
-      "command": "playwright test --config=playwright.stories.config.js",
-      "dependencies": [
-        "test:smoke"
-      ],
-      "files": [
-        "stories/App.tsx",
-        "stories/main.tsx",
-        "stories/ThemeContext.tsx",
-        "stories/index.html",
-        "tests/stories/**/*.spec.js",
-        "playwright.stories.config.js"
-      ],
-      "output": []
-    },
-    "test:all": {
-      "dependencies": [
-        "test:unit",
-        "test:visual:game",
-        "test:visual:viewer"
-      ]
-    }
   },
   "keywords": [],
   "author": "",
@@ -132,10 +76,10 @@
     "pngjs": "^7.0.0",
     "prettier": "^3.7.2",
     "tsx": "^4.20.6",
+    "turbo": "^2.6.1",
     "typescript": "^5.9.3",
     "vite": "^7.2.4",
-    "vitest": "^4.0.14",
-    "wireit": "^0.14.12"
+    "vitest": "^4.0.14"
   },
   "dependencies": {
     "@mdx-js/react": "^3.1.1",

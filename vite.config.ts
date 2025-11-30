@@ -6,8 +6,11 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      '@src': path.resolve(__dirname, './src'),
-      '@stories': path.resolve(__dirname, './stories'),
+      '@src': path.resolve(__dirname, './packages/core/src'),
+      '@stories': path.resolve(
+        __dirname,
+        './packages/visual-regression-testing-viewer-react-application/src'
+      ),
     },
   },
 });
