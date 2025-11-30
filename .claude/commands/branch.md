@@ -17,10 +17,10 @@ $ARGUMENTS - The branch name (without "feature/" prefix)
 
 ```
 mcp__github__create_branch(
-  owner: "joshribakoff",
+  owner: "surfdeeper",
   repo: "surfing-game",
   branch: "feature/<name>",
-  from_branch: "main"
+  from_branch: "master"
 )
 ```
 
@@ -31,4 +31,4 @@ mcp__github__create_branch(
 
 - Branch is created on GitHub first, then checked out locally
 - Use `/worktree create <name>` instead if you want a separate working directory
-- The branch will be based on the latest `main`
+- The branch will be based on the latest `master`
