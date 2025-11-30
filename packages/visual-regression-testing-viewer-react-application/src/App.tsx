@@ -8,6 +8,7 @@ import {
   useTheme,
 } from './ThemeContext';
 import { Filmstrip, renderMatrixToCanvas } from './components/Filmstrip';
+import { ProgressionPlayer } from './components/ProgressionPlayer';
 import { energyToColor } from '@src/render/colorScales';
 import type { Story } from '@src/test-utils';
 
@@ -87,6 +88,7 @@ function StoryRenderer({ story }: { story: Story | undefined }) {
     <div>
       <h1 style={{ color: colors.textBright, marginBottom: '0.5em' }}>{story.title}</h1>
       <p style={{ color: colors.text, marginBottom: '1em' }}>{story.prose}</p>
+      <ProgressionPlayer snapshots={story.progression.snapshots} autoPlay={true} loop={true} />
       <Filmstrip
         snapshots={story.progression.snapshots}
         renderSnapshot={renderSnapshot}
