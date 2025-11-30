@@ -70,6 +70,8 @@ These improve developer experience and UI responsiveness.
 
 | Plan | Date | Notes |
 |------|------|-------|
+| 230-wireit-task-orchestration | 2025-11-29 | Wireit for test caching and dependency ordering |
+| 210-typescript-migration | 2025-11-29 | Full TS migration, Prettier, Husky, lint-staged |
 | 124-bathymetry | 2025-11-27 | Ocean floor depth, depth-based breaking, decoupled foam |
 | 125-unified-wave-array | 2025-11-27 | Single wave array with type property |
 | 123-time-based-wave-model | Done | Wave position derived from time |
