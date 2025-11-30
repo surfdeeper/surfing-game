@@ -36,8 +36,11 @@
     "test:visual:headed": "npm run reset:visual && playwright test --config=playwright.visual.config.js --headed",
     "test:visual:update:headless": "npm run reset:visual:all && playwright test --config=playwright.visual.config.js --update-snapshots",
     "test:visual:update:headed": "npm run reset:visual:all && playwright test --config=playwright.visual.config.js --update-snapshots --headed",
-    "reset:visual": "bash -c 'rm -rf tests/visual/results tests/visual/report test-results/.last-run.json && mkdir -p tests/visual/results tests/visual/report'",
-    "reset:visual:all": "bash -c 'rm -rf tests/visual/results tests/visual/report tests/visual/snapshots test-results/.last-run.json && find stories -name \"*.visual.spec.ts\" -execdir rm -f ./*.png \\; && mkdir -p tests/visual/results tests/visual/report'",
+    "test:visual:docker": "docker-compose run --rm visual-tests",
+    "test:visual:docker:update": "docker-compose run --rm update-snapshots",
+    "test:visual:docker:build": "docker-compose build",
+    "reset:visual": "bash -c 'mkdir -p tests/visual/results tests/visual/report && rm -rf tests/visual/results/* tests/visual/report/* test-results/.last-run.json 2>/dev/null; true'",
+    "reset:visual:all": "bash -c 'mkdir -p tests/visual/results tests/visual/report && rm -rf tests/visual/results/* tests/visual/report/* tests/visual/snapshots test-results/.last-run.json 2>/dev/null; find stories -name \"*.visual.spec.ts\" -execdir rm -f ./*.png \\; ; true'",
     "prepare": "husky"
   },
   "wireit": {
