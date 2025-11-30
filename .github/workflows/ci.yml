@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [master]
+    branches: [master, feature/*]  # feature/* for testing, remove after merge
   pull_request:
     branches: [master]
 
