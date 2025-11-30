@@ -1,6 +1,6 @@
 # Plan 241: GitHub Actions CI Pipeline
 
-**Status**: Proposed
+**Status**: In Progress
 **Category**: tooling
 **Depends On**: 240 (Agentic Workflow Architecture)
 
