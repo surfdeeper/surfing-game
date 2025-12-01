@@ -10,7 +10,9 @@
   ],
   "scripts": {
     "dev": "vite",
+    "dev:3d": "vite --config vite.game3d.config.ts",
     "build": "npm run typecheck && vite build",
+    "build:3d": "vite build --config vite.game3d.config.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:smoke": "playwright test smoke.spec.js",

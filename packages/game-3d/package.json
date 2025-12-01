@@ -1,0 +1,18 @@
+{
+  "name": "@surf/game-3d",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/main.ts",
+  "scripts": {
+    "dev": "vite --config ../../vite.game3d.config.ts",
+    "build": "vite build --config ../../vite.game3d.config.ts"
+  },
+  "dependencies": {
+    "@surf/core": "*",
+    "three": "^0.170.0"
+  },
+  "devDependencies": {
+    "@types/three": "^0.170.0"
+  }
+}

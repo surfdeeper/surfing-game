@@ -22,7 +22,9 @@
       "@surf/core": ["packages/core/src/index.ts"],
       "@surf/core/*": ["packages/core/*"],
       "@surf/game": ["packages/game/src/main.tsx"],
-      "@surf/game/*": ["packages/game/*"]
+      "@surf/game/*": ["packages/game/*"],
+      "@surf/game-3d": ["packages/game-3d/src/main.ts"],
+      "@surf/game-3d/*": ["packages/game-3d/*"]
     }
   },
   "include": ["stories/**/*", "tests/**/*", "packages/**/*"],
