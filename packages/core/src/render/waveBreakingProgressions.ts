@@ -41,7 +41,7 @@ export const PROGRESSION_BREAKING_CRITERION = defineProgression({
     }
     return matrix;
   })(),
-  captureTimes: [0],
+  captureTimes: [0, 1, 2, 3, 4, 5],
   updateFn: () => {},
   metadata: { label: 'H/d Threshold' },
 });

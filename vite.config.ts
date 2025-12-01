@@ -4,13 +4,10 @@ import path from 'path';
 
 export default defineConfig({
   plugins: [react()],
+  root: path.resolve(__dirname, './packages/game'),
   resolve: {
     alias: {
-      '@src': path.resolve(__dirname, './packages/core/src'),
-      '@stories': path.resolve(
-        __dirname,
-        './packages/visual-regression-testing-viewer-react-application/src'
-      ),
+      '@surf/core': path.resolve(__dirname, './packages/core'),
     },
   },
 });

@@ -1,8 +1,7 @@
 import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
-  testDir: './tests',
-  testIgnore: ['**/stories/**'],
+  testDir: './packages/game/tests/e2e',
   use: {
     baseURL: 'http://localhost:5173',
   },

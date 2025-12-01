@@ -2,30 +2,34 @@
 
 **Status**: Proposed
 **Category**: testing
-**Depends On**: 110 (Testing Strategy), 130 (Testing Expansion), 141 (Energy-Driven Waves/Foam)
+**Depends On**: 110 (Testing Strategy), 130 (Testing Expansion), 141 (Energy-Driven Waves/Foam), **155 (Layer Architecture Correction)**
 
 ## Problem
 
-Our 8-layer visual testing pipeline validates each layer in isolation:
+Our 9-layer visual testing pipeline validates each layer in isolation:
 
 ```
-Layer 1: Bathymetry      ← tested alone
-Layer 2: Energy Field    ← tested alone
-Layer 3: Shoaling        ← tested alone
-Layer 4: Wave Breaking   ← tested alone
-Layer 5: Energy Transfer ← tested alone
-Layer 6: Foam Grid       ← tested alone
-Layer 7: Foam Dispersion ← tested alone
-Layer 8: Foam Contours   ← tested alone
+Layer 1: Bottom Depth     ← tested alone
+Layer 2: Bottom Damping   ← tested alone (derives from depth)
+Layer 3: Energy Field     ← tested alone
+Layer 4: Shoaling         ← tested alone
+Layer 5: Wave Breaking    ← tested alone
+Layer 6: Energy Transfer  ← tested alone
+Layer 7: Foam Grid        ← tested alone
+Layer 8: Foam Dispersion  ← tested alone
+Layer 9: Foam Contours    ← tested alone
 ```
 
 This is analogous to unit testing - each layer's progressions use synthetic/hardcoded inputs rather than outputs from previous layers. We're **not verifying the integration points**:
 
-- Does bathymetry output correctly drive energy field damping?
+- Does depth output correctly drive damping calculation?
+- Does damping output correctly affect energy field propagation?
 - Does energy field state correctly trigger wave breaking?
 - Does breaking energy correctly feed foam accumulation?
 
 A bug in how Layer N passes data to Layer N+1 would go undetected.
+
+> **Note**: See [Plan 155](../model/155-layer-architecture-correction.md) for the corrected layer architecture that inserts the Damping layer and establishes 1:1 story mapping.
 
 ## Options Analysis
 
@@ -47,17 +51,17 @@ Create a new file `tests/visual/integration-strips.spec.ts` with dedicated integ
 
 Modify each layer's progressions to explicitly build on prior layer outputs.
 
-Example: `ENERGY_FIELD_STRIPS` would import `BATHYMETRY_PROGRESSIONS.sandbar` and use it as input rather than hardcoded depth values.
+Example: `ENERGY_FIELD_STRIPS` would import damping from Layer 2, which itself imports depth from Layer 1.
 
 ```typescript
-// energyFieldProgressions.ts
-import { BATHYMETRY_PROGRESSIONS } from './bathymetryProgressions';
+// src/layers/03-energy-field/stories/07-sandbar.ts
+import { PROGRESSION_SANDBAR as DAMPING_SANDBAR } from '../../02-bottom-damping/stories/07-sandbar';
 
-export const PROGRESSION_ENERGY_WITH_SANDBAR = defineProgression({
-  id: 'energy/sandbar-damping',
-  description: 'Energy damping over sandbar bathymetry',
-  // Uses REAL bathymetry output, not synthetic depths
-  bathymetry: BATHYMETRY_PROGRESSIONS.sandbar.snapshots.at(-1),
+export const PROGRESSION_ENERGY_SANDBAR = defineProgression({
+  id: 'energy-field/sandbar',
+  description: 'Energy propagation over sandbar damping profile',
+  // Uses REAL damping grid from Layer 2, derived from Layer 1 depth
+  dampingGrid: DAMPING_SANDBAR.snapshots[0].matrix,
   ...
 });
 ```
@@ -141,18 +145,20 @@ export const ENERGY_FIELD_INTEGRATION_STRIPS = [
 
 ## Implementation Steps
 
-### Phase 1: Infrastructure (Layer 2 - Energy Field)
+### Phase 1: Infrastructure (Layer 2 - Bottom Damping)
 
-1. [ ] Add `BATHYMETRY_OUTPUTS` export from bathymetryProgressions.ts
-   - Export final snapshots in a format energy field can consume
+> **Prerequisite**: Complete [Plan 155](../model/155-layer-architecture-correction.md) layer restructuring first.
 
-1. [ ] Create `PROGRESSION_ENERGY_SANDBAR_INTEGRATION` in energyFieldProgressions.ts
-   - Import and use `BATHYMETRY_OUTPUTS.sandbar`
-   - Verify damping behaves correctly over sandbar profile
+1. [ ] Add `DEPTH_OUTPUTS` export from Layer 1 stories
+   - Export final snapshots in a format damping layer can consume
 
-1. [ ] Add `ENERGY_FIELD_INTEGRATION_STRIPS` array
+1. [ ] Create Layer 2 (Bottom Damping) with stories that import Layer 1 depth
+   - Implement `depthToDamping()` function
+   - Each story computes damping grid from corresponding depth scenario
 
-1. [ ] Update all-strips.spec.ts to optionally include integration strips
+1. [ ] Add `DAMPING_INTEGRATION_STRIPS` array
+
+1. [ ] Update all-strips.spec.ts to include damping layer strips
 
 ### Phase 2: Wave Breaking Integration
 
@@ -171,20 +177,23 @@ export const ENERGY_FIELD_INTEGRATION_STRIPS = [
 ### Phase 4: End-to-End Integration Strip
 
 1. [ ] Create single "full pipeline" progression showing:
-   - Sandbar bathymetry → energy damping → breaking → foam
+   - Sandbar depth → damping → energy → breaking → foam
    - All layers in one filmstrip for visual verification
 
 ## Files Affected
 
-- `src/render/bathymetryProgressions.ts` - Add `BATHYMETRY_OUTPUTS` export
-- `src/state/energyFieldProgressions.ts` - Add integration progressions
-- `src/render/waveBreakingProgressions.ts` - Add integration progressions
-- `src/render/energyTransferProgressions.ts` - Add integration progressions
-- `src/render/foamGridProgressions.ts` - Add integration progressions
-- `src/render/foamDispersionProgressions.ts` - Add integration progressions
-- `src/render/foamContoursProgressions.ts` - Add integration progressions
+> **Note**: Layer renumbering per [Plan 155](../model/155-layer-architecture-correction.md)
+
+- `src/layers/01-bottom-depth/stories/*.ts` - Add depth exports for Layer 2
+- `src/layers/02-bottom-damping/` - NEW: Create damping layer
+- `src/layers/03-energy-field/stories/*.ts` - Import damping, add integration stories
+- `src/layers/05-wave-breaking/stories/*.ts` - Add integration progressions
+- `src/layers/06-energy-transfer/stories/*.ts` - Add integration progressions
+- `src/layers/07-foam-grid/stories/*.ts` - Add integration progressions
+- `src/layers/08-foam-dispersion/stories/*.ts` - Add integration progressions
+- `src/layers/09-foam-contours/stories/*.ts` - Add integration progressions
 - `tests/visual/all-strips.spec.ts` - Include integration strips
-- `stories/09-integration.mdx` - New MDX page for integration docs (optional)
+- `stories/10-integration.mdx` - New MDX page for integration docs (optional)
 
 ## Testing
 
@@ -214,7 +223,8 @@ Each layer needs a **visually distinct** color scale when overlaid. See [referen
 
 | Layer | Color Scale | Why |
 |-------|-------------|-----|
-| Bathymetry | `cividis` | Cool/neutral, distinct from viridis |
+| Bottom Depth | `cividis` | Cool/neutral blues, depth metaphor |
+| Bottom Damping | `YlOrRd` | Warm orange-red, high damping = hot |
 | Energy Field | `viridis` | Purple-cyan-yellow, high perceptual range |
 | Wave Breaking | `inferno` | Warm red-orange, heat metaphor |
 | Foam | `plasma` or grayscale | Distinct hue or simple white |
@@ -224,7 +234,8 @@ Each layer needs a **visually distinct** color scale when overlaid. See [referen
 When multiple layers visible:
 ```typescript
 const LAYER_ALPHA = {
-  bathymetry: 0.5,  // Context layer, semi-transparent
+  depth: 0.4,       // Base context layer
+  damping: 0.5,     // Derived context layer
   energy: 0.8,      // Primary data
   breaking: 0.9,
   foam: 1.0,        // Top layer, opaque
@@ -251,9 +262,10 @@ const LAYER_ALPHA = {
 
 ## Success Criteria
 
-- [ ] At least one integration progression per layer boundary (7 total)
+- [ ] At least one integration progression per layer boundary (8 total with damping layer)
 - [ ] Integration tests catch a simulated interface change (verify by breaking one)
-- [ ] Full pipeline strip shows bathymetry→foam in single visual
+- [ ] Full pipeline strip shows depth→damping→energy→foam in single visual
 - [ ] No import cycles or circular dependencies
 - [ ] Layer toggle UI allows viewing upstream dependencies in stories
 - [ ] Each layer uses a distinct, perceptually-uniform color scale (d3-scale-chromatic)
+- [ ] All 9 bathymetry scenarios flow through damping to energy (1:1 mapping)

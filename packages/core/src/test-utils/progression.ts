@@ -32,7 +32,7 @@ export function defineProgression(config) {
     id,
     description,
     initialMatrix,
-    updateFn,
+    updateFn = null,
     captureTimes = [0, 1, 2, 3, 4, 5],
     renderFn = null,
     metadata = {},
@@ -46,14 +46,11 @@ export function defineProgression(config) {
     throw new Error('defineProgression requires an initialMatrix');
   }
 
-  if (!updateFn) {
-    throw new Error('defineProgression requires an updateFn');
-  }
-
   // Capture snapshots by running the simulation
+  // For static progressions (no updateFn), provide a no-op
   const snapshots = captureSnapshots({
     initialMatrix,
-    updateFn,
+    updateFn: updateFn ?? (() => {}),
     captureTimes,
   });
 

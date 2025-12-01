@@ -12,7 +12,6 @@ export * from './energyFieldModel.js';
 export * from './setLullModel.js';
 export * from './backgroundWaveModel.js';
 export * from './playerProxyModel.js';
-export * from './aiPlayerModel.js';
 export * from './eventStore.js';
 export * from './settingsModel.js';
 export * from './gamePersistence.js';

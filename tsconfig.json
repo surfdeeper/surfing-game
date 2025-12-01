@@ -17,14 +17,14 @@
     "types": ["vite/client", "node"],
     "baseUrl": ".",
     "paths": {
-      "@src/*": ["src/*"],
-      "@stories/*": ["stories/*"],
+      "@src/*": ["packages/core/src/*"],
+      "@stories/*": ["packages/visual-regression-testing-viewer-react-application/src/*"],
       "@surf/core": ["packages/core/src/index.ts"],
       "@surf/core/*": ["packages/core/*"],
-      "@surf/render": ["packages/render/src/index.ts"],
-      "@surf/render/*": ["packages/render/*"]
+      "@surf/game": ["packages/game/src/main.tsx"],
+      "@surf/game/*": ["packages/game/*"]
     }
   },
-  "include": ["src/**/*", "stories/**/*", "tests/**/*", "packages/**/*"],
+  "include": ["stories/**/*", "tests/**/*", "packages/**/*"],
   "exclude": ["node_modules", "dist"]
 }
