@@ -1,15 +1,24 @@
 import { defineStory } from '../../../test-utils';
-import { PROGRESSION_SANDBAR as DEPTH_SANDBAR } from '../../01-bottom-depth/index.js';
+import { PROGRESSION_SANDBAR as DEPTH_PROGRESSION } from '../../01-bottom-depth/index.js';
 import { depthMatrixToDamping } from '../model.js';
-
-const depthMatrix = DEPTH_SANDBAR.snapshots[0].matrix;
-const dampingMatrix = depthMatrixToDamping(depthMatrix);
 
 const story = defineStory({
   id: 'bottom-damping/sandbar',
   title: 'Sandbar Damping',
   prose: 'High damping at sandbar creates secondary wave breaking zone.',
-  initialMatrix: dampingMatrix,
+  initialMatrix: depthMatrixToDamping(DEPTH_PROGRESSION.snapshots[0].matrix),
+  assertInitialAscii: `
+    11111111
+    11111111
+    11111111
+    BBBBBBBB
+    FFFFFFFF
+    EEEEEEEE
+    DDDDDDDD
+    EEEEEEEE
+    FFFFFFFF
+    FFFFFFFF
+  `,
   captureTimes: [0, 1, 2, 3, 4, 5],
   expectedAscii: `
     t=0s      t=1s      t=2s      t=3s      t=4s      t=5s

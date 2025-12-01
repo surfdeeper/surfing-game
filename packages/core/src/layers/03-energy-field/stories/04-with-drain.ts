@@ -2,8 +2,17 @@
  * With Energy Drain (Breaking Simulation)
  */
 import { updateEnergyField, drainEnergyAt } from '../model';
-import { captureWithEvents } from '../../../test-utils';
-import { INITIAL_PULSE, TRAVEL_DURATION, deepWater, SMALL_HEIGHT } from '../shared';
+import { captureWithEvents, asciiToMatrix } from '../../../test-utils';
+import { TRAVEL_DURATION, deepWater, SMALL_HEIGHT } from '../shared';
+
+// TODO: Add energy pulse layer and import from there instead of inline
+const INITIAL_MATRIX = asciiToMatrix(`
+FFFFF
+-----
+-----
+-----
+-----
+-----`);
 
 /**
  * With energy drain (breaking simulation)
@@ -11,7 +20,7 @@ import { INITIAL_PULSE, TRAVEL_DURATION, deepWater, SMALL_HEIGHT } from '../shar
  */
 export const PROGRESSION_WITH_DRAIN = (() => {
   const snapshots = captureWithEvents({
-    initialMatrix: INITIAL_PULSE,
+    initialMatrix: INITIAL_MATRIX,
     captureTimes: [0, 1, 2, 3, 4, 5],
     updateFn: (field, dt) => {
       updateEnergyField(field, deepWater, dt, TRAVEL_DURATION, {
@@ -37,7 +46,7 @@ export const PROGRESSION_WITH_DRAIN = (() => {
   return {
     id: 'energy-field/with-drain',
     description: 'Energy drain at t=1s (breaking simulation) - creates gap in center column',
-    initialMatrix: INITIAL_PULSE,
+    initialMatrix: INITIAL_MATRIX,
     captureTimes: [0, 1, 2, 3, 4, 5],
     snapshots,
     metadata: {

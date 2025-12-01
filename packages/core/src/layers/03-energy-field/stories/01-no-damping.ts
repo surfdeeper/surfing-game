@@ -1,11 +1,26 @@
-import { defineStory } from '../../../test-utils';
-import { updateDeepWaterTranslation, INITIAL_PULSE, TRAVEL_DURATION } from '../shared';
+import { defineStory, asciiToMatrix } from '../../../test-utils';
+import { updateDeepWaterTranslation, TRAVEL_DURATION } from '../shared';
 
 const story = defineStory({
   id: 'energy-field/no-damping',
   title: 'No Damping',
   prose: 'Deep water - energy translates as a sharp horizontal line without spreading.',
-  initialMatrix: INITIAL_PULSE,
+  // TODO: Add energy pulse layer and import from there instead of inline
+  initialMatrix: asciiToMatrix(`
+FFFFF
+-----
+-----
+-----
+-----
+-----`),
+  assertInitialAscii: `
+    FFFFF
+    -----
+    -----
+    -----
+    -----
+    -----
+  `,
   captureTimes: [0, 1, 2, 3, 4, 5],
   updateFn: (field, dt) => {
     updateDeepWaterTranslation(field, dt, TRAVEL_DURATION);

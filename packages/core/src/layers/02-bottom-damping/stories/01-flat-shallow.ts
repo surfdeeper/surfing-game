@@ -1,15 +1,24 @@
 import { defineStory } from '../../../test-utils';
-import { PROGRESSION_FLAT_SHALLOW as DEPTH_FLAT_SHALLOW } from '../../01-bottom-depth/index.js';
+import { PROGRESSION_FLAT_SHALLOW as DEPTH_PROGRESSION } from '../../01-bottom-depth/index.js';
 import { depthMatrixToDamping } from '../model.js';
-
-const depthMatrix = DEPTH_FLAT_SHALLOW.snapshots[0].matrix;
-const dampingMatrix = depthMatrixToDamping(depthMatrix);
 
 const story = defineStory({
   id: 'bottom-damping/flat-shallow',
   title: 'Flat Shallow Damping',
   prose: 'Uniform high damping from shallow depth - waves lose energy quickly everywhere.',
-  initialMatrix: dampingMatrix,
+  initialMatrix: depthMatrixToDamping(DEPTH_PROGRESSION.snapshots[0].matrix),
+  assertInitialAscii: `
+    EEEEEEEE
+    EEEEEEEE
+    EEEEEEEE
+    EEEEEEEE
+    EEEEEEEE
+    EEEEEEEE
+    EEEEEEEE
+    EEEEEEEE
+    EEEEEEEE
+    EEEEEEEE
+  `,
   captureTimes: [0, 1, 2, 3, 4, 5],
   expectedAscii: `
     t=0s      t=1s      t=2s      t=3s      t=4s      t=5s

@@ -1,12 +1,27 @@
-import { defineStory } from '../../../test-utils';
+import { defineStory, asciiToMatrix } from '../../../test-utils';
 import { updateEnergyField } from '../model';
-import { INITIAL_PULSE, TRAVEL_DURATION, shallowGradient } from '../shared';
+import { TRAVEL_DURATION, shallowGradient } from '../shared';
 
 const story = defineStory({
   id: 'energy-field/low-damping',
   title: 'Low Damping',
   prose: 'Low damping - subtle decay near shore.',
-  initialMatrix: INITIAL_PULSE,
+  // TODO: Add energy pulse layer and import from there instead of inline
+  initialMatrix: asciiToMatrix(`
+FFFFF
+-----
+-----
+-----
+-----
+-----`),
+  assertInitialAscii: `
+    FFFFF
+    -----
+    -----
+    -----
+    -----
+    -----
+  `,
   captureTimes: [0, 1, 2, 3, 4, 5],
   updateFn: (field, dt) => {
     updateEnergyField(field, shallowGradient, dt, TRAVEL_DURATION, {

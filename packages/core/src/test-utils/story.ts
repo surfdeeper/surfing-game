@@ -8,13 +8,15 @@
  */
 
 import { defineProgression } from './progression.js';
-import { progressionToAscii } from './asciiMatrix.js';
+import { progressionToAscii, matrixToAscii } from './asciiMatrix.js';
 
 export interface StoryConfig {
   id: string;
   title: string;
   prose: string;
   initialMatrix: number[][];
+  /** Assert the initialMatrix matches this ASCII (catches upstream layer drift) */
+  assertInitialAscii?: string;
   captureTimes?: number[];
   updateFn?: (field: any, dt: number) => void;
   expectedAscii: string;
@@ -37,10 +39,24 @@ export function defineStory(config: StoryConfig): Story {
     title,
     prose,
     initialMatrix,
+    assertInitialAscii,
     captureTimes = [0, 1, 2, 3, 4, 5],
     updateFn,
     expectedAscii,
   } = config;
+
+  // Validate initial matrix matches assertion (catches upstream layer drift)
+  if (assertInitialAscii) {
+    const actualInitialAscii = matrixToAscii(initialMatrix);
+    const normalizedExpected = normalizeAscii(assertInitialAscii);
+    const normalizedActual = normalizeAscii(actualInitialAscii);
+
+    if (normalizedActual !== normalizedExpected) {
+      throw new Error(
+        `Story "${id}" initial matrix mismatch (upstream layer may have changed):\n\nExpected:\n${normalizedExpected}\n\nActual:\n${normalizedActual}`
+      );
+    }
+  }
 
   const progression = defineProgression({
     id,

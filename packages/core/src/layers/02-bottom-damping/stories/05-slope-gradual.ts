@@ -1,15 +1,24 @@
 import { defineStory } from '../../../test-utils';
-import { PROGRESSION_SLOPE_GRADUAL as DEPTH_SLOPE_GRADUAL } from '../../01-bottom-depth/index.js';
+import { PROGRESSION_SLOPE_GRADUAL as DEPTH_PROGRESSION } from '../../01-bottom-depth/index.js';
 import { depthMatrixToDamping } from '../model.js';
-
-const depthMatrix = DEPTH_SLOPE_GRADUAL.snapshots[0].matrix;
-const dampingMatrix = depthMatrixToDamping(depthMatrix);
 
 const story = defineStory({
   id: 'bottom-damping/slope-gradual',
   title: 'Gradual Slope Damping',
   prose: 'Medium damping gradient from deep to shallow.',
-  initialMatrix: dampingMatrix,
+  initialMatrix: depthMatrixToDamping(DEPTH_PROGRESSION.snapshots[0].matrix),
+  assertInitialAscii: `
+    AAAAAAAA
+    BBBBBBBB
+    CCCCCCCC
+    DDDDDDDD
+    DDDDDDDD
+    EEEEEEEE
+    FFFFFFFF
+    FFFFFFFF
+    FFFFFFFF
+    FFFFFFFF
+  `,
   captureTimes: [0, 1, 2, 3, 4, 5],
   expectedAscii: `
     t=0s      t=1s      t=2s      t=3s      t=4s      t=5s
