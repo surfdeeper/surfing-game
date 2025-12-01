@@ -22,7 +22,13 @@
       "@surf/core": ["packages/core/src/index.ts"],
       "@surf/core/*": ["packages/core/*"],
       "@surf/game": ["packages/game/src/main.tsx"],
-      "@surf/game/*": ["packages/game/*"]
+      "@surf/game/*": ["packages/game/*"],
+      "@surf/game-3d": ["packages/game-3d/src/main.ts"],
+      "@surf/game-3d/*": ["packages/game-3d/*"],
+      "@surf/debug-ui": ["packages/debug-ui/src/index.ts"],
+      "@surf/debug-ui/*": ["packages/debug-ui/*"],
+      "@surf/player": ["packages/player/src/index.ts"],
+      "@surf/player/*": ["packages/player/*"]
     }
   },
   "include": ["stories/**/*", "tests/**/*", "packages/**/*"],
