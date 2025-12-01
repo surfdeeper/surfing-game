@@ -10,6 +10,10 @@
   },
   "dependencies": {
     "@surf/core": "*",
+    "@surf/debug-ui": "*",
+    "@surf/player": "*",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
     "three": "^0.170.0"
   },
   "devDependencies": {
