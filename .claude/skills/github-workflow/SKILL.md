@@ -9,6 +9,7 @@ Auto-apply when user mentions:
 - branch, worktree
 - CI, GitHub Actions, workflow
 - check status, failing, passing
+- visual regression CI, baseline update, update-baselines
 
 ## Inspecting CI Failures (Step by Step)
 
@@ -158,9 +159,55 @@ git worktree prune
 | Type errors | Type mismatch | Run `npm run typecheck` locally first |
 | Pre-commit hooks slow | Long running tests | Use `--no-verify` for quick commits, ensure hooks pass in CI |
 
-## Docker Visual Testing in CI
+## Visual Regression CI Workflows
 
-The CI uses Docker for consistent visual regression screenshots:
+The CI uses Docker for consistent visual regression screenshots across all platforms.
+
+### Two Workflows
+
+| Workflow | File | Trigger | Purpose |
+|----------|------|---------|---------|
+| **CI** | `ci.yml` | Push/PR to master | Validates screenshots match baselines |
+| **Update Baselines** | `update-baselines.yml` | Manual | Generates new baselines, auto-commits |
+
+### When PR Fails Visual Regression
+
+**Quick Reference:**
+```bash
+# Option 1: Trigger auto-update workflow
+gh workflow run update-baselines.yml --ref your-branch
+gh run list --workflow=update-baselines.yml --limit=1
+git pull  # Get the auto-committed baselines
+
+# Option 2: Compare locally in Docker
+git checkout main && npm run test:visual:docker
+git checkout your-branch && npm run test:visual:docker
+# Review diffs in tests/visual/results/
+```
+
+### Update Baselines Workflow Details
+
+The `update-baselines.yml` workflow:
+1. Runs visual tests with `--update-snapshots` in Docker (Linux)
+2. Validates baseline count (prevents accidental deletions)
+3. Commits updated PNGs with `[skip ci]` message
+4. Pushes commit to your branch automatically
+5. You review PNG diffs in GitHub PR UI
+
+**Trigger from CLI:**
+```bash
+gh workflow run update-baselines.yml --ref feature/my-branch
+```
+
+**Trigger from GitHub UI:**
+1. Go to Actions → "Update Visual Baselines"
+2. Click "Run workflow"
+3. Select your branch
+4. Click "Run workflow"
+
+### Why Docker is Required
+
+Screenshots differ between operating systems (font rendering, anti-aliasing, etc.). CI runs on Linux, so all baselines **must** be generated in Docker to match.
 
 ```yaml
 # .github/workflows/ci.yml uses:
@@ -169,11 +216,21 @@ run: docker compose run --rm visual-tests
 
 Key points:
 - Uses `docker compose` (v2 syntax) not `docker-compose` (v1)
-- Volumes mount `./stories` and `./tests/visual/results` to persist baselines
+- Volumes mount `./stories` to persist baseline PNGs
 - Reset scripts use `rm -rf dir/*` to avoid "device busy" errors on mount points
+
+### Reviewing Visual Changes in PRs
+
+After baselines are updated:
+1. GitHub automatically renders PNG diffs side-by-side
+2. Review each changed screenshot in the PR "Files changed" tab
+3. Approve if changes are intentional
+4. Request changes if something looks wrong
 
 ## Reference
 
 - [Plan 240: Agentic Workflow Architecture](plans/tooling/240-agentic-workflow-architecture.md)
+- [Plan 241: GitHub Actions CI](plans/tooling/241-github-actions-ci.md)
+- [Plan 242: Auto-Commit Visual Baselines](plans/tooling/242-auto-commit-visual-baselines.md)
 - [Git Worktrees Documentation](https://git-scm.com/docs/git-worktree)
 - [GitHub MCP Server](https://github.com/github/github-mcp-server)

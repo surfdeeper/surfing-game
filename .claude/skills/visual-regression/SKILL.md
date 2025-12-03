@@ -48,13 +48,13 @@ snapshotPathTemplate: 'stories/{testFileDir}/{arg}{ext}',
 # Verify stories compile (fast, no dev server)
 npm run stories:build
 
-# Run visual regression tests
-npm run test:visual:headless      # CI/agents
-npm run test:visual:headed        # Debugging with browser UI
+# Run visual regression tests (Docker - matches CI)
+npm run test:visual:docker        # Recommended: matches CI
+npm run test:visual:docker:update # Update baselines via Docker
 
-# Update baselines after intentional changes
-npm run test:visual:update:headless
-npm run test:visual:update:headed
+# Run visual regression tests (local - may differ from CI)
+npm run test:visual:headless      # Local headless
+npm run test:visual:headed        # Debugging with browser UI
 
 # Clear test artifacts
 npm run reset:visual              # Clear results/reports only
@@ -62,6 +62,70 @@ npm run reset:visual:all          # Clear results + colocated baselines
 
 # Start stories dev server for interactive debugging
 npm run stories                   # Starts on http://localhost:3001
+```
+
+## CI Integration
+
+### Why Docker?
+
+Visual screenshots differ between operating systems (macOS vs Linux font rendering, anti-aliasing, etc.). CI runs on Linux, so **baselines must be generated in Docker** to match.
+
+### GitHub Actions Workflows
+
+| Workflow | Trigger | Purpose |
+|----------|---------|---------|
+| `ci.yml` | Push/PR to master | Validates baselines match |
+| `update-baselines.yml` | Manual (`workflow_dispatch`) | Updates baselines, auto-commits |
+
+### When PR Fails Visual Regression
+
+**Step 1: Understand the Failure**
+```bash
+# Download artifacts from failed CI run (GitHub UI)
+# Or run locally in Docker to see diffs:
+npm run test:visual:docker
+```
+
+**Step 2: Decide - Bug or Intentional Change?**
+
+If **bug** → Fix the code, re-run CI
+If **intentional** → Update baselines (see below)
+
+**Step 3: Update Baselines via GitHub Action**
+```bash
+# Trigger the workflow on your branch
+gh workflow run update-baselines.yml --ref your-branch
+
+# Monitor progress
+gh run list --workflow=update-baselines.yml --limit=1
+
+# Once complete, pull the auto-generated commit
+git pull
+
+# Review the PNG diffs in the GitHub PR UI
+```
+
+The `update-baselines.yml` workflow:
+1. Runs tests with `--update-snapshots` in Docker (Linux)
+2. Validates baseline count (prevents accidental deletions)
+3. Commits updated PNGs with `[skip ci]` tag
+4. Pushes to your branch
+
+**Step 4: Review in PR**
+- GitHub renders PNG diffs side-by-side
+- Review each changed baseline before merging
+
+### Local Comparison Workflow
+
+To compare main vs your branch locally:
+```bash
+git checkout main
+npm run test:visual:docker
+
+git checkout your-branch
+npm run test:visual:docker
+
+# Compare results in tests/visual/results/
 ```
 
 ## Interactive Debugging with Chrome DevTools MCP
